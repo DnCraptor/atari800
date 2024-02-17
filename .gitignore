@@ -10,7 +10,6 @@
 /DOC/Makefile
 /DOC/Makefile.in
 /src/atari800
-/src/config.h
 /src/config.h.in
 /src/android/bin
 /src/android/gen
