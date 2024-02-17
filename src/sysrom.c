@@ -25,11 +25,11 @@
 #include "config.h"
 
 #include <ctype.h>
-#ifdef HAVE_DIRENT_H
-#include <dirent.h>
-#endif
+///#ifdef HAVE_DIRENT_H
+///#include <dirent.h>
+///#endif
 #include <stdarg.h>
-#include <stdio.h>
+///#include <stdio.h>
 #include <string.h>
 
 #include "sysrom.h"
@@ -39,6 +39,8 @@
 #include "log.h"
 #include "memory.h"
 #include "util.h"
+
+#include "ff.h"
 
 #if EMUOS_ALTIRRA
 # include "roms/altirra_5200_os.h"
@@ -281,73 +283,63 @@ static int MatchByName(char const *filename, int len, int only_if_not_set)
 	return -1;
 }
 
-int SYSROM_FindInDir(char const *directory, int only_if_not_set)
-{
-	DIR *dir;
-	struct dirent *entry;
-
+int SYSROM_FindInDir(char const *directory, int only_if_not_set) {
+	DIR dir;
+	FILINFO fileInfo;
 	if (only_if_not_set && num_unset_roms == 0)
 		/* No unset ROM paths left. */
 		return TRUE;
-
-	if ((dir = opendir(directory)) == NULL)
+	if (f_opendir(&dir, directory) != FR_OK)
 		return FALSE;
-
-	while ((entry = readdir(dir)) != NULL) {
+	while (f_readdir(&dir, &fileInfo) == FR_OK && fileInfo.fname[0] != '\0') {
 		char full_filename[FILENAME_MAX];
-		FILE *file;
+		FIL file;
 		int len;
 		int id;
 		ULONG crc;
 		int matched_crc = FALSE;
-		Util_catpath(full_filename, directory, entry->d_name);
-		if ((file = fopen(full_filename, "rb")) == NULL)
+		Util_catpath(full_filename, directory, fileInfo.fname);
+		if (f_open(&file, full_filename, FA_READ) != FR_OK)
 			/* Ignore non-readable files (e.g. directories). */
 			continue;
-
-		len = Util_flen(file);
+		len = Util_flen(&file);
 		/* Don't proceed to CRC computation if the file has invalid size. */
 		if (!IsLengthAllowed(len)){
-			fclose(file);
+			f_close(&file);
 			continue;
 		}
-		Util_rewind(file);
-
-		if (!CRC32_FromFile(file, &crc)) {
-			fclose(file);
+		Util_rewind(&file);
+		if (!CRC32_FromFile(&file, &crc)) {
+			f_close(&file);
 			continue;
 		}
-		fclose(file);
-
+		f_close(&file);
 		/* Match ROM image by CRC. */
 		for (id = 0; id < SYSROM_LOADABLE_SIZE; ++id) {
 			if ((!only_if_not_set || SYSROM_roms[id].unset)
 			    && SYSROM_roms[id].size == len
 			    && SYSROM_roms[id].crc32 != CRC_NULL && SYSROM_roms[id].crc32 == crc) {
-				strcpy(SYSROM_roms[id].filename, full_filename);
+				strncpy(SYSROM_roms[id].filename, full_filename, FILENAME_MAX);
 				ClearUnsetFlag(id);
 				matched_crc = TRUE;
 				break;
 			}
 		}
-
 		if (!matched_crc) {
 			/* Match custom ROM image by name. */
-			char *c = entry->d_name;
+			char *c = fileInfo.fname;
 			while (*c != 0) {
 				*c = (char)tolower(*c);
 				++c;
 			}
-
-			id = MatchByName(entry->d_name, len, only_if_not_set);
-			if (id >= 0){
-				strcpy(SYSROM_roms[id].filename, full_filename);
+			id = MatchByName(fileInfo.fname, len, only_if_not_set);
+			if (id >= 0) {
+				strncpy(SYSROM_roms[id].filename, full_filename, FILENAME_MAX);
 				ClearUnsetFlag(id);
 			}
 		}
 	}
-
-	closedir(dir);
+	f_closedir(&dir);
 	return TRUE;
 }
 

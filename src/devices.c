@@ -50,17 +50,17 @@
 #ifdef HAVE_UNISTD_H
 #include <unistd.h>
 #endif
-#ifdef HAVE_DIRECT_H
+///#ifdef HAVE_DIRECT_H
 /* WIN32 */
-#include <direct.h> /* mkdir, rmdir */
-#endif
+///#include <direct.h> /* mkdir, rmdir */
+///#endif
 /* XXX: <sys/dir.h>, <ndir.h>, <sys/ndir.h> */
-#ifdef HAVE_DIRENT_H
-#include <dirent.h>
-#endif
-#ifdef HAVE_SYS_STAT_H
-#include <sys/stat.h>
-#endif
+///#ifdef HAVE_DIRENT_H
+///#include <dirent.h>
+///#endif
+///#ifdef HAVE_SYS_STAT_H
+///#include <sys/stat.h>
+///#endif
 
 #include "atari.h"
 #include "binload.h"

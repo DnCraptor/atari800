@@ -1,0 +1,7 @@
+{
+    "files.associations": {
+        "videomode.h": "c",
+        "sound.h": "c",
+        "dirent.h": "c"
+    }
+}
