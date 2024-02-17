@@ -140,7 +140,7 @@ int wavWrite()
 	return 0;
 }
 
-int main(int argc, char **argv) {
+int main_TODO3(int argc, char **argv) {
 	input_template_t input;
 	int i;
 	int save_wav = FALSE;

@@ -80,7 +80,7 @@ void __time_critical_func(render_core)() {
 
     __unreachable();
 }
-
+/***
 extern "C"
 int LIBATARI800_Input_Initialise(int *argc, char *argv[])
 {
@@ -125,7 +125,7 @@ Sound_setup_t Sound_desired = {
     0,
     0
 };
-
+***/
 int main() {
     gpio_init(PICO_DEFAULT_LED_PIN);
     gpio_set_dir(PICO_DEFAULT_LED_PIN, GPIO_OUT);

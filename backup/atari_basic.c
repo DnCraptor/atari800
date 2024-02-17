@@ -51,7 +51,7 @@ int PLATFORM_Exit(int run_monitor)
 	return FALSE;
 }
 
-int main(int argc, char **argv)
+int main_B_TODO(int argc, char **argv)
 {
 	/* initialise Atari800 core */
 	if (!Atari800_Initialise(&argc, argv))

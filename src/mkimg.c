@@ -51,7 +51,7 @@ typedef enum {
 	Expect_Data
 } State;
 
-int main(int argc, char *argv[])
+int main_TODO1(int argc, char *argv[])
 {
 	unsigned char image[65536];
 	char *in_filename = NULL;

@@ -22,6 +22,20 @@
    in different case. */
 int Util_chrieq(char c1, char c2);
 
+inline static int stricmp(const char* s1, const char* s2) {
+   size_t l1 = strlen(s1);
+   size_t l2 = strlen(s2);
+   if (l1 > l2) return 1;
+   if (l1 < l2) return -1;
+   for (size_t i = 0; i < l1; ++i) {
+      char c1 = tolower(s1[i]);
+      char c2 = tolower(s2[i]);
+      if (c1 > c2) return 1;
+      if (c2 < c2) return -1;
+   }
+   return 0;
+}
+
 #ifdef __STRICT_ANSI__
 /* Returns a positive integer if str1>str2, negative if str1<str2
  * 0 if str1 == str2, case insensitive */

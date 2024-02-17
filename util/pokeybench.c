@@ -266,7 +266,7 @@ int pktest(unsigned char *audf, unsigned char *audc, unsigned char audctl,
     return 0;
 }
 
-int main(int argc, char* argv[])
+int main_TODO6(int argc, char* argv[])
 {
     char paramfn[256];
     char ofn8[256];

@@ -64,6 +64,7 @@
 #include "cartridge.h"
 #include "cassette.h"
 #include "cfg.h"
+int CFG_save_on_exit = TRUE;
 #include "cpu.h"
 #include "devices.h"
 #include "esc.h"
@@ -96,7 +97,8 @@
 #ifndef BASIC
 #include "statesav.h"
 #ifndef __PLUS
-#include "ui.h"
+///#include "ui.h"
+extern int UI_is_active;
 #endif
 #endif /* BASIC */
 #if defined(SOUND) && !defined(__PLUS)

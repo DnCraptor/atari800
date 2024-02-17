@@ -1,7 +1,7 @@
 #include <stdio.h>
 #define SIZE 10
 /*bdata.c: convert binary file to Atari basic data statements*/
-int main(int argc,char *argv[]){
+int main_TODO5(int argc,char *argv[]){
 	int buf[SIZE];
 	int i;
 	int c;

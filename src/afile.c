@@ -33,7 +33,7 @@
 #include "statesav.h"
 #include "util.h"
 #ifndef BASIC
-#include "ui.h"
+///#include "ui.h"
 #endif /* BASIC */
 #ifdef HAVE_LIBZ
 #include <zlib.h>

@@ -2,6 +2,7 @@
     "files.associations": {
         "videomode.h": "c",
         "sound.h": "c",
-        "dirent.h": "c"
+        "dirent.h": "c",
+        "time.h": "c"
     }
 }

@@ -40,10 +40,12 @@
 #include "screen.h"
 #include "../sound.h"
 #include "util.h"
-#include "videomode.h"
+///#include "videomode.h"
 #include "sio.h"
 #include "cartridge.h"
-#include "ui.h"
+#ifndef BASIC
+///#include "ui.h"
+#endif
 #include "cfg.h"
 #include "libatari800/main.h"
 #include "libatari800/init.h"
@@ -156,8 +158,10 @@ void UI_Run(void) {
 int UI_is_active;
 int UI_alt_function;
 int UI_current_function;
+#ifdef UI
 char UI_atari_files_dir[UI_MAX_DIRECTORIES][FILENAME_MAX];
 char UI_saved_files_dir[UI_MAX_DIRECTORIES][FILENAME_MAX];
+#endif
 int UI_n_atari_files_dir;
 int UI_n_saved_files_dir;
 int UI_show_hidden_files = FALSE;

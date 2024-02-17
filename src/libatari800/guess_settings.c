@@ -379,7 +379,7 @@ int guess_cart_kb(char *pathname, int verbose) {
 	return kb;
 }
 
-int main(int argc, char **argv) {
+int main_TODO2(int argc, char **argv) {
 	input_template_t input;
 	libatari800_clear_input_array(&input);
 

@@ -208,7 +208,7 @@ void predict(char *romfile)
 	list_cartridges_size(len);
 }
 
-int main(int argc, char *argv[])
+int main_TODO4(int argc, char *argv[])
 {
 	int32_t ctype;
 

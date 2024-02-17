@@ -2733,3 +2733,25 @@ void Devices_UpdatePatches(void)
 /*
 vim:ts=4:sw=4:
 */
+
+/// TODO:
+#include <pico/time.h>
+
+double PLATFORM_Time(void) {
+	absolute_time_t at = get_absolute_time();
+	return to_us_since_boot(at) * 1e-3;
+}
+
+void PLATFORM_ConfigInit(void) {
+	/// copy from WinCE, TODO: is it required?
+	/*
+	enable_new_pokey = 0;
+	Screen_visible_x1 = 24;
+	Screen_visible_y1 = 10;
+	Screen_visible_x2 = 344;
+	Screen_visible_y2 = 230;
+	Screen_show_disk_led = 1;
+	Screen_show_sector_counter = 1;
+	Screen_show_atari_speed = 1;
+	*/
+}

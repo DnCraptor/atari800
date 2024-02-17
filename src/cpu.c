@@ -71,7 +71,7 @@
 #ifndef BASIC
 #include "statesav.h"
 #ifndef __PLUS
-#include "ui.h"
+///#include "ui.h"
 #endif
 #endif /* BASIC */
 #endif /* ASAP */

@@ -33,7 +33,9 @@
 #include "pia.h"
 #include "sio.h"
 #include "sysrom.h"
-#include "ui.h"
+#ifndef BASIC
+///#include "ui.h"
+#endif
 #include <stdlib.h>
 
 #ifdef LIBATARI800
