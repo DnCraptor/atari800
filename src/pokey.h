@@ -116,7 +116,9 @@ extern UBYTE POKEY_AUDCTL[POKEY_MAXPOKEYS];		/* AUDCTL (D208) */
 extern int POKEY_DivNIRQ[4], POKEY_DivNMax[4];
 extern int POKEY_Base_mult[POKEY_MAXPOKEYS];	/* selects either 64Khz or 15Khz clock mult */
 
+#include <pico/platform.h>
+
 extern UBYTE POKEY_poly9_lookup[POKEY_POLY9_SIZE];
-extern UBYTE POKEY_poly17_lookup[16385];
+extern const UBYTE __in_flash() __aligned(4096) POKEY_poly17_lookup[16385];
 
 #endif /* POKEY_H_ */
