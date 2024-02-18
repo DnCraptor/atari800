@@ -3,6 +3,9 @@
         "videomode.h": "c",
         "sound.h": "c",
         "dirent.h": "c",
-        "time.h": "c"
+        "time.h": "c",
+        "ataribas_rom.h": "c",
+        "atariosb_rom.h": "c",
+        "atarixl_rom.h": "c"
     }
 }

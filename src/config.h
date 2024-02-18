@@ -13,5 +13,6 @@
 #define LIBATARI800
 #define VOL_ONLY_SOUND 1
 #define PAGED_ATTRIB
+#define EMUOS_ALTIRRA 1
 
 #endif

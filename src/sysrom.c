@@ -504,6 +504,9 @@ void SYSROM_ChooseROMs(int machine_type, int ram_size, int tv_system, int *os_ve
 
 int SYSROM_LoadImage(int id, UBYTE *buffer)
 {
+	if (buffer < 0x20000000) { // it is ROM
+		return TRUE;
+	}
 	if (SYSROM_roms[id].data != NULL) {
 		memcpy(buffer, SYSROM_roms[id].data, SYSROM_roms[id].size);
 		return TRUE;

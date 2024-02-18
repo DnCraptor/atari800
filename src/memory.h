@@ -94,9 +94,14 @@ void MEMORY_ROM_PutByte(UWORD addr, UBYTE byte);
 
 #endif /* PAGED_ATTRIB */
 
-extern UBYTE MEMORY_basic[8192];
-extern UBYTE MEMORY_os[16384];
-extern UBYTE MEMORY_xegame[8192];
+#include <pico/platform.h>
+
+extern const unsigned char __in_flash() __aligned(4096) MEMORY_basic[8192];
+extern const unsigned char __in_flash() __aligned(4096) MEMORY_os[16384];
+extern const unsigned char __in_flash() __aligned(4096) MEMORY_xegame[8192];
+///extern UBYTE MEMORY_basic[8192];
+///extern UBYTE MEMORY_os[16384];
+///extern UBYTE MEMORY_xegame[8192];
 
 extern int MEMORY_xe_bank;
 extern int MEMORY_selftest_enabled;

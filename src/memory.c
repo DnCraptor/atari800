@@ -74,9 +74,12 @@ map_save save_map[2] = {
 
 #endif /* PAGED_ATTRIB */
 
-UBYTE MEMORY_basic[8192];
-UBYTE MEMORY_os[16384];
-UBYTE MEMORY_xegame[8192];
+#include "roms/ATARIBAS_ROM.h"
+#include "roms/ATARIOSB_ROM.h"
+#include "roms/ATARIXL_ROM.h"
+///UBYTE MEMORY_basic[8192];
+///UBYTE MEMORY_os[16384];
+///UBYTE MEMORY_xegame[8192];
 
 int MEMORY_xe_bank = 0;
 int MEMORY_selftest_enabled = 0;
@@ -396,15 +399,14 @@ void MEMORY_StateSave(UBYTE SaveVerbose)
 #endif
 
 	if (Atari800_machine_type == Atari800_MACHINE_XLXE) {
-		if (SaveVerbose != 0)
-			StateSav_SaveUBYTE(&MEMORY_basic[0], 8192);
+	///	if (SaveVerbose != 0)
+	///		StateSav_SaveUBYTE(&MEMORY_basic[0], 8192);
 		StateSav_SaveUBYTE(&under_cartA0BF[0], 8192);
-
-		if (SaveVerbose != 0)
-			StateSav_SaveUBYTE(&MEMORY_os[0], 16384);
+	///	if (SaveVerbose != 0)
+	///		StateSav_SaveUBYTE(&MEMORY_os[0], 16384);
 		StateSav_SaveUBYTE(&under_atarixl_os[0], 16384);
-		if (SaveVerbose != 0)
-			StateSav_SaveUBYTE(MEMORY_xegame, 0x2000);
+	///	if (SaveVerbose != 0)
+	///		StateSav_SaveUBYTE(MEMORY_xegame, 0x2000);
 	}
 
 	/* Save amount of XE RAM in 16KB banks. */
@@ -577,15 +579,14 @@ void MEMORY_StateRead(UBYTE SaveVerbose, UBYTE StateVersion)
 #endif
 
 	if (Atari800_machine_type == Atari800_MACHINE_XLXE) {
-		if (SaveVerbose)
-			StateSav_ReadUBYTE(&MEMORY_basic[0], 8192);
+	///	if (SaveVerbose)
+	///		StateSav_ReadUBYTE(&MEMORY_basic[0], 8192);
 		StateSav_ReadUBYTE(&under_cartA0BF[0], 8192);
-
-		if (SaveVerbose)
-			StateSav_ReadUBYTE(&MEMORY_os[0], 16384);
+	///	if (SaveVerbose)
+	///		StateSav_ReadUBYTE(&MEMORY_os[0], 16384);
 		StateSav_ReadUBYTE(&under_atarixl_os[0], 16384);
-		if (StateVersion >= 7 && SaveVerbose)
-			StateSav_ReadUBYTE(MEMORY_xegame, 0x2000);
+	///	if (StateVersion >= 7 && SaveVerbose)
+	///		StateSav_ReadUBYTE(MEMORY_xegame, 0x2000);
 	}
 
 	if (StateVersion >= 7) {

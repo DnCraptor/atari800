@@ -311,7 +311,8 @@ static int load_roms(void)
 	}
 	else if (Atari800_machine_type != Atari800_MACHINE_5200) {
 		/* OS ROM found, try loading BASIC. */
-		MEMORY_have_basic = basic_ver != -1 && SYSROM_LoadImage(basic_ver, MEMORY_basic);
+		//// TODO: ensure
+	///	MEMORY_have_basic = basic_ver != -1 && SYSROM_LoadImage(basic_ver, MEMORY_basic);
 		if (!MEMORY_have_basic)
 			/* Missing BASIC ROM. Don't fail when it happens. */
 			Atari800_builtin_basic = FALSE;
