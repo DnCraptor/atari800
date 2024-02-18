@@ -202,10 +202,12 @@ int main() {
     int frame = 0;
     char tmp[255];
     // Uncomment if we reach this line
-    // graphics_set_buffer(libatari800_get_screen_ptr(), 384, 240);
-    // graphics_set_mode(GRAPHICSMODE_DEFAULT);
+    printf("libatari800_get_screen_ptr");
+    graphics_set_buffer(libatari800_get_screen_ptr(), 384, 240);
+    printf("GRAPHICSMODE_DEFAULT");
+    graphics_set_mode(GRAPHICSMODE_DEFAULT);
     bool blinker = true;
-    gpio_put(PICO_DEFAULT_LED_PIN, blinker);
+    // gpio_put(PICO_DEFAULT_LED_PIN, blinker);
     while(true) {
         libatari800_get_current_state(&state);
         cpu = (cpu_state_t *)&state.state[state.tags.cpu];  /* order: A,SR,SP,X,Y */
@@ -214,7 +216,7 @@ int main() {
         draw_text(tmp, 0, 0, 15, 0);
         libatari800_next_frame(&input);
         blinker = ~blinker;
-        gpio_put(PICO_DEFAULT_LED_PIN, blinker);
+        // gpio_put(PICO_DEFAULT_LED_PIN, blinker);
     }
 
     __unreachable();

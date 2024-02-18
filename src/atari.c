@@ -772,7 +772,7 @@ int Atari800_Initialise(int *argc, char *argv[])
 			return FALSE;
 	}
 #endif /* SDL */
-printf("4");
+
 	if (!SYSROM_Initialise(argc, argv)
 #if !defined(BASIC) && !defined(CURSES_BASIC)
 		|| !Colours_Initialise(argc, argv)
@@ -816,7 +816,7 @@ printf("4");
 		|| !PLATFORM_Initialise(argc, argv)
 #endif
 #if !defined(BASIC) && !defined(CURSES_BASIC)
-		|| !Screen_Initialise(argc, argv)
+///		|| !Screen_Initialise(argc, argv) /////// TODO: ???
 ///		|| !UI_Initialise(argc, argv)
 #if defined(AUDIO_RECORDING) || defined(VIDEO_RECORDING)
 		|| !File_Export_Initialise(argc, argv)
@@ -831,7 +831,7 @@ printf("4");
 		Atari800_ErrExit();
 		return FALSE;
 	}
-printf("5");
+
 #ifndef __PLUS
 
 	if (help_only) {
@@ -847,7 +847,7 @@ printf("5");
 	}
 #endif
 #endif
-printf("6");
+
 	/* Configure Atari System */
 	Atari800_InitialiseMachine();
 #else /* __PLUS */
@@ -861,7 +861,7 @@ printf("6");
 	}
 
 #endif /* __PLUS */
-printf("7");
+
 	/* Auto-start files left on the command line */
 	j = 1; /* diskno */
 	for (i = 1; i < *argc; i++) {
@@ -897,7 +897,7 @@ printf("7");
 		UI_is_active = FALSE;
 #endif /* BASIC */
 	}
-printf("8");
+
 	/* Install requested second ROM cartridge, if first is SpartaX */
 	if (CARTRIDGE_piggyback.type == CARTRIDGE_UNKNOWN) {
 #ifdef BASIC
@@ -918,7 +918,7 @@ printf("8");
 	/* Load Atari executable, if any */
 	if (run_direct != NULL)
 		BINLOAD_Loader(run_direct);
-printf("9");
+
 #ifndef BASIC
 	/* Load state file */
 	if (state_file != NULL) {
@@ -927,7 +927,7 @@ printf("9");
 			GTIA_consol_override = 0;
 	}
 #endif
-printf("10");
+
 #ifdef CTRL_C_HANDLER
 	/* Install CTRL-C Handler */
 	signal(SIGINT, sigint_handler);
@@ -962,7 +962,7 @@ printf("10");
 				Sound_Continue();
 	}
 #endif /* defined (SOUND) && defined(SOUND_THIN_API) */
-printf("1111");
+
 	return TRUE;
 }
 
