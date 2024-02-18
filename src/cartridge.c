@@ -1864,6 +1864,7 @@ static void InitInsert(CARTRIDGE_image_t *cart)
 
 int CARTRIDGE_Initialise(int *argc, char *argv[])
 {
+	printf("CARTRIDGE_Initialise");
 	int i;
 	int j;
 	int help_only = FALSE;

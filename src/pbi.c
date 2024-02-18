@@ -72,6 +72,7 @@ int PBI_IRQ = 0;
 
 int PBI_Initialise(int *argc, char *argv[])
 {
+	printf("PBI_Initialise");
 	return TRUE
 #ifdef PBI_XLD
 		&& PBI_XLD_Initialise(argc, argv)

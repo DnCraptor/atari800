@@ -164,6 +164,7 @@ void ARTIFACT_WriteConfig(FIL *fp)
 
 int ARTIFACT_Initialise(int *argc, char *argv[])
 {
+	printf("ARTIFACT_Initialise");
 	int i;
 	int j;
 

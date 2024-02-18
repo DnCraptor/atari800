@@ -141,6 +141,7 @@ static char gzbuf[GZBUFSIZE+1];
 
 int INPUT_Initialise(int *argc, char *argv[])
 {
+	printf("INPUT_Initialise");
 	int i;
 	int j;
 

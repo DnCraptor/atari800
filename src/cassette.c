@@ -118,6 +118,7 @@ void CASSETTE_WriteConfig(FIL *fp)
 
 int CASSETTE_Initialise(int *argc, char *argv[])
 {
+	printf("CASSETTE_Initialise");
 	int i;
 	int j;
 	int protect = FALSE; /* Is write-protect requested in command line? */

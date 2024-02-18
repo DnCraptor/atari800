@@ -182,6 +182,7 @@ int ignore_header_writeprotect = FALSE;
 
 int SIO_Initialise(int *argc, char *argv[])
 {
+	printf("SIO_Initialise");
 	int i;
 	for (i = 0; i < SIO_MAX_DRIVES; i++) {
 		strcpy(SIO_filename[i], "Off");

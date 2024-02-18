@@ -280,6 +280,7 @@ void Colours_WriteConfig(FIL *fp)
 
 int Colours_Initialise(int *argc, char *argv[])
 {
+	printf("Colours_Initialise");
 	int i;
 	int j;
 

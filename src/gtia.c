@@ -223,6 +223,7 @@ static void setup_gtia9_11(void) {
 
 int GTIA_Initialise(int *argc, char *argv[])
 {
+	printf("GTIA_Initialise");
 #if !defined(BASIC) && !defined(CURSES_BASIC)
 	int i;
 	for (i = 0; i < 256; i++) {

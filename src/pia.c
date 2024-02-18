@@ -57,6 +57,7 @@ int PIA_IRQ = 0;
 
 int PIA_Initialise(int *argc, char *argv[])
 {
+	printf("PIA_Initialise");
 	PIA_PACTL = 0x3f;
 	PIA_PBCTL = 0x3f;
 	PIA_PORTA = 0xff;

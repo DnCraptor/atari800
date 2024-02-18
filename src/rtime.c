@@ -67,6 +67,7 @@ void RTIME_WriteConfig(FIL *fp)
 
 int RTIME_Initialise(int *argc, char *argv[])
 {
+	printf("RTIME_Initialise");
 	int i;
 	int j;
 	for (i = j = 1; i < *argc; i++) {

@@ -948,6 +948,7 @@ static void setup_art_colours(void)
 
 int ANTIC_Initialise(int *argc, char *argv[])
 {
+	printf("ANTIC_Initialise");
 #if !defined(BASIC) && !defined(CURSES_BASIC)
 	int i, j;
 

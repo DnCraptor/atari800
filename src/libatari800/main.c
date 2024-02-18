@@ -77,6 +77,7 @@ void PLATFORM_ConfigSave(FIL *fp)
 
 int PLATFORM_Initialise(int *argc, char *argv[])
 {
+	printf("PLATFORM_Initialise");
 	int i, j;
 	int help_only = FALSE;
 

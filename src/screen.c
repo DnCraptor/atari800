@@ -86,6 +86,7 @@ int Screen_show_multimedia_stats = TRUE;
 
 int Screen_Initialise(int *argc, char *argv[])
 {
+	printf("Screen_Initialise");
 	int i;
 	int j;
 	int help_only = FALSE;

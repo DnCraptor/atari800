@@ -611,6 +611,7 @@ void SYSROM_WriteConfig(FIL *fp)
 
 int SYSROM_Initialise(int *argc, char *argv[])
 {
+	printf("SYSROM_Initialise");
 	int i;
 	int j;
 

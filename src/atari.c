@@ -754,6 +754,7 @@ int Atari800_Initialise(int *argc, char *argv[])
 			}
 		}
 	}
+
 	if (MEMORY_mosaic_num_banks > 0 && MEMORY_axlon_num_banks > 0) {
 		Log_print("Axlon and Mosaic RAM can not both be enabled, because they are incompatible");
 		return FALSE;
@@ -771,7 +772,7 @@ int Atari800_Initialise(int *argc, char *argv[])
 			return FALSE;
 	}
 #endif /* SDL */
-
+printf("4");
 	if (!SYSROM_Initialise(argc, argv)
 #if !defined(BASIC) && !defined(CURSES_BASIC)
 		|| !Colours_Initialise(argc, argv)
@@ -816,7 +817,7 @@ int Atari800_Initialise(int *argc, char *argv[])
 #endif
 #if !defined(BASIC) && !defined(CURSES_BASIC)
 		|| !Screen_Initialise(argc, argv)
-		|| !UI_Initialise(argc, argv)
+///		|| !UI_Initialise(argc, argv)
 #if defined(AUDIO_RECORDING) || defined(VIDEO_RECORDING)
 		|| !File_Export_Initialise(argc, argv)
 #endif
@@ -830,7 +831,7 @@ int Atari800_Initialise(int *argc, char *argv[])
 		Atari800_ErrExit();
 		return FALSE;
 	}
-
+printf("5");
 #ifndef __PLUS
 
 	if (help_only) {
@@ -846,6 +847,7 @@ int Atari800_Initialise(int *argc, char *argv[])
 	}
 #endif
 #endif
+printf("6");
 	/* Configure Atari System */
 	Atari800_InitialiseMachine();
 #else /* __PLUS */
@@ -859,7 +861,7 @@ int Atari800_Initialise(int *argc, char *argv[])
 	}
 
 #endif /* __PLUS */
-
+printf("7");
 	/* Auto-start files left on the command line */
 	j = 1; /* diskno */
 	for (i = 1; i < *argc; i++) {
@@ -895,7 +897,7 @@ int Atari800_Initialise(int *argc, char *argv[])
 		UI_is_active = FALSE;
 #endif /* BASIC */
 	}
-
+printf("8");
 	/* Install requested second ROM cartridge, if first is SpartaX */
 	if (CARTRIDGE_piggyback.type == CARTRIDGE_UNKNOWN) {
 #ifdef BASIC
@@ -916,7 +918,7 @@ int Atari800_Initialise(int *argc, char *argv[])
 	/* Load Atari executable, if any */
 	if (run_direct != NULL)
 		BINLOAD_Loader(run_direct);
-
+printf("9");
 #ifndef BASIC
 	/* Load state file */
 	if (state_file != NULL) {
@@ -925,7 +927,7 @@ int Atari800_Initialise(int *argc, char *argv[])
 			GTIA_consol_override = 0;
 	}
 #endif
-
+printf("10");
 #ifdef CTRL_C_HANDLER
 	/* Install CTRL-C Handler */
 	signal(SIGINT, sigint_handler);
@@ -960,7 +962,7 @@ int Atari800_Initialise(int *argc, char *argv[])
 				Sound_Continue();
 	}
 #endif /* defined (SOUND) && defined(SOUND_THIN_API) */
-
+printf("1111");
 	return TRUE;
 }
 
@@ -1062,6 +1064,7 @@ int Atari800_Exit(int run_monitor)
 
 void Atari800_ErrExit(void)
 {
+	printf("Atari800_ErrExit");
 	CFG_save_on_exit = FALSE; /* avoid saving the config */
 	Atari800_Exit(FALSE);
 }

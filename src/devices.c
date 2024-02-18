@@ -581,6 +581,7 @@ static void Devices_H_Init(void)
 
 int Devices_Initialise(int *argc, char *argv[])
 {
+	printf("Devices_Initialise");
 	int i;
 	int j;
 	for (i = j = 1; i < *argc; i++) {

@@ -1398,6 +1398,7 @@ void POKEY_PutByte(UWORD addr, UBYTE byte)
 
 int POKEY_Initialise(int *argc, char *argv[])
 {
+	printf("POKEY_Initialise");
 	int i;
 	ULONG reg;
 
