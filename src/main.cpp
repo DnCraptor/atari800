@@ -19,6 +19,7 @@ extern "C" {
 #include "akey.h"
 #include "memory.h"
 #include "ff.h"
+#include "debug.h"
 }
 
 #include "nespad.h"
@@ -129,6 +130,7 @@ Sound_setup_t Sound_desired = {
 };
 ***/
 int main() {
+    printf("main");
     gpio_init(PICO_DEFAULT_LED_PIN);
     gpio_set_dir(PICO_DEFAULT_LED_PIN, GPIO_OUT);
 
@@ -145,6 +147,7 @@ int main() {
 
     // F12 Boot to USB FIRMWARE UPDATE mode
     if (nespad_state & DPAD_START || input == 0x58) {
+        printf("reset_usb_boot");
         reset_usb_boot(0, 0);
     }
 
@@ -161,29 +164,30 @@ int main() {
         NULL,
     };
 
+    printf("libatari800_init");
     libatari800_init(-1, test_args);
+    printf("libatari800_clear_input_array");
     libatari800_clear_input_array(&input);
-
 
     emulator_state_t state;
     cpu_state_t *cpu;
 
-
     int frame = 0;
     char tmp[255];
-
-
     // Uncomment if we reach this line
     // graphics_set_buffer(libatari800_get_screen_ptr(), 384, 240);
     // graphics_set_mode(GRAPHICSMODE_DEFAULT);
-
+    bool blinker = true;
+    gpio_put(PICO_DEFAULT_LED_PIN, blinker);
     while(true) {
         libatari800_get_current_state(&state);
         cpu = (cpu_state_t *)&state.state[state.tags.cpu];  /* order: A,SR,SP,X,Y */
         snprintf(tmp, 255, "frame %d: A=%02x X=%02x Y=%02x SP=%02x SR=%02x\n", frame++, cpu->A, cpu->X, cpu->Y, cpu->P, cpu->S);
+        printf(tmp);
         draw_text(tmp, 0, 0, 15, 0);
         libatari800_next_frame(&input);
-
+        blinker = ~blinker;
+        gpio_put(PICO_DEFAULT_LED_PIN, blinker);
     }
 
     __unreachable();
