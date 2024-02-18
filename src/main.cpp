@@ -129,8 +129,32 @@ Sound_setup_t Sound_desired = {
     0
 };
 ***/
+#include "f_util.h"
+static FATFS fatfs;
+static void init_fs() {
+    FRESULT result = f_mount(&fatfs, "", 1);
+    if (FR_OK != result) {
+        printf("Unable to mount SD-card: %s (%d)", FRESULT_str(result), result);
+    } else {
+  ///      SD_CARD_AVAILABLE = true;
+    }
+
+  ////  if (SD_CARD_AVAILABLE) {
+///        DIR dir;
+///        if (f_opendir(&dir, "\\BK") != FR_OK) {
+///            f_mkdir("\\BK");
+///        } else {
+///            f_closedir(&dir);
+///        }
+    //    insertdisk(0, fdd0_sz(), fdd0_rom(), "\\BK\\fdd0.img");
+    //    insertdisk(1, fdd1_sz(), fdd1_rom(), "\\BK\\fdd1.img"); // TODO: why not attached?
+    //    insertdisk(2, 819200, 0, "\\BK\\hdd0.img");
+    //    insertdisk(3, 819200, 0, "\\BK\\hdd1.img"); // TODO: why not attached?
+///        read_config("\\.conf");
+   /// }
+}
+
 int main() {
-    printf("main");
     gpio_init(PICO_DEFAULT_LED_PIN);
     gpio_set_dir(PICO_DEFAULT_LED_PIN, GPIO_OUT);
 
@@ -144,6 +168,9 @@ int main() {
 
     nespad_read();
     sleep_ms(50);
+
+    init_fs();
+    printf("main: init_fs passed");
 
     // F12 Boot to USB FIRMWARE UPDATE mode
     if (nespad_state & DPAD_START || input == 0x58) {
