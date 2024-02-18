@@ -255,6 +255,7 @@ int Colours_Save(const char *filename) {
 
 void Colours_PreInitialise(void)
 {
+	printf("Colours_PreInitialise");
 	/* Copy the default setup for both NTSC and PAL. */
 	COLOURS_NTSC_setup = COLOURS_PAL_setup = presets[COLOURS_PRESET_STANDARD];
 	COLOURS_NTSC_RestoreDefaults();

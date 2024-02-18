@@ -9,6 +9,7 @@
         "atarixl_rom.h": "c",
         "atari.h": "c",
         "ff.h": "c",
-        "string.h": "c"
+        "string.h": "c",
+        "config.h": "c"
     }
 }

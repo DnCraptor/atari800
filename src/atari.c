@@ -348,6 +348,7 @@ int Atari800_InitialiseMachine(void)
 /* Initialise any modules before loading the config file. */
 static void PreInitialise(void)
 {
+	printf("PreInitialise");
 #if !defined(BASIC) && !defined(CURSES_BASIC)
 	Colours_PreInitialise();
 #endif
@@ -358,6 +359,7 @@ static void PreInitialise(void)
 
 int Atari800_Initialise(int *argc, char *argv[])
 {
+	printf("Atari800_Initialise");
 	int i, j;
 	const char *run_direct = NULL;
 #ifndef BASIC

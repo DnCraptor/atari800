@@ -863,9 +863,9 @@ static void get_uword(UWORD *val)
 static void get_ubyte(UBYTE *val)
 {
 	UWORD uword;
-	if (!get_hex(&uword) || uword > 0xff)
+	if (!get_hex(&uword) || uword > 0xff) {
 		printf("Invalid argument!\n");
-	else
+	} else
 		*val = (UBYTE) uword;
 }
 
@@ -1591,14 +1591,15 @@ static void step_over(void)
 static void monitor_bline(void)
 {
 	get_dec(&ANTIC_break_ypos);
-	if (ANTIC_break_ypos >= 1008 && ANTIC_break_ypos <= 1247)
+	if (ANTIC_break_ypos >= 1008 && ANTIC_break_ypos <= 1247) {
 		printf("Blinking scanline %d\n", ANTIC_break_ypos - 1000);
 #ifdef MONITOR_BREAK
 	else if (ANTIC_break_ypos >= 0 && ANTIC_break_ypos <= 311)
 		printf("Breakpoint set at scanline %d\n", ANTIC_break_ypos);
 #endif
-	else
+	} else {
 		printf("BLINE disabled\n");
+	}
 }
 #endif
 
@@ -2360,10 +2361,11 @@ static void monitor_write_to_file(void)
 		printf("Wrote %04X bytes to %s file '%s'",
 				(unsigned int)wbytes, xex ? "XEX" : "RAW", filename);
 		if(xex) {
-			if(!have_runaddr)
+			if(!have_runaddr) {
 				printf(" (no run address)");
-			else
+			} else {
 				printf(", run address %04x", runaddr);
+			}
 		}
 		putchar('\n');
 	} else {
@@ -4071,12 +4073,14 @@ int MONITOR_Run(void)
 			return FALSE;
 		} else if(t[0] == '*' || t[0] == '@') {
 			UWORD val;
-			if(parse_hex(t, &val))
+			if(parse_hex(t, &val)) {
 				printf("%s = $%04x\n", t, val);
-			else
+			} else {
 				printf("Invalid dereference\n");
-		} else
+			}
+		} else {
 			printf("Invalid command!\n");
+		}
 	}
 }
 

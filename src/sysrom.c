@@ -286,13 +286,18 @@ static int MatchByName(char const *filename, int len, int only_if_not_set)
 }
 
 int SYSROM_FindInDir(char const *directory, int only_if_not_set) {
+	printf("SYSROM_FindInDir(\"%s\", %d)", directory, only_if_not_set);
 	DIR dir;
 	FILINFO fileInfo;
-	if (only_if_not_set && num_unset_roms == 0)
+	if (only_if_not_set && num_unset_roms == 0) {
+		printf("SYSROM_FindInDir(\"%s\", %d) num_unset_roms: %d", directory, only_if_not_set, num_unset_roms);
 		/* No unset ROM paths left. */
 		return TRUE;
-	if (f_opendir(&dir, directory) != FR_OK)
+	}
+	if (f_opendir(&dir, directory) != FR_OK) {
+		printf("SYSROM_FindInDir(\"%s\", %d) FAILED", directory, only_if_not_set);
 		return FALSE;
+	}
 	while (f_readdir(&dir, &fileInfo) == FR_OK && fileInfo.fname[0] != '\0') {
 		char full_filename[FILENAME_MAX];
 		FIL file;
@@ -342,6 +347,7 @@ int SYSROM_FindInDir(char const *directory, int only_if_not_set) {
 		}
 	}
 	f_closedir(&dir);
+	printf("SYSROM_FindInDir(\"%s\", %d) PASSED", directory, only_if_not_set);
 	return TRUE;
 }
 

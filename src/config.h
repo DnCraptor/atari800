@@ -16,4 +16,6 @@
 #define EMUOS_ALTIRRA 1
 #define SUPPORTS_PLATFORM_SLEEP 1
 
+#include "debug.h"
+
 #endif

@@ -111,12 +111,12 @@ int libatari800_init(int argc, char **argv) {
 	else {
 		argv_ptr = argv;
 	}
-
 	CPU_cim_encountered = 0;
 	libatari800_error_code = 0;
 	Atari800_nframes = 0;
 	MEMORY_selftest_enabled = 0;
 	status = Atari800_Initialise(&argc, argv_ptr);
+	printf("Atari800_Initialise returns %d", status);
 	if (status) {
 		Log_flushlog();
 	}

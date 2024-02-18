@@ -14,4 +14,5 @@ int CFG_MatchTextParameter(char const *param, char const * const cfg_strings[], 
 
 int CFG_LoadConfig(const char *alternate_config_filename) {
     /// TODO:
+	return 1;
 }

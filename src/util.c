@@ -621,13 +621,14 @@ void Util_sleep(double s)
 
 char *Util_getcwd(char *buf, size_t size)
 {
+	printf("Util_getcwd");
 #ifdef HAVE_GETCWD
 	if (getcwd(buf, size) == NULL) {
 		buf[0] = '.';
 		buf[1] = '\0';
 	}
 #else
-	buf[0] = '.';
+	buf[0] = '\\';
 	buf[1] = '\0';
 #endif
 	return buf;

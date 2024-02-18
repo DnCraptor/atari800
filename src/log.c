@@ -32,6 +32,7 @@
 #endif
 
 #include "log.h"
+#include "debug.h"
 
 #ifdef MACOSX
 #  define PRINT(a) ControlManagerMessagePrint(a)
@@ -48,11 +49,12 @@ char Log_buffer[Log_BUFFER_SIZE];
 void Log_print(const char *format, ...)
 {
 	va_list args;
-	char buffer[8192];
+	printf(format, args);
+/**	char buffer[8192];
 
 	va_start(args, format);
 #ifdef HAVE_VSNPRINTF
-	vsnprintf(buffer, sizeof(buffer) - 2 /* -2 for the strcat() */, format, args);
+	vsnprintf(buffer, sizeof(buffer) - 2 /* -2 for the strcat() * /, format, args);
 #else
 	vsprintf(buffer, format, args);
 #endif
@@ -71,7 +73,8 @@ void Log_print(const char *format, ...)
 	strcat(Log_buffer, buffer);
 #else
 	PRINT(buffer);
-#endif
+#endif 
+*/
 }
 
 void Log_flushlog(void)
