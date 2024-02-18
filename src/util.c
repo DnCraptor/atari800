@@ -300,6 +300,7 @@ double Util_round(double x)
 
 void *Util_malloc(size_t size)
 {
+	printf("Util_malloc(%d)", size);
 	void *ptr = malloc(size);
 	if (ptr == NULL) {
 		Atari800_ErrExit();
@@ -311,6 +312,7 @@ void *Util_malloc(size_t size)
 
 void *Util_realloc(void *ptr, size_t size)
 {
+	printf("Util_realloc(%d)", size);
 	ptr = realloc(ptr, size);
 	if (ptr == NULL) {
 		Atari800_ErrExit();
