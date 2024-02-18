@@ -25,7 +25,6 @@
 #define _POSIX_C_SOURCE 200112L /* for vsnprintf */
 
 #include "config.h"
-#include <stdio.h>
 #include <stdarg.h>
 #include <string.h>
 #ifdef ANDROID

@@ -32,8 +32,6 @@ uint16_t read16psram(uint32_t addr32) {
     return psram_read16(&psram_spi, addr32);
 }
 
-#include <stdio.h>
-
 #if defined(PSRAM_ASYNC) && defined(PSRAM_ASYNC_SYNCHRONIZE)
 void __isr psram_dma_complete_handler() {
 #if PSRAM_ASYNC_DMA_IRQ == 0

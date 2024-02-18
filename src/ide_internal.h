@@ -12,14 +12,16 @@ struct ide_device;
 
 typedef void EndTransferFunc(struct ide_device *);
 
+#include "ff.h"
+
 struct ide_device {
     int bus_status;
     int bus_unit;
 
     int is_cdrom, is_cf;
 
-    FILE *file;
-    off_t filesize;
+    FIL file;
+    size_t filesize;
     int blocksize;
 
     int cylinders, heads, sectors;

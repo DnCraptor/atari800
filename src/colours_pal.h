@@ -19,7 +19,7 @@ void COLOURS_PAL_RestoreDefaults(void);
 
 /* Read/write to configuration file. */
 int COLOURS_PAL_ReadConfig(char *option, char *ptr);
-void COLOURS_PAL_WriteConfig(FILE *fp);
+void COLOURS_PAL_WriteConfig(FIL *fp);
 
 /* PAL Colours initialisation and processing of command-line arguments. */
 int COLOURS_PAL_Initialise(int *argc, char *argv[]);

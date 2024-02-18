@@ -245,7 +245,7 @@ int COLOURS_NTSC_ReadConfig(char *option, char *ptr)
 	return TRUE;
 }
 
-void COLOURS_NTSC_WriteConfig(FILE *fp)
+void COLOURS_NTSC_WriteConfig(FIL *fp)
 {
 	fprintf(fp, "COLOURS_NTSC_SATURATION=%g\n", COLOURS_NTSC_setup.saturation);
 	fprintf(fp, "COLOURS_NTSC_CONTRAST=%g\n", COLOURS_NTSC_setup.contrast);

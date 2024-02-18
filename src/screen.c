@@ -25,7 +25,6 @@
 #define _POSIX_C_SOURCE 200112L /* for snprintf */
 
 #include "config.h"
-#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -181,7 +180,7 @@ int Screen_ReadConfig(char *string, char *ptr)
 	return TRUE;
 }
 
-void Screen_WriteConfig(FILE *fp)
+void Screen_WriteConfig(FIL *fp)
 {
 	fprintf(fp, "SCREEN_SHOW_SPEED=%d\n", Screen_show_atari_speed);
 	fprintf(fp, "SCREEN_SHOW_IO_ACTIVITY=%d\n", Screen_show_disk_led);

@@ -49,10 +49,12 @@
 /* allow non-ansi fseek/ftell functions */
 #ifdef __STRICT_ANSI__
 #  undef __STRICT_ANSI__
-#  include <stdio.h>
+
 #  define __STRICT_ANSI__ 1
 #else
-#  include <stdio.h>
+///#  include <stdio.h>
+#include "ff.h"
+
 #endif
 #include "ide.h"
 #include "atari.h"
@@ -207,15 +209,12 @@ static void ide_reset(struct ide_device *s) {
 }
 
 static int ide_init_drive(struct ide_device *s, char *filename) {
-    if (!(s->file = fopen(filename, "rb+"))) {
+    if (f_open(&s->file, filename, FA_READ) != FR_OK) {
         Log_print("%s: %s", filename, strerror(errno));
         return FALSE;
     }
-
     s->blocksize = SECTOR_SIZE;
-
-    fseeko(s->file, 0, SEEK_END);
-    s->filesize = ftello(s->file);
+    s->filesize = f_size(&s->file);
 
     if (IDE_debug)
         fprintf(stderr, "ide: filesize: %"PRId64"\n", (int64_t)s->filesize);
@@ -234,7 +233,7 @@ static int ide_init_drive(struct ide_device *s, char *filename) {
         s->cylinders = 16383;
     else if (s->cylinders < 2) {
         Log_print("%s: image file too small\n", filename);
-        fclose(s->file);
+        f_close(&s->file);
         return FALSE;
     }
 
@@ -250,7 +249,6 @@ static int ide_init_drive(struct ide_device *s, char *filename) {
             "QM%05d", s->drive_serial);
 
     ide_reset(s);
-
     return TRUE;
 }
 
@@ -396,9 +394,10 @@ static void ide_sector_read(struct ide_device *s) {
         if (n > s->req_nb_sectors)
             n = s->req_nb_sectors;
 
-        if (fseeko(s->file, sector_num * SECTOR_SIZE, SEEK_SET) < 0)
+        if (f_lseek(&s->file, sector_num * SECTOR_SIZE) != FR_OK)
             goto fail;
-        if (fread(s->io_buffer, n * SECTOR_SIZE, 1, s->file) != 1)
+        UINT br;
+        if (f_read(&s->file, s->io_buffer, n * SECTOR_SIZE, &br) != FR_OK)
             goto fail;
 
         if (IDE_debug) fprintf(stderr, "sector read OK\n");
@@ -428,15 +427,16 @@ static void ide_sector_write(struct ide_device *s) {
     if (n > s->req_nb_sectors)
         n = s->req_nb_sectors;
 
-    if (fseeko(s->file, sector_num * SECTOR_SIZE, SEEK_SET) < 0) {
+    if (f_lseek(&s->file, sector_num * SECTOR_SIZE) != FR_OK) {
         fprintf(stderr, "FSEEKO FAILED\n");
         goto fail;
     }
-    if (fwrite(s->io_buffer, n * SECTOR_SIZE, 1, s->file) != 1) {
+    UINT bw;
+    if (f_write(&s->file, s->io_buffer, n * SECTOR_SIZE, &bw) != FR_OK) {
         fprintf(stderr, "FWRITE FAILED\n");
         goto fail;
     }
-    fflush(s->file);
+    ///f_flush(&s->file);
 
     s->nsector -= n;
     if (s->nsector == 0) {
@@ -608,7 +608,7 @@ static void ide_command(struct ide_device *s, uint8_t val) {
 
     case WIN_FLUSH_CACHE:
     case WIN_FLUSH_CACHE_EXT:
-        fflush(s->file);
+    ///    f_flush(&s->file);
         break;
 
     case WIN_STANDBY:
@@ -904,7 +904,7 @@ int IDE_Initialise(int *argc, char *argv[]) {
 void IDE_Exit(void)
 {
 	if (IDE_enabled) {
-		fclose(device.file);
+		f_close(&device.file);
 		IDE_enabled = FALSE;
 	}
 }

@@ -14,5 +14,6 @@
 #define VOL_ONLY_SOUND 1
 #define PAGED_ATTRIB
 #define EMUOS_ALTIRRA 1
+#define SUPPORTS_PLATFORM_SLEEP 1
 
 #endif

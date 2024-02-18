@@ -202,7 +202,7 @@ int AF80_ReadConfig(char *string, char *ptr)
 	return TRUE; /* matched something */
 }
 
-void AF80_WriteConfig(FILE *fp)
+void AF80_WriteConfig(FIL *fp)
 {
 	fprintf(fp, "AF80_ROM=%s\n", af80_rom_filename);
 	fprintf(fp, "AF80_CHARSET=%s\n", af80_charset_filename);

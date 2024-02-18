@@ -34,6 +34,8 @@
 #include "pbi_scsi.h"
 #include "statesav.h"
 
+#include "ff.h"
+
 #ifdef PBI_DEBUG
 #define D(a) a
 #else
@@ -123,7 +125,7 @@ int PBI_MIO_ReadConfig(char *string, char *ptr)
 	return TRUE; /* matched something */
 }
 
-void PBI_MIO_WriteConfig(FILE *fp)
+void PBI_MIO_WriteConfig(FIL *fp)
 {
 	fprintf(fp, "MIO_ROM=%s\n", mio_rom_filename);
 	if (!Util_filenamenotset(mio_scsi_disk_filename)) {

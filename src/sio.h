@@ -2,9 +2,6 @@
 #define SIO_H_
 
 #include "config.h"
-
-#include <stdio.h> /* FILENAME_MAX */
-
 #include "atari.h"
 
 #define SIO_MAX_DRIVES 8

@@ -22,7 +22,6 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#include <stdio.h>
 #include <string.h>
 
 #include "artifact.h"
@@ -156,7 +155,7 @@ int ARTIFACT_ReadConfig(char *option, char *ptr)
 	return TRUE;
 }
 
-void ARTIFACT_WriteConfig(FILE *fp)
+void ARTIFACT_WriteConfig(FIL *fp)
 {
 	fprintf(fp, "ARTIFACT_NTSC=%s\n", mode_cfg_strings[mode_ntsc]);
 	fprintf(fp, "ARTIFACT_PAL=%s\n", mode_cfg_strings[mode_pal]);

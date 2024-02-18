@@ -22,7 +22,6 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
-#include <stdio.h>
 #include "cycle_map.h"
 
 int CYCLE_MAP_cpu2antic[CYCLE_MAP_SIZE * (17 * 7 + 1)];

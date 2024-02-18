@@ -26,10 +26,12 @@
 /* suppress -ansi -pedantic warning for fdopen: */
 #ifdef __STRICT_ANSI__
 #undef __STRICT_ANSI__
-#include <stdio.h>
+
 #define __STRICT_ANSI__ 1
 #else
-#include <stdio.h>
+///#include <stdio.h>
+#include "ff.h"
+
 #endif /* __STRICT_ANSI__ */
 #include <stdlib.h>
 #include <string.h>
@@ -438,11 +440,12 @@ int Util_findnextfilename(const char *format, int *no_last, int no_max, char *bu
 
 int Util_fileexists(const char *filename)
 {
-	FILE *fp;
+	FIL *fp;
 	fp = fopen(filename, "rb");
 	if (fp == NULL)
 		return FALSE;
 	fclose(fp);
+	free(fp);
 	return TRUE;
 }
 
@@ -487,16 +490,15 @@ int Util_direxists(const char *filename)
 #endif /* defined(HAVE_STAT) */
 
 
-int Util_flen(FILE *fp)
+int Util_flen(FIL *fp)
 {
-	fseek(fp, 0, SEEK_END);
-	return (int) ftell(fp);
+	return (int) f_size(fp);
 }
 
 /* Creates a file that does not exist and fills in filename with its name.
    filename must point to FILENAME_MAX characters buffer which doesn't need
    to be initialized. */
-FILE *Util_uniqopen(char *filename, const char *mode)
+FIL *Util_uniqopen(char *filename, const char *mode)
 {
 	/* We cannot simply call tmpfile(), because we don't want the file
 	   to be deleted when we close it, and we need the filename. */

@@ -24,7 +24,6 @@
 */
 
 #include "config.h"
-#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -71,7 +70,7 @@ int PLATFORM_Configure(char *option, char *parameters)
 	return LIBATARI800_ReadConfig(option, parameters);
 }
 
-void PLATFORM_ConfigSave(FILE *fp)
+void PLATFORM_ConfigSave(FIL *fp)
 {
 	;
 }

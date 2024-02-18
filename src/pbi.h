@@ -2,12 +2,11 @@
 #define PBI_H_
 
 #include "atari.h"
-#include <stdio.h>
 
 int PBI_Initialise(int *argc, char *argv[]);
 void PBI_Exit(void);
 int PBI_ReadConfig(char *string, char *ptr);
-void PBI_WriteConfig(FILE *fp);
+void PBI_WriteConfig(FIL *fp);
 void PBI_Reset(void);
 UBYTE PBI_D1GetByte(UWORD addr, int no_side_effects);
 void PBI_D1PutByte(UWORD addr, UBYTE byte);

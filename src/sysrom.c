@@ -30,6 +30,8 @@
 ///#endif
 #include <stdarg.h>
 ///#include <stdio.h>
+#include "ff.h"
+
 #include <string.h>
 
 #include "sysrom.h"
@@ -206,23 +208,23 @@ int SYSROM_SetPath(char const *filename, int num, ...)
 	int len;
 	ULONG crc;
 	int retval = SYSROM_OK;
-	FILE *f = fopen(filename, "rb");
-
-	if (f == NULL)
+	FIL f;
+	FRESULT fr = f_open(&f, filename, FA_READ);
+	if (fr != FR_OK)
 		return SYSROM_ERROR;
 
-	len = Util_flen(f);
+	len = Util_flen(&f);
 	/* Don't proceed to CRC computation if the file has invalid size. */
 	if (!IsLengthAllowed(len)) {
-		fclose(f);
+		f_close(&f);
 		return SYSROM_BADSIZE;
 	}
-	Util_rewind(f);
-	if (!CRC32_FromFile(f, &crc)) {
-		fclose(f);
+	Util_rewind(&f);
+	if (!CRC32_FromFile(&f, &crc)) {
+		f_close(&f);
 		return SYSROM_ERROR;
 	}
-	fclose(f);
+	f_close(&f);
 
 	va_start(ap, num);
 	while (num > 0) {
@@ -587,7 +589,7 @@ int SYSROM_ReadConfig(char *string, char *ptr)
 	return TRUE;
 }
 
-void SYSROM_WriteConfig(FILE *fp)
+void SYSROM_WriteConfig(FIL *fp)
 {
 	int id;
 	for (id = 0; id < SYSROM_LOADABLE_SIZE; ++id) {

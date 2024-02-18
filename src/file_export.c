@@ -22,7 +22,6 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
-#include <stdio.h>
 #include <stdlib.h>
 #include "file_export.h"
 #include "screen.h"
@@ -176,7 +175,7 @@ int File_Export_ReadConfig(char *string, char *ptr)
 	return TRUE; /* matched something */
 }
 
-void File_Export_WriteConfig(FILE *fp)
+void File_Export_WriteConfig(FIL *fp)
 {
 #if defined(HAVE_LIBPNG) || defined(HAVE_LIBZ)
 	fprintf(fp, "COMPRESSION_LEVEL=%d\n", FILE_EXPORT_compression_level);

@@ -26,7 +26,9 @@
 
 #include "afile.h"
 #include "config.h"
-#include <stdio.h>
+///#include <stdio.h>
+#include "ff.h"
+
 #include <stdlib.h>
 #include <string.h>
 #if defined(HAVE_SIGNAL_H) && !defined(LIBATARI800)
@@ -277,18 +279,19 @@ void Atari800_Coldstart(void)
 #endif
 }
 
-int Atari800_LoadImage(const char *filename, UBYTE *buffer, int nbytes)
-{
-	FILE *f;
-	int len;
-
-	f = fopen(filename, "rb");
-	if (f == NULL) {
+int Atari800_LoadImage(const char *filename, UBYTE *buffer, int nbytes) {
+	if (buffer < 0x20000000) { // it is ROM
+	    Log_print("WARN loading ROM image %s to ROM is usupported", filename);
+		return TRUE;
+	}
+	FIL f;
+	UINT len;
+	if (f_open(&f, filename, FA_READ) != FR_OK) {
 		Log_print("Error loading ROM image: %s", filename);
 		return FALSE;
 	}
-	len = fread(buffer, 1, nbytes, f);
-	fclose(f);
+	f_read(&f, buffer, nbytes, &len);
+	f_close(&f);
 	if (len != nbytes) {
 		Log_print("Error reading %s", filename);
 		return FALSE;

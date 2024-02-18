@@ -4,6 +4,7 @@
 #include "config.h"
 #include "atari.h"
 #include "cartridge_info.h"
+#include "ff.h"
 
 /* Indicates whether the emulator should automatically reboot (coldstart)
    after inserting/removing a cartridge. (Doesn't affect the piggyback
@@ -58,7 +59,7 @@ extern CARTRIDGE_image_t CARTRIDGE_main;
 extern CARTRIDGE_image_t CARTRIDGE_piggyback;
 
 int CARTRIDGE_ReadConfig(char *string, char *ptr);
-void CARTRIDGE_WriteConfig(FILE *fp);
+void CARTRIDGE_WriteConfig(FIL *fp);
 int CARTRIDGE_Initialise(int *argc, char *argv[]);
 void CARTRIDGE_Exit(void);
 

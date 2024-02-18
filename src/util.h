@@ -2,7 +2,7 @@
 #define UTIL_H_
 
 #include "config.h"
-#include <stdio.h>
+
 #include <string.h>
 #if HAVE_STRINGS_H
 #include <strings.h>
@@ -183,12 +183,8 @@ int Util_direxists(const char *filename);
 #ifdef HAVE_REWIND
 #define Util_rewind(fp) rewind(fp)
 #else
-#define Util_rewind(fp) fseek(fp, 0, SEEK_SET)
+#define Util_rewind(fp) f_lseek(fp, 0)
 #endif
-
-/* Returns the length of an open stream.
-   May change the current position. */
-int Util_flen(FILE *fp);
 
 /* Deletes a file, returns 0 on success, -1 on failure. */
 #ifdef HAVE_WINDOWS_H
@@ -199,8 +195,10 @@ int Util_unlink(const char *filename);
 #define HAVE_UTIL_UNLINK
 #endif /* defined(HAVE_UNLINK) */
 
+#include "ff.h"
+
 /* Creates a file that does not exist and fills in filename with its name. */
-FILE *Util_uniqopen(char *filename, const char *mode);
+FIL *Util_uniqopen(char *filename, const char *mode);
 
 /* Support for temporary files.
 
@@ -232,9 +230,9 @@ FILE *Util_uniqopen(char *filename, const char *mode);
 #else
 /* if we can't delete the created file, leave it to the user */
 #define Util_tmpbufdef(modifier, def)
-#define Util_fopen(filename, mode, tmpbuf)  fopen(filename, mode)
-#define Util_tmpopen(tmpbuf)                Util_uniqopen(NULL, "wb+")
-#define Util_fclose(fp, tmpbuf)             fclose(fp)
+///#define Util_fopen(filename, mode, tmpbuf)  fopen(filename, mode)
+///#define Util_tmpopen(tmpbuf)                Util_uniqopen(NULL, "wb+")
+#define Util_fclose(fp, tmpbuf)             f_close(fp)
 #endif
 
 void Util_sleep(double s);
@@ -242,5 +240,10 @@ double Util_time(void);
 
 /* Get current working directory. */
 char *Util_getcwd(char *buf, size_t size);
+
+#include "ff.h"
+/* Returns the length of an open stream.
+   May change the current position. */
+int Util_flen(FIL *fp);
 
 #endif /* UTIL_H_ */

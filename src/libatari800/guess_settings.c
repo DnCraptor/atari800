@@ -1,7 +1,7 @@
-#include <stdio.h>
 #include <string.h>
 
 #include "libatari800.h"
+#include "ff.h"
 
 #define MACHINE_TYPE_800 0x01
 #define MACHINE_TYPE_XL 0x02
@@ -330,7 +330,7 @@ int run_machine(machine_config_t *machine, char *pathname, int num_frames, int c
 int guess_cart_kb(char *pathname, int verbose) {
 	char buf[CHUNK_SIZE];
 	char header[16];
-	FILE *fp = fopen(pathname, "rb");
+	FIL *fp = fopen(pathname, "rb");
 	size_t current_len, total_len = 0;
 	int kb, cart_type;
 	cart_types_t *cart_desc;

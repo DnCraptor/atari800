@@ -18,10 +18,12 @@ extern "C" {
 #include "sound.h"
 #include "akey.h"
 #include "memory.h"
+#include "ff.h"
 }
 
-#include "ff.h"
 #include "nespad.h"
+///#include <stdio.h>
+extern "C" int	snprintf (char *__restrict, size_t, const char *__restrict, ...) _ATTRIBUTE ((__format__ (__printf__, 3, 4)));
 
 static FATFS fs;
 semaphore vga_start_semaphore;
@@ -178,7 +180,7 @@ int main() {
     while(true) {
         libatari800_get_current_state(&state);
         cpu = (cpu_state_t *)&state.state[state.tags.cpu];  /* order: A,SR,SP,X,Y */
-        sprintf(tmp, "frame %d: A=%02x X=%02x Y=%02x SP=%02x SR=%02x\n", frame++, cpu->A, cpu->X, cpu->Y, cpu->P, cpu->S);
+        snprintf(tmp, 255, "frame %d: A=%02x X=%02x Y=%02x SP=%02x SR=%02x\n", frame++, cpu->A, cpu->X, cpu->Y, cpu->P, cpu->S);
         draw_text(tmp, 0, 0, 15, 0);
         libatari800_next_frame(&input);
 

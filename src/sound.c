@@ -23,7 +23,6 @@
  */
 
 #include <stdlib.h>
-#include <stdio.h>
 
 #include "sound.h"
 
@@ -115,7 +114,7 @@ int Sound_ReadConfig(char *option, char *ptr)
 	return TRUE;
 }
 
-void Sound_WriteConfig(FILE *fp)
+void Sound_WriteConfig(FIL *fp)
 {
 	fprintf(fp, "SOUND_ENABLED=%u\n", Sound_enabled);
 	fprintf(fp, "SOUND_RATE=%u\n", Sound_desired.freq);

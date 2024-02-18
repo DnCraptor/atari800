@@ -56,7 +56,7 @@ static int scsi_bufpos = 0;
 static UBYTE scsi_buffer[256];
 static int scsi_count = 0;
 
-FILE *PBI_SCSI_disk = NULL;
+FIL *PBI_SCSI_disk = NULL;
 
 static void scsi_changephase(int phase)
 {

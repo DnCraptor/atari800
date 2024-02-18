@@ -1,9 +1,8 @@
 #ifndef ARTIFACT_H_
 #define ARTIFACT_H_
 
-#include <stdio.h>
-
 #include "config.h"
+#include "ff.h"
 
 typedef enum ARTIFACT_t {
 	ARTIFACT_NONE,       /* Artifacting disabled */
@@ -31,7 +30,7 @@ void ARTIFACT_Set(ARTIFACT_t mode);
 void ARTIFACT_SetTVMode(int tv_mode);
 
 /* Read/write to configuration file. */
-void ARTIFACT_WriteConfig(FILE *fp);
+void ARTIFACT_WriteConfig(FIL *fp);
 int ARTIFACT_ReadConfig(char *option, char *ptr);
 
 /* Module initialisation and processing of command-line arguments. */

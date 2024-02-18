@@ -56,7 +56,6 @@
  */
 
 #include "config.h"
-#include <stdio.h>
 #include <stdlib.h>	/* exit() */
 
 #include "cpu.h"

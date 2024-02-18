@@ -25,7 +25,9 @@
 #define _POSIX_C_SOURCE 200112L /* for snprintf */
 
 #include "config.h"
-#include <stdio.h>
+///#include <stdio.h>
+#include "ff.h"
+
 #include <string.h>
 #include <stdlib.h>
 #ifdef HAVE_UNISTD_H
@@ -38,7 +40,7 @@
 #ifdef GWINSZ_IN_SYS_IOCTL
 # include <sys/ioctl.h>
 #endif
-
+#include "binload.h"
 #include "antic.h"
 #include "atari.h"
 #include "cpu.h"
@@ -719,8 +721,9 @@ static void safe_gets(char *buffer, size_t size, char const *prompt)
 		}
 	}
 #else
-	fputs(prompt, stdout);
-	if (fgets(buffer, size, stdin) == NULL)
+/// TODO:
+///	fputs(prompt, stdout);
+///	if (fgets(buffer, size, stdin) == NULL)
 		buffer[0] = 0;
 #endif
 	Util_chomp(buffer);
@@ -895,7 +898,7 @@ static int get_attrib_range(UWORD *addr1, UWORD *addr2)
 	return FALSE;
 }
 
-static UWORD show_instruction(FILE *fp, UWORD pc)
+static UWORD show_instruction(FIL *fp, UWORD pc)
 {
 	UWORD addr = pc;
 	UBYTE insn;
@@ -911,13 +914,13 @@ static UWORD show_instruction(FILE *fp, UWORD pc)
 		if (*p == '1') {
 			value = MEMORY_SafeGetByte(pc);
 			pc++;
-			nchars = fprintf(fp, "%04X: %02X %02X     " /*"%Xcyc  "*/ "%.*s$%02X%s",
+			fprintf(fp, nchars, "%04X: %02X %02X     " /*"%Xcyc  "*/ "%.*s$%02X%s",
 			                 addr, insn, value, /*cycles[insn],*/ (int) (p - mnemonic), mnemonic, value, p + 1);
 			break;
 		}
 		if (*p == '2') {
 			value = MEMORY_SafeGetByte(pc) + (MEMORY_SafeGetByte(pc + 1) << 8);
-			nchars = fprintf(fp, "%04X: %02X %02X %02X  " /*"%Xcyc  "*/ "%.*s$%04X%s",
+			fprintf(fp, nchars, "%04X: %02X %02X %02X  " /*"%Xcyc  "*/ "%.*s$%04X%s",
 			                 addr, insn, value & 0xff, value >> 8, /*cycles[insn],*/ (int) (p - mnemonic), mnemonic, value, p + 1);
 			pc += 2;
 			break;
@@ -926,7 +929,7 @@ static UWORD show_instruction(FILE *fp, UWORD pc)
 			UBYTE op = MEMORY_SafeGetByte(pc);
 			pc++;
 			value = (UWORD) (pc + (SBYTE) op);
-			nchars = fprintf(fp, "%04X: %02X %02X     " /*"3cyc  "*/ "%.4s$%04X", addr, insn, op, mnemonic, value);
+			fprintf(fp, nchars, "%04X: %02X %02X     " /*"3cyc  "*/ "%.4s$%04X", addr, insn, op, mnemonic, value);
 			break;
 		}
 	}
@@ -959,7 +962,7 @@ void MONITOR_Exit(void)
 	}
 }
 
-void MONITOR_ShowState(FILE *fp, UWORD pc, UBYTE a, UBYTE x, UBYTE y, UBYTE s,
+void MONITOR_ShowState(FIL *fp, UWORD pc, UBYTE a, UBYTE x, UBYTE y, UBYTE s,
                 char n, char v, char z, char c)
 {
 	fprintf(fp, "%3d %3d A=%02X X=%02X Y=%02X S=%02X P=%c%c*-%c%c%c%c PC=",
@@ -2181,8 +2184,9 @@ static void monitor_read_from_file(UWORD *addr)
 		UWORD nbytes;
 		if (xex) /* load xex file; no init nor run performed */
 		{
-			FILE *f = fopen(filename, "rb");
-			if (f == NULL) {
+			FIL f;
+			FRESULT fr = f_open(&f, filename, FA_READ);
+			if (fr != FR_OK) {
 				perror(filename);
 				return;
 			}
@@ -2193,11 +2197,11 @@ static void monitor_read_from_file(UWORD *addr)
 					int byte;
 
 					do {
-						byte=fgetc(f);
+						byte = _fgetc(&f);
 						if (byte==EOF) { break; }
 						fromaddr=byte&0xff;
 
-						byte=fgetc(f);
+						byte = _fgetc(&f);
 						if (byte==EOF) { printf("Bad xex file\n"); break; }
 						fromaddr|=((byte&0xff)<<8);
 
@@ -2205,26 +2209,26 @@ static void monitor_read_from_file(UWORD *addr)
 
 					if (byte==EOF) break;
 
-					byte=fgetc(f);
+					byte = _fgetc(&f);
 					if (byte==EOF) { printf("Bad xex file\n"); break; }
 					toaddr=byte&0xff;
 
-					byte=fgetc(f);
+					byte = _fgetc(&f);
 					if (byte==EOF) { printf("Bad xex file\n"); break; }
 					toaddr|=((byte&0xff)<<8);
 
 					*addr=fromaddr; /* sets to last load addr */
 					if ((int)toaddr-(int)fromaddr<0) { printf("Bad xex file\n"); break; }
 					nbytes=toaddr-fromaddr+1;
-
+					UINT rb;
 					/* if not full block, error */
-					if (fread(&MEMORY_mem[*addr], nbytes, 1, f) == 0) {
+					if (f_read(&f, &MEMORY_mem[*addr], nbytes, &rb) != FR_OK) {
 						printf("Bad xex file\n");
 						break;
 					}
 					printf("Read dos block: %04X-%04X, %04X bytes. \n",fromaddr,toaddr, nbytes);
 				}
-				fclose(f);
+				f_close(&f);
 			}
 			return;
 		}
@@ -2235,17 +2239,18 @@ static void monitor_read_from_file(UWORD *addr)
 					nbytes=0x10000-*addr;
 
 				if (*addr + nbytes <= 0x10000) {
-
-					FILE *f = fopen(filename, "rb");
-					if (f == NULL) {
+					FIL f;
+					FRESULT fr = f_open(&f, filename, FA_READ);
+					if (fr != FR_OK) {
 						perror(filename);
 						return;
 					}
 					else {
+						UINT rb;
 						/* read as many bytes as given or available */
-						if ((nbytes=fread(&MEMORY_mem[*addr], 1, nbytes, f)) == 0)
+						if (f_read(&f, &MEMORY_mem[*addr], nbytes, &rb) != FR_OK)
 							printf("Could not read bytes\n");
-						fclose(f);
+						f_close(&f);
 					}
 					printf("Read %d bytes at %04X-%04X\n",nbytes,*addr,*addr+nbytes-1);
 					return;
@@ -2279,7 +2284,7 @@ static void monitor_write_to_file(void)
 	if (get_hex2(&addr1, &addr2) && addr1 <= addr2) {
 		size_t wbytes = 0;
 		const char *filename;
-		FILE *f;
+		FIL f;
 		filename = get_token();
 
 		/* XXX this logic doesn't allow us to give a filename that
@@ -2311,36 +2316,35 @@ static void monitor_write_to_file(void)
 			f = popen(filename, "w");
 		else
 #endif
-			f = fopen(filename, "wb");
-
-		if (f == NULL) {
+		FRESULT fr = f_open(&f, filename, FA_WRITE | FA_CREATE_ALWAYS);
+		if (fr != FR_OK) {
 			perror(filename);
 			return;
 		} else {
 			size_t nbytes = addr2 - addr1 + 1;
 
 			if(xex) {
-				fputc(0xff, f); /* binary load FFFF header */
-				fputc(0xff, f);
-				fputc(addr1 & 0xff, f);
-				fputc(addr1 >> 8, f);
-				fputc(addr2 & 0xff, f);
-				fputc(addr2 >> 8, f);
+				fputc(0xff, &f); /* binary load FFFF header */
+				fputc(0xff, &f);
+				fputc(addr1 & 0xff, &f);
+				fputc(addr1 >> 8, &f);
+				fputc(addr2 & 0xff, &f);
+				fputc(addr2 >> 8, &f);
 				wbytes += 6;
 			}
-
-			if (fwrite(&MEMORY_mem[addr1], 1, addr2 - addr1 + 1, f) < nbytes)
+			UINT wb;
+			if (f_write(&f, &MEMORY_mem[addr1], addr2 - addr1 + 1, &wb) != FR_OK)
 				perror(filename);
 
 			wbytes += nbytes;
 
 			if(xex && have_runaddr) {
-				fputc(0xe0, f); /* start addr $02e0 = RUNAD */
-				fputc(0x02, f);
-				fputc(0xe1, f); /* end addr $02e1 */
-				fputc(0x02, f);
-				fputc(runaddr & 0xff, f);
-				fputc(runaddr >> 8, f);
+				fputc(0xe0, &f); /* start addr $02e0 = RUNAD */
+				fputc(0x02, &f);
+				fputc(0xe1, &f); /* end addr $02e1 */
+				fputc(0x02, &f);
+				fputc(runaddr & 0xff, &f);
+				fputc(runaddr >> 8, &f);
 				wbytes += 6;
 			}
 		}
@@ -2350,7 +2354,7 @@ static void monitor_write_to_file(void)
 			pclose(f);
 		else
 #endif
-			fclose(f);
+			f_close(&f);
 
 		/* TODO: when migrating to C99, instead of %lu and cast use %zu. */
 		printf("Wrote %04X bytes to %s file '%s'",

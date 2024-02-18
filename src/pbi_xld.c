@@ -170,7 +170,7 @@ int PBI_XLD_ReadConfig(char *string, char *ptr)
 	return TRUE; /* matched something */
 }
 
-void PBI_XLD_WriteConfig(FILE *fp)
+void PBI_XLD_WriteConfig(FIL *fp)
 {
 	fprintf(fp, "XLD_D_ROM=%s\n", xld_d_rom_filename);
 	fprintf(fp, "XLD_V_ROM=%s\n", xld_v_rom_filename);

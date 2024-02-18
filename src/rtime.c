@@ -24,7 +24,6 @@
 
 #include "config.h"
 #include <stdlib.h>	/* for NULL */
-#include <stdio.h>
 #include <string.h>	/* for strcmp() */
 #ifdef HAVE_TIME_H
 #include <time.h>
@@ -61,7 +60,7 @@ int RTIME_ReadConfig(char *string, char *ptr)
 	return TRUE;
 }
 
-void RTIME_WriteConfig(FILE *fp)
+void RTIME_WriteConfig(FIL *fp)
 {
 	fprintf(fp, "RTIME=%d\n", RTIME_enabled);
 }

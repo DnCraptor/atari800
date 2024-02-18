@@ -1,10 +1,13 @@
 #ifndef BINLOAD_H_
 #define BINLOAD_H_
 
-#include <stdio.h> /* FILE */
+///#include <stdio.h> /* FILE */
 #include "atari.h" /* UBYTE */
+#include "ff.h"
 
-extern FILE *BINLOAD_bin_file;
+extern FIL BINLOAD_bin_file;
+extern int BINLOAD_bin_file_open;
+static inline int _fgetc(FIL* F) { char _c; UINT wr; f_read(F, &_c, 1, &wr); return wr != 1 ? -1 : _c; }
 
 int BINLOAD_Loader(const char *filename);
 extern int BINLOAD_start_binloading;

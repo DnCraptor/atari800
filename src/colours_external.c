@@ -21,7 +21,9 @@
  * along with Atari800; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
-#include <stdio.h>
+///#include <stdio.h>
+#include "ff.h"
+
 #include <string.h>
 
 #include "atari.h" /* for TRUE/FALSE */
@@ -30,25 +32,24 @@
 
 int COLOURS_EXTERNAL_Read(COLOURS_EXTERNAL_t *colours)
 {
-	FILE *fp;
-	int i;
-	unsigned char *pal_ptr;
-
-	fp = fopen(colours->filename, "rb");
-	if (fp == NULL) {
+	FIL f;
+	if (f_open(&f, colours->filename, FA_READ) != FR_OK) {
 		colours->loaded = FALSE;
 		return FALSE;
 	}
-	for (i = 0, pal_ptr = colours->palette; i < 768; i++) {
-		int c = fgetc(fp);
-		if (c == EOF) {
-			fclose(fp);
+	unsigned char *pal_ptr = colours->palette;
+	UINT len;
+	for (size_t i = 0; i < 768; i++) {
+		unsigned char c;
+		f_read(&f, &c, 1, &len);
+		if (!len) {
+			f_close(&f);
 			colours->loaded = FALSE;
 			return FALSE;
 		}
 		*pal_ptr++ = c;
 	}
-	fclose(fp);
+	f_close(&f);
 	colours->loaded = TRUE;
 	return TRUE;
 }

@@ -9,7 +9,7 @@ extern int FILE_EXPORT_compression_level;
 
 int File_Export_Initialise(int *argc, char *argv[]);
 int File_Export_ReadConfig(char *string, char *ptr);
-void File_Export_WriteConfig(FILE *fp);
+void File_Export_WriteConfig(FIL *fp);
 
 #if defined(SCREENSHOTS) || defined(AUDIO_RECORDING) || defined(VIDEO_RECORDING)
 void fputw(UWORD, FILE *fp);

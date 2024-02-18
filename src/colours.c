@@ -24,7 +24,9 @@
  */
 
 #include "config.h"
-#include <stdio.h>
+///#include <stdio.h>
+#include "ff.h"
+
 #include <string.h>	/* for strcmp() */
 #include <math.h>
 #include <stdlib.h>
@@ -230,29 +232,24 @@ Colours_preset_t Colours_GetPreset(void)
 	return COLOURS_PRESET_CUSTOM;
 }
 
-int Colours_Save(const char *filename)
-{
-	FILE *fp;
-	int i;
-
-	fp = fopen(filename, "wb");
-	if (fp == NULL) {
+int Colours_Save(const char *filename) {
+	FIL f;
+	if (f_open(&f, filename, FA_WRITE | FA_CREATE_ALWAYS) != FR_OK) {
 		return FALSE;
 	}
-
+	UINT wr;
 	/* Create a raw 768-byte file with RGB values. */
-	for (i = 0; i < 256; i ++) {
+	for (size_t i = 0; i < 256; i ++) {
 		char rgb[3];
 		rgb[0] = Colours_GetR(i);
 		rgb[1] = Colours_GetG(i);
 		rgb[2] = Colours_GetB(i);
-		if (fwrite(rgb, sizeof(rgb), 1, fp) != 1) {
-			fclose(fp);
+		if (f_write(&f, rgb, sizeof(rgb), &wr) != FR_OK) {
+			f_close(&f);
 			return FALSE;
 		}
 	}
-
-	fclose(fp);
+	f_close(&f);
 	return TRUE;
 }
 
@@ -274,7 +271,7 @@ int Colours_ReadConfig(char *option, char *ptr)
 	return TRUE; /* matched something */
 }
 
-void Colours_WriteConfig(FILE *fp)
+void Colours_WriteConfig(FIL *fp)
 {
 	COLOURS_NTSC_WriteConfig(fp);
 	COLOURS_PAL_WriteConfig(fp);

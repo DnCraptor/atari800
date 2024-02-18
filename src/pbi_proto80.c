@@ -95,7 +95,7 @@ int PBI_PROTO80_ReadConfig(char *string, char *ptr)
 	return TRUE; /* matched something */
 }
 
-void PBI_PROTO80_WriteConfig(FILE *fp)
+void PBI_PROTO80_WriteConfig(FIL *fp)
 {
 	fprintf(fp, "PROTO80_ROM=%s\n", proto80_rom_filename);
 }

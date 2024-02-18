@@ -1,7 +1,6 @@
 #ifndef LIBATARI800_STATESAV_H_
 #define LIBATARI800_STATESAV_H_
 
-#include <stdio.h>
 #include <stdint.h>
 
 #include "config.h"

@@ -1,7 +1,7 @@
 #ifndef SOUND_H_
 #define SOUND_H_
 
-#include <stdio.h>
+#include "ff.h"
 
 #include "config.h"
 #include "atari.h"
@@ -77,7 +77,7 @@ void Sound_Callback(UBYTE *buffer, unsigned int size);
 
 /* Read/write to configuration file. */
 int Sound_ReadConfig(char *option, char *ptr);
-void Sound_WriteConfig(FILE *fp);
+void Sound_WriteConfig(FIL *fp);
 
 #ifdef SYNCHRONIZED_SOUND
 /* Sound latency in ms. Don't change directly - use Sound_SetLatency instead. */

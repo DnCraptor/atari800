@@ -3,6 +3,7 @@
 
 #include "config.h"
 #include "atari.h"
+#include "ff.h"
 
 /* ROM IDs for all supported ROM images. */
 enum {
@@ -145,7 +146,7 @@ int SYSROM_LoadImage(int id, UBYTE *buffer);
 
 /* Read/write from/to configuration file. */
 int SYSROM_ReadConfig(char *string, char *ptr);
-void SYSROM_WriteConfig(FILE *fp);
+void SYSROM_WriteConfig(FIL *fp);
 
 /* Processing of command line arguments and initialisation of the module. */
 int SYSROM_Initialise(int *argc, char *argv[]);

@@ -23,7 +23,9 @@
 */
 
 #include "config.h"
-#include <stdio.h>
+///#include <stdio.h>
+#include "ff.h"
+
 #include <stdlib.h>
 #include <string.h>
 
@@ -1530,7 +1532,9 @@ static void InitCartridge(CARTRIDGE_image_t *cart)
 }
 
 int CARTRIDGE_WriteImage(char *filename, int type, UBYTE *image, int size, int raw, UBYTE value) {
-	FILE *fp = fopen(filename, "wb");
+	FIL f;
+	FIL *fp = &f;
+	FRESULT fr = f_open(fp, filename, FA_WRITE | FA_CREATE_ALWAYS);
 	if (fp != NULL) {
 		if (!raw) {
 			UBYTE header[0x10];
@@ -1637,14 +1641,14 @@ void CARTRIDGE_ColdStart(void) {
 
 int CARTRIDGE_ReadImage(const char *filename, CARTRIDGE_image_t *cart)
 {
-	FILE *fp;
+	FIL f;
+	FIL *fp = &f;
 	int len;
 	int type;
 	UBYTE header[16];
 
 	/* open file */
-	fp = fopen(filename, "rb");
-	if (fp == NULL)
+	if (FR_OK != f_open(&f, filename, FA_READ))
 		return CARTRIDGE_CANT_OPEN;
 	/* check file length */
 	len = Util_flen(fp);
@@ -1832,7 +1836,7 @@ int CARTRIDGE_ReadConfig(char *string, char *ptr)
 	return TRUE;
 }
 
-void CARTRIDGE_WriteConfig(FILE *fp)
+void CARTRIDGE_WriteConfig(FIL *fp)
 {
 	fprintf(fp, "CARTRIDGE_FILENAME=%s\n", CARTRIDGE_main.filename);
 	fprintf(fp, "CARTRIDGE_TYPE=%d\n", CARTRIDGE_main.type);

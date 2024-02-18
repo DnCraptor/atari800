@@ -128,7 +128,7 @@ int PBI_ReadConfig(char *string, char *ptr)
 	return TRUE; /* matched something */
 }
 
-void PBI_WriteConfig(FILE *fp)
+void PBI_WriteConfig(FIL *fp)
 {
 #ifdef PBI_MIO
 	PBI_MIO_WriteConfig(fp);

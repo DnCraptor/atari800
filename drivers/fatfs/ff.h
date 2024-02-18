@@ -418,5 +418,51 @@ int ff_del_syncobj (FF_SYNC_t sobj);	/* Delete a sync object */
 #ifdef __cplusplus
 }
 #endif
+extern FIL __nofil;
+static FIL *__stderr = &__nofil;
+#define stdout __stderr
+#define stderr __stderr
+#define FILENAME_MAX 256
+
+#include <stdlib.h>
+#define _fprintf(F, U, ...) { char b[FILENAME_MAX]; snprintf(b, FILENAME_MAX, __VA_ARGS__); f_write(F, b, strlen(b), &U); }
+#define fprintf(F, ...) { char b[FILENAME_MAX]; snprintf(b, FILENAME_MAX, __VA_ARGS__); UINT bw; f_write(F, b, strlen(b), &bw); }
+inline static void fputc(char c, FIL * F) { char _c = c; UINT wr; f_write(F, &_c, 1, &wr); }
+#define EOF -1
+
+#undef fread
+inline static int fread(char *n, int m, int len, FIL * f) {
+    UINT r = 0;
+	f_read(f, n, len, &r);
+	return r;
+}
+#undef fwrite
+inline static int fwrite(char *n, int m, int len, FIL * f) {
+    UINT r = 0;
+	f_write(f, n, len, &r);
+	return r;
+}
+#undef fseek
+#define SEEK_SET 0
+inline static int fseek(FIL * f, int pos, int mode) {
+	return f_lseek(f, mode == 0 ? pos : f_tell(f) + pos) != FR_OK;
+}
+#undef fclose
+inline static void fclose(FIL * f) {
+    f_close(f);
+}
+
+inline static FIL * fopen(const char* f, const char* mode) { // TODO: free
+    FIL * res = (FIL *)malloc(sizeof(FIL));
+	if (res == NULL) {
+		return NULL;
+	}
+	FRESULT r = f_open(res, f, FA_READ); // TODO:
+	if (r != FR_OK) {
+       free(res);
+	   return NULL;
+	}
+	return res;
+}
 
 #endif /* FF_DEFINED */

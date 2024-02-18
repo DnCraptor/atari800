@@ -6,6 +6,9 @@
         "time.h": "c",
         "ataribas_rom.h": "c",
         "atariosb_rom.h": "c",
-        "atarixl_rom.h": "c"
+        "atarixl_rom.h": "c",
+        "atari.h": "c",
+        "ff.h": "c",
+        "string.h": "c"
     }
 }

@@ -38,7 +38,10 @@
  * but not including, hexaddr2.
  */
 
-#include <stdio.h>
+///#include <stdio.h>
+#include "ff.h"
+#define fprintf(F, ...) { char b[256]; snprintf(b, 256, __VA_ARGS__); UINT bw; f_write(&F, b, strlen(b), &bw); }
+
 #include <string.h>
 
 typedef enum {
@@ -63,7 +66,7 @@ int main_TODO1(int argc, char *argv[])
 	int addr1 = -1;
 	int addr2 = -1;
 	int addr;
-	FILE *f;
+	FIL f;
 	int i;
 
 	State state = Expect_Header1;
@@ -91,17 +94,15 @@ int main_TODO1(int argc, char *argv[])
 	}
 	memset(image, 0, sizeof(image));
 
-	f = fopen(in_filename, "rb");
-	if (!f) {
+	if (f_open(&f, in_filename, FA_READ) != FR_OK) {
 		perror(in_filename);
 		return 1;
 	}
 	while (1) {
 		unsigned char byte;
-
-		if (fread(&byte, 1, 1, f) != 1)
+		UINT rb;
+		if (f_read(&f, &byte, 1, &rb) != 1)
 			break;
-
 		switch (state) {
 		case Expect_Header1:
 			if (byte == 0xff)
@@ -148,61 +149,46 @@ int main_TODO1(int argc, char *argv[])
 			return 1;
 		}
 	}
-
-	fclose(f);
-
+	f_close(&f);
 	/*
 	 * Write image to file
 	 */
-
 	if (image_filename) {
-		f = fopen(image_filename, "wb");
-		if (!f) {
+		if (f_open(&f, image_filename, FA_WRITE | FA_CREATE_ALWAYS) != FR_OK) {
 			perror(image_filename);
 			return 1;
 		}
-		fwrite(&image[addr1], 1, addr2 - addr1 + 1, f);
-
-		fclose(f);
+		UINT wr;
+		f_write(&f, &image[addr1], addr2 - addr1 + 1, &wr);
+		f_close(&f);
 	}
 	if (header_filename) {
-		FILE *fp;
 		char *ptr;
 		int j;
-
-		fp = fopen(header_filename, "wb");
-		if (!fp) {
+		if (f_open(&f, header_filename, FA_WRITE | FA_CREATE_ALWAYS) != FR_OK) {
 			perror(header_filename);
 			return 1;
 		}
-
 		for (ptr = header_filename; *ptr; ptr++) {
 			if (!( (*ptr >= 'a' && *ptr <= 'z')
 			    || (*ptr >= 'A' && *ptr <= 'Z')
 			    || (*ptr >= '0' && *ptr <= '9') ))
 				*ptr = '_';
 		}
-
-		fprintf(fp, "#ifndef _%s_\n", header_filename);
-		fprintf(fp, "#define _%s_\n\n", header_filename);
-
-		fprintf(fp, "static unsigned char %s[] =\n{\n\t", header_filename);
-
+		fprintf(f, "#ifndef _%s_\n", header_filename);
+		fprintf(f, "#define _%s_\n\n", header_filename);
+		fprintf(f, "static unsigned char %s[] =\n{\n\t", header_filename);
 		for (i = addr1, j = 0; i < addr2; i++) {
-			fprintf(fp, "0x%02x,", image[i]);
-
+			fprintf(f, "0x%02x,", image[i]);
 			if (++j == 8) {
-				fprintf(fp, "\n\t");
+				fprintf(f, "\n\t");
 				j = 0;
 			}
 		}
-
-		fprintf(fp, "0x%02x\n", image[addr2]);
-		fprintf(fp, "};\n");
-
-		fprintf(fp, "\n#endif\n");
-
-		fclose(fp);
+		fprintf(f, "0x%02x\n", image[addr2]);
+		fprintf(f, "};\n");
+		fprintf(f, "\n#endif\n");
+		f_close(&f);
 	}
 	return 0;
 }

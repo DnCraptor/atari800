@@ -28,11 +28,14 @@
 #include "log.h"
 #include "util.h"
 #include <string.h>
-#include <stdio.h>
+///#include <stdio.h>
+#include "ff.h"
+#define fprintf(F, ...) { char b[256]; snprintf(b, 256, __VA_ARGS__); UINT bw; f_write(&F, b, strlen(b), &bw); }
+#define fputc(c, F) { char _c = c; UINT wr; f_write(&F, &_c, 1, &wr); }
 
 static int enabled, counter, interval;
 static char *filename = "pokeyrec.dat", *fmt = "%c";
-static FILE *fp;
+static FIL f;
 #ifdef STEREO_SOUND
 static int stereo;
 #endif
@@ -40,10 +43,10 @@ static int stereo;
 static void output_pokey_values(int pokeynr) {
     int i;
     for (i=0; i<4; i++) {
-        fprintf(fp, fmt, POKEY_AUDF[(pokeynr*4)+i]);
-        fprintf(fp, fmt, POKEY_AUDC[(pokeynr*4)+i]);
+        fprintf(f, fmt, POKEY_AUDF[(pokeynr*4)+i]);
+        fprintf(f, fmt, POKEY_AUDC[(pokeynr*4)+i]);
     }
-    fprintf(fp, fmt, POKEY_AUDCTL[pokeynr]);
+    fprintf(f, fmt, POKEY_AUDCTL[pokeynr]);
 }
 
 void POKEYREC_Recorder(void) {
@@ -56,7 +59,7 @@ void POKEYREC_Recorder(void) {
         if (stereo) output_pokey_values(1);
 #endif
         if (fmt[1] != 'c')
-            fputc('\n', fp);
+            fputc('\n', f);
     }
 }
 
@@ -111,12 +114,11 @@ int POKEYREC_Initialise(int *argc, char *argv[]) {
     *argc = j;
 
     if (enabled) {
-        if (!(fp = fopen(filename, "wb"))) {
+        if (f_open(&f, filename, FA_WRITE | FA_CREATE_ALWAYS) != FR_OK) {
             Log_print("Unable to open '%s' for writing", filename);
             return FALSE;
         }
     }
-
     return TRUE;
 
 missing_argument:
@@ -125,5 +127,5 @@ missing_argument:
 }
 
 void POKEYREC_Exit(void) {
-    if (fp) fclose(fp);
+    f_close(&f);
 }

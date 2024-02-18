@@ -38,31 +38,31 @@
 #ifdef HAVE_LIBZ
 #include <zlib.h>
 #endif
-#include <stdio.h>
-
+///#include <stdio.h>
+#include "ff.h"
 
 int AFILE_DetectFileType(const char *filename)
 {
 	UBYTE header[4];
-	int file_length;
-	FILE *fp = fopen(filename, "rb");
-	if (fp == NULL)
+	UINT file_length;
+	FIL f;
+	if (f_open(&f, filename, FA_READ) != FR_OK)
 		return AFILE_ERROR;
-	if (fread(header, 1, 4, fp) != 4) {
-		fclose(fp);
+	if (f_read(&f, header, 4, &file_length) != FR_OK) {
+		f_close(&f);
 		return AFILE_ERROR;
 	}
 	switch (header[0]) {
 	case 0:
 		if (header[1] == 0 && (header[2] != 0 || header[3] != 0) /* && file_length < 37 * 1024 */) {
-			fclose(fp);
+			f_close(&f);
 			return AFILE_BAS;
 		}
 		break;
 	case 0x1f:
 		if (header[1] == 0x8b) {
 #ifndef HAVE_LIBZ
-			fclose(fp);
+			f_close(&f);
 			Log_print("\"%s\" is a compressed file.", filename);
 			Log_print("This executable does not support compressed files. You can uncompress this file");
 			Log_print("with an external program that supports gzip (*.gz) files (e.g. gunzip)");
@@ -98,47 +98,47 @@ int AFILE_DetectFileType(const char *filename)
 	case '8':
 	case '9':
 		if ((header[1] >= '0' && header[1] <= '9') || header[1] == ' ') {
-			fclose(fp);
+			f_close(&f);
 			return AFILE_LST;
 		}
 		break;
 	case 'A':
 		if (header[1] == 'T' && header[2] == 'A' && header[3] == 'R') {
-			fclose(fp);
+			f_close(&f);
 			return AFILE_STATE;
 		}
 		if (header[1] == 'T' && header[2] == '8' && header[3] == 'X') {
-			fclose(fp);
+			f_close(&f);
 			return AFILE_ATX;
 		}
 		break;
 	case 'C':
 		if (header[1] == 'A' && header[2] == 'R' && header[3] == 'T') {
-			fclose(fp);
+			f_close(&f);
 			return AFILE_CART;
 		}
 		break;
 	case 0x96:
 		if (header[1] == 0x02) {
-			fclose(fp);
+			f_close(&f);
 			return AFILE_ATR;
 		}
 		break;
 	case 0xf9:
 	case 0xfa:
-		fclose(fp);
+		f_close(&f);
 		return AFILE_DCM;
 	case 0xff:
 		if (header[1] == 0xff && (header[2] != 0xff || header[3] != 0xff)) {
-			fclose(fp);
+			f_close(&f);
 			return AFILE_XEX;
 		}
 		break;
 	default:
 		break;
 	}
-	file_length = Util_flen(fp);
-	fclose(fp);
+	file_length = f_size(&f);
+	f_close(&f);
 	/* Detect .pro images */
 	/* # of sectors is in header */
 	if ((file_length-16)%(128+12) == 0 &&

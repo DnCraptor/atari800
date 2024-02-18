@@ -23,7 +23,6 @@
 */
 
 #include "config.h"
-#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -110,7 +109,7 @@ int CASSETTE_ReadConfig(char *string, char *ptr)
 	return TRUE;
 }
 
-void CASSETTE_WriteConfig(FILE *fp)
+void CASSETTE_WriteConfig(FIL *fp)
 {
 	fprintf(fp, "CASSETTE_FILENAME=%s\n", CASSETTE_filename);
 	fprintf(fp, "CASSETTE_LOADED=%d\n", CASSETTE_status != CASSETTE_STATUS_NONE);

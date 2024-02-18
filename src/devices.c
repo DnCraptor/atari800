@@ -27,7 +27,9 @@
              User's Manual - CA016555 Rev. A - 1982 Atari, Inc.
  */
 #include "config.h"
-#include <stdio.h>
+///#include <stdio.h>
+#include "ff.h"
+
 #include <stdlib.h>
 #include <string.h>
 #ifdef HAVE_ERRNO_H
@@ -503,8 +505,13 @@ char Devices_h_device_name = 'H';
    only Util_DIR_SEP_CHAR can be used as a directory separator here */
 char Devices_h_current_dir[4][FILENAME_MAX];
 
+typedef struct FILE_t {
+	int open;
+    FIL fil;
+} FILE_t;
+
 /* stream open via H: device per IOCB */
-static FILE *h_fp[8] = { NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL };
+static FILE_t h_fp[8] = { { FALSE }, { FALSE }, { FALSE }, { FALSE }, { FALSE }, { FALSE }, { FALSE }, { FALSE } };
 
 /* H: text mode per IOCB */
 static int h_textmode[8];
@@ -520,8 +527,6 @@ static int h_wascr[8];
    and writes in update (12) mode, and to support the read-ahead of 1 byte
    in Devices_h_read. */
 static char h_lastop[8];
-
-Util_tmpbufdef(static, h_tmpbuf[8])
 
 /* IOCB #, 0-7 */
 static int h_iocb;
@@ -548,7 +553,7 @@ int Devices_H_CountOpen(void)
 	int r = 0;
 	int i;
 	for (i = 0; i < 8; i++)
-		if (h_fp[i] != NULL)
+		if (h_fp[i].open)
 			r++;
 	return r;
 }
@@ -557,9 +562,9 @@ void Devices_H_CloseAll(void)
 {
 	int i;
 	for (i = 0; i < 8; i++)
-		if (h_fp[i] != NULL) {
-			Util_fclose(h_fp[i], h_tmpbuf[i]);
-			h_fp[i] = NULL;
+		if (h_fp[i].open) {
+			f_close(&h_fp[i].fil);
+			h_fp[i].open = FALSE;
 		}
 }
 
@@ -812,7 +817,6 @@ static UWORD Devices_GetHostPath(int set_textmode)
 
 static void Devices_H_Open(void)
 {
-	FILE *fp;
 	UBYTE aux1;
 #ifdef DO_DIR
 	UBYTE aux2;
@@ -829,15 +833,14 @@ static void Devices_H_Open(void)
 	if (Devices_GetHostPath(TRUE) == 0)
 		return;
 
-	if (h_fp[h_iocb] != NULL)
-		Util_fclose(h_fp[h_iocb], h_tmpbuf[h_iocb]);
-
+	if (h_fp[h_iocb].open) {
+		f_close(&h_fp[h_iocb].fil);
+		h_fp[h_iocb].open = FALSE;
+	}
 #if 0
 	if (devbug)
 		Log_print("atari_filename=\"%s\", atari_path=\"%s\" host_path=\"%s\"", atari_filename, atari_path, host_path);
 #endif
-
-	fp = NULL;
 	h_wascr[h_iocb] = FALSE;
 	h_lastop[h_iocb] = 'o';
 
@@ -846,12 +849,13 @@ static void Devices_H_Open(void)
 	case 4:
 		/* don't bother using "r" for textmode:
 		   we want to support LF, CR/LF and CR, not only native EOLs */
-		fp = Util_fopen(host_path, "rb", h_tmpbuf[h_iocb]);
-		if (fp != NULL) {
+		if (f_open(&h_fp[h_iocb], host_path, FA_READ) != FR_OK) {
+			h_fp[h_iocb].open = FALSE;
 			CPU_regY = 1;
 			CPU_ClrN;
 		}
 		else {
+			h_fp[h_iocb].open = TRUE;
 			CPU_regY = 170; /* file not found */
 			CPU_SetN;
 		}
@@ -951,21 +955,19 @@ static void Devices_H_Open(void)
 			break;
 		}
 		{
-			char mode[4];
-			char *p = mode + 1;
-			mode[0] = (aux1 & 1) ? 'a' : (aux1 < 12) ? 'w' : 'r';
-			if (!h_textmode[h_iocb])
-				*p++ = 'b';
-			if (aux1 >= 12)
-				*p++ = '+';
-			*p = '\0';
-			fp = Util_fopen(host_path, mode, h_tmpbuf[h_iocb]);
-			if (fp == NULL && aux1 == 12) {
-				mode[0] = 'w';
-				fp = Util_fopen(host_path, mode, h_tmpbuf[h_iocb]);
+			BYTE mode = FA_READ;
+            if (aux1 & 1) mode |= FA_OPEN_APPEND;
+			if (aux1 < 12) mode |= FA_WRITE;
+			if (aux1 >= 12) mode |= FA_OPEN_APPEND;
+			FRESULT fr = f_open(&h_fp[h_iocb].fil, host_path, mode);
+			h_fp[h_iocb].open = fr == FR_OK;
+			if (fr != FR_OK && aux1 == 12) {
+				mode |= FA_WRITE;
+				fr = f_open(&h_fp[h_iocb].fil, host_path, mode);
+				h_fp[h_iocb].open = fr == FR_OK;
 			}
 		}
-		if (fp != NULL) {
+		if (h_fp[h_iocb].open) {
 			CPU_regY = 1;
 			CPU_ClrN;
 		}
@@ -979,7 +981,6 @@ static void Devices_H_Open(void)
 		CPU_SetN;
 		break;
 	}
-	h_fp[h_iocb] = fp;
 }
 
 static void Devices_H_Close(void)
@@ -988,9 +989,9 @@ static void Devices_H_Close(void)
 		Log_print("HHCLOS");
 	if (!Devices_GetIOCB())
 		return;
-	if (h_fp[h_iocb] != NULL) {
-		Util_fclose(h_fp[h_iocb], h_tmpbuf[h_iocb]);
-		h_fp[h_iocb] = NULL;
+	if (h_fp[h_iocb].open) {
+		f_close(&h_fp[h_iocb]);
+		h_fp[h_iocb].open = FALSE;
 	}
 	CPU_regY = 1;
 	CPU_ClrN;
@@ -1002,12 +1003,12 @@ static void Devices_H_Read(void)
 		Log_print("HHREAD");
 	if (!Devices_GetIOCB())
 		return;
-	if (h_fp[h_iocb] != NULL) {
+	if (h_fp[h_iocb].open) {
 		int ch;
 		if (h_lastop[h_iocb] != 'r') {
-			if (h_lastop[h_iocb] == 'w')
-				fseek(h_fp[h_iocb], 0, SEEK_CUR);
-			h_lastbyte[h_iocb] = fgetc(h_fp[h_iocb]);
+		///	if (h_lastop[h_iocb] == 'w')
+		///		fseek(h_fp[h_iocb], 0, SEEK_CUR);
+			h_lastbyte[h_iocb] = _fgetc(&h_fp[h_iocb].fil);
 			h_lastop[h_iocb] = 'r';
 		}
 		ch = h_lastbyte[h_iocb];
@@ -1021,7 +1022,7 @@ static void Devices_H_Read(void)
 				case 0x0a:
 					if (h_wascr[h_iocb]) {
 						/* ignore LF next to CR */
-						ch = fgetc(h_fp[h_iocb]);
+						ch = _fgetc(&h_fp[h_iocb].fil);
 						if (ch != EOF) {
 							if (ch == 0x0d) {
 								h_wascr[h_iocb] = TRUE;
@@ -1047,8 +1048,8 @@ static void Devices_H_Read(void)
 			CPU_regA = (UBYTE) ch;
 			/* [OSMAN] p. 79: Status should be 3 if next read would yield EOF.
 			   But to set the stream's EOF flag, we need to read the next byte. */
-			h_lastbyte[h_iocb] = fgetc(h_fp[h_iocb]);
-			CPU_regY = feof(h_fp[h_iocb]) ? 3 : 1;
+			h_lastbyte[h_iocb] = _fgetc(&h_fp[h_iocb].open);
+			CPU_regY = f_size(&h_fp[h_iocb].fil) == f_tell(&h_fp[h_iocb].fil) ? 3 : 1;
 			CPU_ClrN;
 		}
 		else {
@@ -1068,15 +1069,15 @@ static void Devices_H_Write(void)
 		Log_print("HHWRIT");
 	if (!Devices_GetIOCB())
 		return;
-	if (h_fp[h_iocb] != NULL) {
+	if (h_fp[h_iocb].open) {
 		int ch;
-		if (h_lastop[h_iocb] == 'r')
-			fseek(h_fp[h_iocb], 0, SEEK_CUR);
+	///	if (h_lastop[h_iocb] == 'r')
+	///		fseek(h_fp[h_iocb], 0, SEEK_CUR);
 		h_lastop[h_iocb] = 'w';
 		ch = CPU_regA;
 		if (ch == 0x9b && h_textmode[h_iocb])
 			ch = '\n';
-		fputc(ch, h_fp[h_iocb]);
+		fputc(ch, &h_fp[h_iocb].fil);
 		CPU_regY = 1;
 		CPU_ClrN;
 	}
@@ -1346,8 +1347,8 @@ static void Devices_H_Note(void)
 		Log_print("NOTE Command");
 	if (!Devices_GetIOCB())
 		return;
-	if (h_fp[h_iocb] != NULL) {
-		long pos = ftell(h_fp[h_iocb]);
+	if (h_fp[h_iocb].open) {
+		long pos = f_tell(&h_fp[h_iocb].fil);
 		if (pos >= 0) {
 			int iocb = Devices_IOCB0 + h_iocb * 16;
 			/* In Devices_H_Read one byte is read ahead. Take it into account. */
@@ -1376,11 +1377,11 @@ static void Devices_H_Point(void)
 		Log_print("POINT Command");
 	if (!Devices_GetIOCB())
 		return;
-	if (h_fp[h_iocb] != NULL) {
+	if (h_fp[h_iocb].open) {
 		int iocb = Devices_IOCB0 + h_iocb * 16;
 		long pos = (MEMORY_dGetByte(iocb + Devices_ICAX4) << 16) +
 			(MEMORY_dGetByte(iocb + Devices_ICAX3) << 8) + (MEMORY_dGetByte(iocb + Devices_ICAX5));
-		if (fseek(h_fp[h_iocb], pos, SEEK_SET) == 0) {
+		if (f_lseek(&h_fp[h_iocb].fil, pos) == FR_OK) {
 			CPU_regY = 1;
 			CPU_ClrN;
 		}
@@ -1396,8 +1397,8 @@ static void Devices_H_Point(void)
 	}
 }
 
-static FILE *binfile = NULL;
-static FILE **binf = &binfile;
+static FIL binfile;
+static FIL *binf = &binfile;
 static int runBinFile;
 static int initBinFile;
 
@@ -1405,9 +1406,10 @@ static int initBinFile;
 static int Devices_H_BinReadWord(void)
 {
 	UBYTE buf[2];
-	if (fread(buf, 1, 2, *binf) != 2) {
-		fclose(*binf);
-		*binf = NULL;
+	UINT rb;
+	if (binf && f_read(binf, buf, 2, &rb) != FR_OK) {
+		f_close(binf);
+		binf = NULL;
 		if (BINLOAD_start_binloading) {
 			BINLOAD_start_binloading = FALSE;
 			Log_print("binload: not valid BIN file");
@@ -1426,7 +1428,7 @@ static int Devices_H_BinReadWord(void)
 
 static void Devices_H_BinLoaderCont(void)
 {
-	if (*binf == NULL)
+	if (binf == NULL)
 		return;
 	if (BINLOAD_start_binloading) {
 		MEMORY_dPutByte(0x244, 0);
@@ -1463,10 +1465,10 @@ static void Devices_H_BinLoaderCont(void)
 
 		to++;
 		do {
-			int byte = fgetc(*binf);
+			int byte = _fgetc(binf);
 			if (byte == EOF) {
-				fclose(*binf);
-				*binf = NULL;
+				f_close(binf);
+				binf = NULL;
 				if (runBinFile)
 					CPU_regPC = MEMORY_dGetWordAligned(0x2e0);
 				if (initBinFile && (MEMORY_dGetByte(0x2e3) != 0xd7)) {
@@ -1562,29 +1564,31 @@ static void Devices_H_Load(int mydos)
 		if (Devices_GetAtariPath(devnum, r) == 0)
 			return;
 		Util_catpath(host_path, Devices_atari_h_dir[devnum], atari_path);
-		*binf = fopen(host_path, "rb");
-		if (*binf != NULL || *q == '\0')
+		FRESULT fr = f_open(&binfile, host_path, FA_READ);
+		binf = fr == FR_OK ? &binfile : NULL;
+		if (binf != NULL || *q == '\0')
 			break;
 		p = q + 1;
 	}
 
-	if (*binf == NULL) {
+	if (binf == NULL) {
 		/* open from the specified location */
 		if (Devices_GetAtariPath(h_devnum, atari_filename) == 0)
 			return;
 		Util_catpath(host_path, Devices_atari_h_dir[h_devnum], atari_path);
-		*binf = fopen(host_path, "rb");
-		if (*binf == NULL) {
+		FRESULT fr = f_open(&binfile, host_path, FA_READ);
+		binf = fr == FR_OK ? &binfile : NULL;
+		if (binf == NULL) {
 			CPU_regY = 170;
 			CPU_SetN;
 			return;
 		}
 	}
-
+    UINT rb;
 	/* check header */
-	if (fread(buf, 1, 2, *binf) != 2 || buf[0] != 0xff || buf[1] != 0xff) {
-		fclose(*binf);
-		*binf = NULL;
+	if (f_read(binf, buf, 2, &rb) != FR_OK || rb != 2 || buf[0] != 0xff || buf[1] != 0xff) {
+		f_close(binf);
+		binf = NULL;
 		Log_print("H: load: not valid BIN file");
 		CPU_regY = 180;
 		CPU_SetN;
@@ -1601,7 +1605,7 @@ static void Devices_H_FileLength(void)
 	if (!Devices_GetIOCB())
 		return;
 	/* if IOCB is closed then assume it is a MyDOS Load File command */
-	if (h_fp[h_iocb] == NULL)
+	if (h_fp[h_iocb].open == FALSE)
 		Devices_H_Load(TRUE);
 	/* if we are running MyDOS then assume it is a MyDOS Load File command */
 	else if (MEMORY_dGetByte(0x700) == 'M') {
@@ -1609,7 +1613,7 @@ static void Devices_H_FileLength(void)
 
 		/* In Devices_H_Read one byte is read ahead. Take it into account. */
 		if (h_lastop[h_iocb] == 'r' && h_lastbyte[h_iocb] != EOF)
-			fseek(h_fp[h_iocb], -1, SEEK_CUR);
+			f_lseek(&h_fp[h_iocb].fil, f_tell(&h_fp[h_iocb].fil) - 1);
 
 		binf = &h_fp[h_iocb];
 		Devices_H_LoadProceed(TRUE);
@@ -1626,10 +1630,10 @@ static void Devices_H_FileLength(void)
 		fstat(fileno(h_fp[h_iocb]), &fstatus);
 		filesize = fstatus.st_size;
 #else
-		FILE *fp = h_fp[h_iocb];
-		long currentpos = ftell(fp);
-		filesize = Util_flen(fp);
-		fseek(fp, currentpos, SEEK_SET);
+		FIL *fp = &h_fp[h_iocb].fil;
+		long currentpos = f_tell(fp);
+		filesize = f_size(fp);
+		f_lseek(fp, currentpos);
 #endif
 		MEMORY_dPutByte(iocb + Devices_ICAX3, (UBYTE) filesize);
 		MEMORY_dPutByte(iocb + Devices_ICAX4, (UBYTE) (filesize >> 8));
@@ -2276,16 +2280,13 @@ static void Devices_GetBasicCommand(void)
 
 static void Devices_OpenBasicFile(void)
 {
-	if (BINLOAD_bin_file != NULL) {
+	if (BINLOAD_bin_file_open) {
 		if (BINLOAD_loading_basic == BINLOAD_LOADING_BASIC_LISTED) {
 			/* determine its type now rather than during the loading */
 			unsigned char buf[2];
-			size_t buf_read;
-
-			fseek(BINLOAD_bin_file, 0, SEEK_END);
-			fseek(BINLOAD_bin_file, -2, SEEK_CUR);
-
-			buf_read = fread(buf, sizeof(buf[0]), 2, BINLOAD_bin_file);
+			UINT buf_read;
+			f_lseek(&BINLOAD_bin_file, f_size(&BINLOAD_bin_file) - 2);
+			f_read(&BINLOAD_bin_file, buf, 2, &buf_read);
 			if (buf_read == 2) {
 				/* simple heuristics - look at the last and possibly one before last character */
 				if (buf[1] == 0x9b) {
@@ -2300,8 +2301,7 @@ static void Devices_OpenBasicFile(void)
 				}
 			}
 		}
-
-		fseek(BINLOAD_bin_file, 0, SEEK_SET);
+		f_lseek(&BINLOAD_bin_file, 0);
 		ESC_AddEscRts(ehclos_addr, ESC_EHCLOS, Devices_CloseBasicFile);
 		ESC_AddEscRts(ehread_addr, ESC_EHREAD, Devices_ReadBasicFile);
 		CPU_regY = 1;
@@ -2314,8 +2314,8 @@ static void Devices_OpenBasicFile(void)
 
 static void Devices_ReadBasicFile(void)
 {
-	if (BINLOAD_bin_file != NULL) {
-		int ch = fgetc(BINLOAD_bin_file);
+	if (BINLOAD_bin_file_open) {
+		int ch = _fgetc(&BINLOAD_bin_file);
 		if (ch == EOF) {
 			CPU_regY = 136;
 			CPU_SetN;
@@ -2337,7 +2337,7 @@ static void Devices_ReadBasicFile(void)
 			break;
 		case BINLOAD_LOADING_BASIC_LISTED_CRLF:
 			if (ch == 0x0a) {
-				ch = fgetc(BINLOAD_bin_file);
+				ch = _fgetc(&BINLOAD_bin_file);
 				if (ch == EOF) {
 					CPU_regY = 136;
 					CPU_SetN;
@@ -2362,9 +2362,9 @@ static void Devices_ReadBasicFile(void)
 
 static void Devices_CloseBasicFile(void)
 {
-	if (BINLOAD_bin_file != NULL) {
-		fclose(BINLOAD_bin_file);
-		BINLOAD_bin_file = NULL;
+	if (BINLOAD_bin_file_open) {
+		f_close(&BINLOAD_bin_file);
+		BINLOAD_bin_file_open = FALSE;
 		/* "RUN" ENTERed program */
 		if (BINLOAD_loading_basic != 0 && BINLOAD_loading_basic != BINLOAD_LOADING_BASIC_SAVED) {
 			ready_ptr = ready_prompt;

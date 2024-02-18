@@ -36,7 +36,6 @@ Votrax_GetStatus     - Return busy status (1 = busy)
 #endif
 
 #include "votrax.h"
-#include <stdio.h>
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>

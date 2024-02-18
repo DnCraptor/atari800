@@ -2,7 +2,6 @@
 #define PBI_SCSI_H_
 
 #include "atari.h"
-#include <stdio.h>
 
 extern int PBI_SCSI_CD;
 extern int PBI_SCSI_MSG;
@@ -11,7 +10,7 @@ extern int PBI_SCSI_BSY;
 extern int PBI_SCSI_REQ;
 extern int PBI_SCSI_SEL;
 extern int PBI_SCSI_ACK;
-extern FILE *PBI_SCSI_disk;
+extern FIL *PBI_SCSI_disk;
 
 void PBI_SCSI_PutByte(UBYTE byte);
 UBYTE PBI_SCSI_GetByte(void);

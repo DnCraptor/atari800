@@ -36,6 +36,8 @@
 #include "util.h"
 #include <stdlib.h>
 
+#include "ff.h"
+
 #ifdef PBI_DEBUG
 #define D(a) a
 #else
@@ -62,7 +64,7 @@ static char bb_scsi_disk_filename[FILENAME_MAX] = Util_FILENAME_NOT_SET;
 
 static void init_bb(void)
 {
-	FILE *bbfp;
+	FIL *bbfp;
 	bbfp = fopen(bb_rom_filename,"rb");
 	bb_rom_size = Util_flen(bbfp);
 	fclose(bbfp);
@@ -138,7 +140,7 @@ int PBI_BB_ReadConfig(char *string, char *ptr)
 	return TRUE; /* matched something */
 }
 
-void PBI_BB_WriteConfig(FILE *fp)
+void PBI_BB_WriteConfig(FIL *fp)
 {
 	fprintf(fp, "BLACK_BOX_ROM=%s\n", bb_rom_filename);
 	if (!Util_filenamenotset(bb_scsi_disk_filename)) {

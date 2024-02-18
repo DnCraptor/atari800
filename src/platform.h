@@ -2,7 +2,6 @@
 #define PLATFORM_H_
 
 #include "config.h"
-#include <stdio.h>
 #include "atari.h"
 #if SUPPORTS_CHANGE_VIDEOMODE
 #include "videomode.h"

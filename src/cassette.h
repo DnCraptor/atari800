@@ -1,8 +1,6 @@
 #ifndef CASSETTE_H_
 #define CASSETTE_H_
 
-#include <stdio.h>		/* for FILE and FILENAME_MAX */
-
 #include "atari.h"		/* for UBYTE */
 
 #define CASSETTE_DESCRIPTION_MAX 256
@@ -21,7 +19,7 @@ int CASSETTE_Initialise(int *argc, char *argv[]);
 void CASSETTE_Exit(void);
 /* Config file read/write */
 int CASSETTE_ReadConfig(char *string, char *ptr);
-void CASSETTE_WriteConfig(FILE *fp);
+void CASSETTE_WriteConfig(FIL *fp);
 
 /* Attaches a tape image. Also resets CASSETTE_write_protect to FALSE.
    Returns TRUE on success, FALSE otherwise. */

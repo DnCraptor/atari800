@@ -23,7 +23,9 @@
  */
 
 #include <stdlib.h>
-#include <stdio.h>
+///#include <stdio.h>
+#include "ff.h"
+
 #include <string.h>
 
 #include "atari.h"
@@ -42,7 +44,7 @@ enum { DEFAULT_BUFFER_SIZE = 132 };
 enum { DEFAULT_BAUDRATE = 600 };
 
 struct IMG_TAPE_t {
-	FILE *file; /* Stream for reading/writing of the tape image */
+	FIL file; /* Stream for reading/writing of the tape image */
 	int isCAS; /* Indicates if the file is in CAS format, or a raw binary file */
 	UBYTE *buffer; /* Holds bytes of the last read or currently written data block */
 	size_t buffer_size; /* Size of the space allocated for BUFFER */
@@ -109,7 +111,7 @@ static int WriteRecord(IMG_TAPE_t *file)
 	if (!file->isCAS)
 		return FALSE;
 	/* always append */
-	if (fseek(file->file, file->block_offsets[file->num_blocks], SEEK_SET) != 0)
+	if (f_lseek(&file->file, file->block_offsets[file->num_blocks]) != FR_OK)
 		return FALSE;
 	/* write record header */
 	memcpy(header.identifier, "data", 4);
@@ -117,7 +119,8 @@ static int WriteRecord(IMG_TAPE_t *file)
 	header.length_hi = (file->block_length >> 8) & 0xFF;
 	header.aux_lo = file->save_gap & 0xff;
 	header.aux_hi = (file->save_gap >> 8) & 0xff;
-	if (fwrite(&header, 1, 8, file->file) != 8)
+	UINT wr;
+	if (f_write(&file->file, &header, 8, &wr) != FR_OK)
 		return FALSE;
 	/* Saving is supported only with standard baudrate. */
 	file->block_baudrates[file->num_blocks] = DEFAULT_BAUDRATE;
@@ -125,7 +128,7 @@ static int WriteRecord(IMG_TAPE_t *file)
 	file->block_offsets[file->num_blocks] = file->block_offsets[file->num_blocks - 1] + file->block_length + 8;
 	file->current_block = file->num_blocks;
 	/* write record */
-	result = fwrite(file->buffer, 1, file->block_length, file->file) == file->block_length;
+	result = f_write(&file->file, file->buffer, file->block_length, &wr) == FR_OK;
 	if (result) {
 		file->save_gap = 0;
 		file->block_length = 0;
@@ -137,7 +140,7 @@ static int WriteRecord(IMG_TAPE_t *file)
 static int CassetteFlush(IMG_TAPE_t *file)
 {
 	if (file->block_length > 0)
-		return WriteRecord(file) && fflush(file->file) == 0;
+		return WriteRecord(file) /**&& f_flush(&file->file) == 0**/;
 	return TRUE;
 }
 
@@ -148,18 +151,18 @@ IMG_TAPE_t *IMG_TAPE_Open(char const *filename, int *writable, char const **desc
 
 	img = (IMG_TAPE_t *)Util_malloc(sizeof(IMG_TAPE_t));
 	/* Check if the file is writable. If not, recording will be disabled. */
-	img->file = fopen(filename, "rb+");
-	*writable = img->file != NULL;
+	FRESULT fr = f_open(&img->file, filename, FA_READ | FA_WRITE | FA_OPEN_APPEND);
+	*writable = fr == FR_OK;
 	/* If opening for reading+writing failed, reopen it as read-only. */
-	if (img->file == NULL)
-		img->file = fopen(filename, "rb");
-	if (img->file == NULL) {
+	if (fr != FR_OK)
+		fr = f_open(&img->file, filename, FA_READ);
+	if (fr != FR_OK) {
 		free(img);
 		return NULL;
 	}
 	img->description[0] = '\0';
-
-	if (fread(&header, 1, 6, img->file) == 6
+	UINT rb;
+	if (f_read(&img->file, &header, 6, &rb) == FR_OK
 		&& header.identifier[0] == 'F'
 		&& header.identifier[1] == 'U'
 		&& header.identifier[2] == 'J'
@@ -171,7 +174,7 @@ IMG_TAPE_t *IMG_TAPE_Open(char const *filename, int *writable, char const **desc
 		int baudrate = DEFAULT_BAUDRATE;
 
 		img->isCAS = TRUE;
-		fseek(img->file, 2L, SEEK_CUR);	/* ignore the aux bytes */
+		f_lseek(&img->file, f_tell(&img->file) + 2L);	/* ignore the aux bytes */
 
 		/* read or skip file description */
 		skip = length = header.length_lo | (header.length_hi << 8);
@@ -179,21 +182,21 @@ IMG_TAPE_t *IMG_TAPE_Open(char const *filename, int *writable, char const **desc
 			skip = 0;
 		else
 			skip -= CASSETTE_DESCRIPTION_MAX - 1;
-		if (fread(img->description, 1, length - skip, img->file) < (length - skip)) {
-			fclose(img->file);
+		if (f_read(&img->file, img->description, length - skip, &rb) != FR_OK || rb < (length - skip)) {
+			f_close(&img->file);
 			free(img);
 			return NULL;
 		}
 		img->description[length - skip] = '\0';
-		fseek(img->file, skip, SEEK_CUR);
+		f_lseek(&img->file, f_tell(&img->file) + skip);
 
 		/* count number of blocks */
 		blocks = 0;
 		img->block_baudrates[0] = DEFAULT_BAUDRATE;
-		img->block_offsets[0] = ftell(img->file);
+		img->block_offsets[0] = f_tell(&img->file);
 		for (;;) {
 			/* chunk header is always 8 bytes */
-			if (fread(&header, 1, 8, img->file) != 8)
+			if (f_read(&img->file, &header, 8, &rb) != FR_OK || rb != 8)
 				break;
 			length = header.length_lo + (header.length_hi << 8);
 			if (header.identifier[0] == 'b' &&
@@ -219,20 +222,19 @@ IMG_TAPE_t *IMG_TAPE_Open(char const *filename, int *writable, char const **desc
 				img->block_offsets[blocks] = img->block_offsets[blocks - 1] + length + 8;
 			}
 			/* skip possibly present data block */
-			fseek(img->file, length, SEEK_CUR);
+			f_lseek(&img->file, f_tell(&img->file) + length);
 		}
 		img->num_blocks = blocks;
 		*description = img->description;
 	}
 	else {
 		/* raw file */
-		int file_length = Util_flen(img->file);
+		int file_length = f_size(&img->file);
 		img->num_blocks = ((file_length + 127) >> 7) + 1;
 		img->isCAS = FALSE;
 		*writable = FALSE; /* Writing raw files is not supported */
 		*description = NULL;
 	}
-
 	img->savetime = 0;
 	img->save_gap = 0;
 	img->next_blockbyte = 0;
@@ -240,7 +242,6 @@ IMG_TAPE_t *IMG_TAPE_Open(char const *filename, int *writable, char const **desc
 	img->current_block = 0;
 	img->buffer = (UBYTE *)Util_malloc((img->buffer_size = DEFAULT_BUFFER_SIZE) * sizeof(UBYTE));
 	img->was_writing = FALSE;
-
 	return img;
 }
 
@@ -248,7 +249,7 @@ void IMG_TAPE_Close(IMG_TAPE_t *file)
 {
 	if (file->was_writing)
 		CassetteFlush(file);
-	fclose(file->file);
+	f_close(&file->file);
 	free(file->buffer);
 	free(file);
 }
@@ -258,11 +259,10 @@ IMG_TAPE_t *IMG_TAPE_Create(char const *filename, char const *description)
 	IMG_TAPE_t *img;
 	CAS_Header header;
 	size_t desc_len;
-	FILE *file = NULL;
-
+	FIL file;
 	/* create new file */
-	file = fopen(filename, "wb+");
-	if (file == NULL)
+	FRESULT fr = f_open(&file, filename, FA_WRITE | FA_OPEN_APPEND);
+	if (fr != FR_OK)
 		return NULL;
 
 	/* Write the initial FUJI and baud blocks of the CAS file. */
@@ -271,10 +271,11 @@ IMG_TAPE_t *IMG_TAPE_Create(char const *filename, char const *description)
 	/* write CAS-header */
 	header.length_lo = (UBYTE) desc_len;
 	header.length_hi = (UBYTE) (desc_len >> 8);
-	if (fwrite("FUJI", 1, 4, file) != 4
-	    || fwrite(&header.length_lo, 1, 4, file) != 4
-	    || fwrite(description, 1, desc_len, file) != desc_len) {
-		fclose(file);
+	UINT wb;
+	if (f_write(&file, "FUJI", 4, &wb) != FR_OK
+	    || f_write(&file, &header.length_lo, 4, &wb) != FR_OK
+	    || f_write(&file, description, desc_len, &wb) != FR_OK) {
+		f_close(&file);
 		return NULL;
 	}
 
@@ -282,9 +283,9 @@ IMG_TAPE_t *IMG_TAPE_Create(char const *filename, char const *description)
 	/* All records are written with 600 baud speed. */
 	header.aux_lo = DEFAULT_BAUDRATE & 0xff;
 	header.aux_hi = DEFAULT_BAUDRATE >> 8;
-	if (fwrite("baud", 1, 4, file) != 4
-	    || fwrite(&header.length_lo, 1, 4, file) != 4) {
-		fclose(file);
+	if (f_write(&file, "baud", 4, &wb) != FR_OK
+	    || f_write(&file, &header.length_lo, 4, &wb) != FR_OK) {
+		f_close(&file);
 		return NULL;
 	}
 
@@ -333,12 +334,12 @@ static int ReadNextRecord(IMG_TAPE_t *file, int *gap)
 			/* Last block was already read. */
 			return FALSE;
 	}
-
+	UINT wr;
 	if (file->isCAS) {
 		CAS_Header header;
 
-		if (fseek(file->file, file->block_offsets[file->current_block], SEEK_SET) != 0
-		    || fread(&header, 1, 8, file->file) < 8)
+		if (f_lseek(&file->file, file->block_offsets[file->current_block]) != FR_OK
+		    || f_read(&file->file, &header, 8, &wr) != FR_OK)
 			return FALSE;
 
 		/* Determine chunk type - can be either "fsk " or "data". */
@@ -351,7 +352,7 @@ static int ReadNextRecord(IMG_TAPE_t *file, int *gap)
 		*gap = header.aux_lo + (header.aux_hi << 8);
 		/* read block into buffer */
 		EnlargeBuffer(file, length);
-		if (fread(file->buffer, 1, length, file->file) < length)
+		if (f_read(&file->file, file->buffer, length, &wr) != FR_OK)
 			return FALSE;
 	}
 	else {
@@ -367,9 +368,9 @@ static int ReadNextRecord(IMG_TAPE_t *file, int *gap)
 			memset(file->buffer + 3, 0, 128);
 		}
 		else {
-			int bytes;
-			if (fseek(file->file, file->current_block * 128, SEEK_SET) != 0
-			    || (bytes = fread(file->buffer + 3, 1, 128, file->file)) == 0)
+			UINT bytes;
+			if (f_lseek(&file->file, file->current_block * 128) != FR_OK
+			    || f_read(&file->file, file->buffer + 3, 128, &bytes) != FR_OK)
 				return FALSE;
 			if (bytes < 128) {
 				file->buffer[2] = 0xfa; /* non-full record */

@@ -28,7 +28,7 @@ void COLOURS_NTSC_GetYIQ(double yiq_table[768], const double start_angle);
 
 /* Read/write to configuration file. */
 int COLOURS_NTSC_ReadConfig(char *option, char *ptr);
-void COLOURS_NTSC_WriteConfig(FILE *fp);
+void COLOURS_NTSC_WriteConfig(FIL *fp);
 
 /* NTSC Colours initialisation and processing of command-line arguments. */
 int COLOURS_NTSC_Initialise(int *argc, char *argv[]);

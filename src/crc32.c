@@ -22,8 +22,6 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#include <stdio.h>
-
 #include "crc32.h"
 #include "atari.h"
 
@@ -90,17 +88,22 @@ ULONG CRC32_Update(ULONG crc, UBYTE const *buf, unsigned int len)
 }
 #endif
 
-int CRC32_FromFile(FILE *f, ULONG *result)
+inline static int _fread(const char *n, int m, int len, FIL * f) {
+    UINT r = 0;
+	f_read(f, n, len, &r);
+	return r;
+}
+
+int CRC32_FromFile(FIL *f, ULONG *result)
 {
 	UBYTE buf[BUF_SIZE];
 	ULONG crc = 0xffffffff;
-
 	for (;;) {
-		size_t len = fread(buf, 1, BUF_SIZE, f);
+		int len = _fread(buf, 1, BUF_SIZE, f);
 		crc = CRC32_Update(crc, buf, len);
 		if (len < BUF_SIZE)
 			break;
 	}
 	*result = ~crc;
-	return feof(f);
+	return f_tell(f) == f_size(f);
 }

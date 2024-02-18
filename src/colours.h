@@ -79,7 +79,7 @@ void Colours_PreInitialise(void);
 
 /* Read/write to configuration file. */
 int Colours_ReadConfig(char *option, char *ptr);
-void Colours_WriteConfig(FILE *fp);
+void Colours_WriteConfig(FIL *fp);
 
 /* Colours initialisation and processing of command-line arguments. */
 int Colours_Initialise(int *argc, char *argv[]);

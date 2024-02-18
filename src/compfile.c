@@ -23,7 +23,6 @@
 */
 
 #include "config.h"
-#include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #ifdef HAVE_LIBZ
@@ -40,7 +39,7 @@
 
 /* Opens a GZIP compressed file and decompresses its contents to outfp.
    Returns TRUE on success. */
-int CompFile_ExtractGZ(const char *infilename, FILE *outfp)
+int CompFile_ExtractGZ(const char *infilename, FIL *outfp)
 {
 #ifndef HAVE_LIBZ
 	Log_print("This executable cannot decompress ZLIB files");
@@ -72,7 +71,7 @@ int CompFile_ExtractGZ(const char *infilename, FILE *outfp)
 
 /* DCM decompression ----------------------------------------------------- */
 
-static int fgetw(FILE *fp)
+static int fgetw(FIL *fp)
 {
 	int low;
 	int high;
@@ -85,18 +84,18 @@ static int fgetw(FILE *fp)
 	return low + (high << 8);
 }
 
-static int fload(void *buf, int size, FILE *fp)
+static int fload(void *buf, int size, FIL *fp)
 {
 	return (int) fread(buf, 1, size, fp) == size;
 }
 
-static int fsave(void *buf, int size, FILE *fp)
+static int fsave(void *buf, int size, FIL *fp)
 {
 	return (int) fwrite(buf, 1, size, fp) == size;
 }
 
 typedef struct {
-	FILE *fp;
+	FIL *fp;
 	int sectorcount;
 	int sectorsize;
 	int current_sector;
@@ -140,7 +139,7 @@ static int pad_till_sector(ATR_Info *pai, int till_sector)
 	return TRUE;
 }
 
-static int dcm_pass(FILE *infp, ATR_Info *pai)
+static int dcm_pass(FIL *infp, ATR_Info *pai)
 {
 	UBYTE sector_buf[256];
 	memset(sector_buf, 0, sizeof(sector_buf));
@@ -233,7 +232,7 @@ static int dcm_pass(FILE *infp, ATR_Info *pai)
 	}
 }
 
-int CompFile_DCMtoATR(FILE *infp, FILE *outfp)
+int CompFile_DCMtoATR(FIL *infp, FIL *outfp)
 {
 	int archive_type;
 	int archive_flags;

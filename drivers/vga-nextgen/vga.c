@@ -7,7 +7,6 @@
 #include "hardware/dma.h"
 #include "hardware/irq.h"
 #include <string.h>
-#include <stdio.h>
 #include "hardware/pio.h"
 #include "pico/stdlib.h"
 #include "stdlib.h"

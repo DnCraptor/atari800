@@ -2,7 +2,8 @@
 #define ATARI_H_
 
 #include "config.h"
-#include <stdio.h> /* FILENAME_MAX */
+#include "ff.h"
+
 #ifdef HAVE_WINDOWS_H
 #include <windows.h>
 #endif

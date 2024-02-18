@@ -1,8 +1,6 @@
 #ifndef LIBATARI800_API_H_
 #define LIBATARI800_API_H_
 
-#include <stdio.h>
-
 #include "config.h"
 
 #ifdef HAVE_SETJMP

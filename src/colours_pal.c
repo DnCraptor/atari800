@@ -416,7 +416,7 @@ int COLOURS_PAL_ReadConfig(char *option, char *ptr)
 	return TRUE;
 }
 
-void COLOURS_PAL_WriteConfig(FILE *fp)
+void COLOURS_PAL_WriteConfig(FIL *fp)
 {
 	fprintf(fp, "COLOURS_PAL_SATURATION=%g\n", COLOURS_PAL_setup.saturation);
 	fprintf(fp, "COLOURS_PAL_CONTRAST=%g\n", COLOURS_PAL_setup.contrast);

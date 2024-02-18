@@ -1,7 +1,6 @@
 #ifndef DEVICES_H_
 #define DEVICES_H_
 
-#include <stdio.h> /* FILENAME_MAX */
 #include "atari.h" /* UWORD */
 
 int Devices_Initialise(int *argc, char *argv[]);
