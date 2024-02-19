@@ -88,9 +88,11 @@ int MEMORY_selftest_enabled = 0;
 const size_t under_atarixl_os_base = 0;
 const size_t under_atarixl_os_size = 16384;
 ///static UBYTE under_cart809F[8192];
-const size_t under_cart809F_base = under_atarixl_os_size;
+const size_t under_cart809F_base = under_atarixl_os_base + under_atarixl_os_size;
 const size_t under_cart809F_size = 8192;
-static UBYTE under_cartA0BF[8192];
+///static UBYTE under_cartA0BF[8192];
+const size_t under_cartA0BF_base = under_cart809F_base + under_cart809F_size;
+const size_t under_cartA0BF_size = 8192;
 
 static int cart809F_enabled = FALSE;
 int MEMORY_cartA0BF_enabled = FALSE;
@@ -405,7 +407,7 @@ void MEMORY_StateSave(UBYTE SaveVerbose)
 	if (Atari800_machine_type == Atari800_MACHINE_XLXE) {
 	///	if (SaveVerbose != 0)
 	///		StateSav_SaveUBYTE(&MEMORY_basic[0], 8192);
-		StateSav_SaveUBYTE(&under_cartA0BF[0], 8192);
+		StateSav_Save2PSRAM(under_cartA0BF_base, under_cartA0BF_size);
 	///	if (SaveVerbose != 0)
 	///		StateSav_SaveUBYTE(&MEMORY_os[0], 16384);
 		StateSav_Save2PSRAM(under_atarixl_os_base, under_atarixl_os_size);
@@ -585,7 +587,7 @@ void MEMORY_StateRead(UBYTE SaveVerbose, UBYTE StateVersion)
 	if (Atari800_machine_type == Atari800_MACHINE_XLXE) {
 	///	if (SaveVerbose)
 	///		StateSav_ReadUBYTE(&MEMORY_basic[0], 8192);
-		StateSav_ReadUBYTE(&under_cartA0BF[0], 8192);
+		StateSav_Read2PSRAM(under_cartA0BF_base, under_cartA0BF_size);
 	///	if (SaveVerbose)
 	///		StateSav_ReadUBYTE(&MEMORY_os[0], 16384);
 		StateSav_Read2PSRAM(under_atarixl_os_base, under_atarixl_os_size);
@@ -877,12 +879,18 @@ void MEMORY_HandlePORTB(UBYTE byte, UBYTE oldval)
 		UBYTE const *builtin_cart_old = builtin_cart(oldval);
 		if (builtin_cart_old != builtin_cart_new) {
 			if (builtin_cart_old == NULL && MEMORY_ram_size > 40) { /* switching RAM out */
-				memcpy(under_cartA0BF, MEMORY_mem + 0xa000, 0x2000);
+				for (size_t i = 0; i < 0x2000; ++i) {
+					write8psram(under_cartA0BF_base + i, MEMORY_mem[0xa000 + i]);
+				}
+				///memcpy(under_cartA0BF, MEMORY_mem + 0xa000, 0x2000);
 				MEMORY_SetROM(0xa000, 0xbfff);
 			}
 			if (builtin_cart_new == NULL) { /* switching RAM in */
 				if (MEMORY_ram_size > 40) {
-					memcpy(MEMORY_mem + 0xa000, under_cartA0BF, 0x2000);
+					for (size_t i = 0; i < 0x2000; ++i) {
+						MEMORY_mem[0xa000 + i] = read8psram(under_cartA0BF_base + i);
+					}
+					///memcpy(MEMORY_mem + 0xa000, under_cartA0BF, 0x2000);
 					MEMORY_SetRAM(0xa000, 0xbfff);
 				}
 				else
@@ -1065,7 +1073,10 @@ void MEMORY_CartA0bfDisable(void)
 		UBYTE const *builtin = builtin_cart(PIA_PORTB | PIA_PORTB_mask);
 		if (builtin == NULL) { /* switch RAM in */
 			if (MEMORY_ram_size > 40) {
-				memcpy(MEMORY_mem + 0xa000, under_cartA0BF, 0x2000);
+				for (size_t i = 0; i < 0x2000; ++i) {
+					MEMORY_mem[0xa000 + i] = read8psram(under_cartA0BF_base + i);
+				}
+				///memcpy(MEMORY_mem + 0xa000, under_cartA0BF, 0x2000);
 				MEMORY_SetRAM(0xa000, 0xbfff);
 			}
 			else
@@ -1089,7 +1100,10 @@ void MEMORY_CartA0bfEnable(void)
 		/* or accessing extended 576K or 1088K memory */
 		if (MEMORY_ram_size > 40 && builtin_cart(PIA_PORTB | PIA_PORTB_mask) == NULL) {
 			/* Back-up 0xa000-0xbfff RAM */
-			memcpy(under_cartA0BF, MEMORY_mem + 0xa000, 0x2000);
+			for (size_t i = 0; i < 0x2000; ++i) {
+				write8psram(under_cartA0BF_base + i, MEMORY_mem[0xa000 + i]);
+			}
+			///memcpy(under_cartA0BF, MEMORY_mem + 0xa000, 0x2000);
 			MEMORY_SetROM(0xa000, 0xbfff);
 		}
 		MEMORY_cartA0BF_enabled = TRUE;
