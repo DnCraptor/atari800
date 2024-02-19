@@ -119,7 +119,7 @@ typedef struct {
 } input_template_t;
 
 
-#define STATESAV_MAX_SIZE 210000
+#define STATESAV_MAX_SIZE 1
 
 /* byte offsets into output_template.state array of groups of data
    to prevent the need for a full parsing of the save state data to

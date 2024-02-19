@@ -210,7 +210,9 @@ int libatari800_next_frame(input_template_t *input)
 	printf("libatari800_next_frame");
 	LIBATARI800_Input_array = input;
 	INPUT_key_code = PLATFORM_Keyboard();
+	printf("PLATFORM_Keyboard: %04Xh", INPUT_key_code);
 	LIBATARI800_Mouse();
+	printf("LIBATARI800_Mouse PASSED");
 #ifdef HAVE_SETJMP
 	if ((libatari800_error_code = setjmp(libatari800_cpu_crash))) {
 		/* called from within CPU_GO to indicate crash */
@@ -221,14 +223,18 @@ int libatari800_next_frame(input_template_t *input)
 	{
 		/* normal operation */
 		LIBATARI800_Frame();
+		printf("LIBATARI800_Frame PASSED");
 		if (CPU_cim_encountered) {
 			libatari800_error_code = LIBATARI800_CPU_CRASH;
+			printf("LIBATARI800_CPU_CRASH");
 		}
 		else if (ANTIC_dlist == 0) {
 			libatari800_error_code = LIBATARI800_DLIST_ERROR;
+			printf("LIBATARI800_DLIST_ERROR");
 		}
 	}
 	PLATFORM_DisplayScreen();
+	printf("PLATFORM_DisplayScreen PASSED");
 	return !libatari800_error_code;
 }
 

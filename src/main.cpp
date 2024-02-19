@@ -204,19 +204,19 @@ int main() {
     // Uncomment if we reach this line
     printf("libatari800_get_screen_ptr");
     graphics_set_buffer(libatari800_get_screen_ptr(), 384, 240);
-    printf("GRAPHICSMODE_DEFAULT");
-    graphics_set_mode(GRAPHICSMODE_DEFAULT);
+ ///   printf("GRAPHICSMODE_DEFAULT");
+ ///   graphics_set_mode(GRAPHICSMODE_DEFAULT);
     bool blinker = true;
-    // gpio_put(PICO_DEFAULT_LED_PIN, blinker);
+    gpio_put(PICO_DEFAULT_LED_PIN, blinker);
     while(true) {
-        libatari800_get_current_state(&state);
-        cpu = (cpu_state_t *)&state.state[state.tags.cpu];  /* order: A,SR,SP,X,Y */
-        snprintf(tmp, 255, "frame %d: A=%02x X=%02x Y=%02x SP=%02x SR=%02x\n", frame++, cpu->A, cpu->X, cpu->Y, cpu->P, cpu->S);
-        printf(tmp);
-        draw_text(tmp, 0, 0, 15, 0);
+    //    libatari800_get_current_state(&state);
+    //    cpu = (cpu_state_t *)&state.state[state.tags.cpu];  /* order: A,SR,SP,X,Y */
+    //    snprintf(tmp, 255, "frame %d: A=%02x X=%02x Y=%02x SP=%02x SR=%02x\n", frame++, cpu->A, cpu->X, cpu->Y, cpu->P, cpu->S);
+    //    printf(tmp);
+    //    draw_text(tmp, 0, 0, 15, 0);
         libatari800_next_frame(&input);
         blinker = ~blinker;
-        // gpio_put(PICO_DEFAULT_LED_PIN, blinker);
+        gpio_put(PICO_DEFAULT_LED_PIN, blinker);
     }
 
     __unreachable();

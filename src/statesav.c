@@ -645,7 +645,6 @@ static int mem_close(gzFile stream)
 }
 #endif /* #ifdef MEMCOMPR */
 
-
 #ifdef LIBATARI800
 /* replacement for GZOPEN */
 static gzFile mem_open(const char *name, const char *mode)
