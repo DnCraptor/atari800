@@ -41,8 +41,8 @@
 #include "file_export.h"
 #endif
 
-static __aligned(4) ULONG __screen[Screen_HEIGHT * Screen_WIDTH] = { 0 };
-ULONG *Screen_atari = &__screen;
+static __aligned(4) UBYTE __screen[Screen_HEIGHT * Screen_WIDTH] = { 0 };
+UBYTE *Screen_atari = &__screen;
 #ifdef DIRTYRECT
 UBYTE *Screen_dirty = NULL;
 #endif
@@ -243,7 +243,7 @@ void Screen_WriteConfig(FIL *fp)
 
 static void SmallFont_DrawChar(UBYTE *screen, int ch, UBYTE color1, UBYTE color2)
 {
-	static const UBYTE font[SMALLFONT_COUNT][SMALLFONT_HEIGHT] = {
+	static const uint8_t font[SMALLFONT_COUNT][SMALLFONT_HEIGHT] = {
 		{
 			SMALLFONT_____,
 			SMALLFONT__X__,

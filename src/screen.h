@@ -11,7 +11,7 @@ extern UBYTE *Screen_dirty;
 #endif /* CLIENTUPDATE */
 #endif /* DIRTYRECT */
 
-extern ULONG *Screen_atari;
+extern uint8_t *Screen_atari;
 
 /* Dimensions of Screen_atari.
    Screen_atari is Screen_WIDTH * Screen_HEIGHT bytes.

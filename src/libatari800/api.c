@@ -318,9 +318,9 @@ UBYTE *libatari800_get_main_memory_ptr()
  * @returns pointer to the beginning of the 92160 bytes of data holding the
  * emulated screen.
  */
-UBYTE *libatari800_get_screen_ptr()
+uint8_t *libatari800_get_screen_ptr()
 {
-	return (UBYTE *)Screen_atari;
+	return (uint8_t *)Screen_atari;
 }
 
 

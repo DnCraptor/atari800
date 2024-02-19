@@ -2874,7 +2874,7 @@ void ANTIC_Frame(int draw_display)
 		OVERSCREEN_LINE;
 	} while (ANTIC_ypos < 8);
 
-	scrn_ptr = (UWORD *) Screen_atari;
+	scrn_ptr = (UWORD *) Screen_atari; // TODO: UBYTE ?
 #ifdef NEW_CYCLE_EXACT
 	ANTIC_cur_screen_pos = ANTIC_NOT_DRAWING;
 #endif

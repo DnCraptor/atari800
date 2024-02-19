@@ -1039,7 +1039,7 @@ void INPUT_DrawMousePointer(void)
 		int x = mouse_x >> MOUSE_SHIFT;
 		int y = mouse_y >> MOUSE_SHIFT;
 		if (x >= 0 && x <= 167 && y >= 0 && y <= 119) {
-			UWORD *ptr = & ((UWORD *) Screen_atari)[12 + x + Screen_WIDTH * y];
+			UWORD *ptr = & ((UWORD *) Screen_atari)[12 + x + Screen_WIDTH * y]; // TODO: UBYTE?
 			PLOT(-2, 0);
 			PLOT(-1, 0);
 			PLOT(1, 0);
