@@ -116,7 +116,8 @@ void POKEYSND_SetVolume(int vol);
 /* Volume only emulations declarations */
 #ifdef VOL_ONLY_SOUND
 
-#define	POKEYSND_SAMPBUF_MAX	2000
+#define	POKEYSND_SAMPBUF_MAX	16
+//#define	POKEYSND_SAMPBUF_MAX	2000
 extern int	POKEYSND_sampbuf_val[POKEYSND_SAMPBUF_MAX];	/* volume values */
 extern int	POKEYSND_sampbuf_cnt[POKEYSND_SAMPBUF_MAX];	/* relative start time */
 extern int	POKEYSND_sampbuf_ptr;                    /* pointer to sampbuf */
