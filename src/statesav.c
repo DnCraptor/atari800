@@ -79,10 +79,14 @@ static gzFile mem_open(const char *name, const char *mode);
 static int mem_close(gzFile stream);
 static size_t mem_read(void *buf, size_t len, gzFile stream);
 static size_t mem_write(const void *buf, size_t len, gzFile stream);
+static size_t psram_read(size_t offset, size_t len, gzFile stream);
+static size_t psram_write(size_t offset, size_t len, gzFile stream);
 #define GZOPEN(X, Y)     mem_open(X, Y)
 #define GZCLOSE(X)       mem_close(X)
 #define GZREAD(X, Y, Z)  mem_read(Y, Z, X)
 #define GZWRITE(X, Y, Z) mem_write(Y, Z, X)
+#define GZREADPSRAM(X, Y, Z)  psram_read(Y, Z, X)
+#define GZWRITE2PSRAM(X, Y, Z) psram_write(Y, Z, X)
 #undef GZERROR
 #elif defined(HAVE_LIBZ) /* above MEMCOMPR, below HAVE_LIBZ */
 #define GZOPEN(X, Y)     gzopen(X, Y)
@@ -121,6 +125,13 @@ static void GetGZErrorText(void)
 	Log_print("State file I/O failed.");
 }
 
+void StateSav_Save2PSRAM(size_t offset, int len) {
+	if (!StateFile || nFileError != Z_OK)
+		return;
+	if (GZWRITE2PSRAM(StateFile, offset, len) == 0)
+		GetGZErrorText();
+}
+
 /* Value is memory location of data, num is number of type to save */
 void StateSav_SaveUBYTE(const UBYTE *data, int num)
 {
@@ -132,6 +143,14 @@ void StateSav_SaveUBYTE(const UBYTE *data, int num)
 	   you'll have to redefine this to save appropriately for cross-platform
 	   compatibility */
 	if (GZWRITE(StateFile, data, num) == 0)
+		GetGZErrorText();
+}
+
+void StateSav_ReadPSRAM(size_t offset, size_t len)
+{
+	if (!StateFile || nFileError != Z_OK)
+		return;
+	if (GZREADPSRAM(StateFile, offset, len) == 0)
 		GetGZErrorText();
 }
 
@@ -673,6 +692,24 @@ static size_t mem_read(void *buf, size_t len, gzFile stream)
 {
 	if (plainmemoff + len > unclen) return 0;  /* shouldn't happen */
 	memcpy(buf, plainmembuf + plainmemoff, len);
+	plainmemoff += len;
+	return len;
+}
+
+static size_t psram_read(size_t offset, size_t len, gzFile stream)
+{
+	if (plainmemoff + len > unclen) return 0;  /* shouldn't happen */
+	for (size_t i = 0; i < len; ++i)
+		write8psram(offset + i, plainmembuf[plainmemoff + plainmemoff + i]);
+	plainmemoff += len;
+	return len;
+}
+
+static size_t psram_write(size_t offset, size_t len, gzFile stream)
+{
+	if (plainmemoff + len > unclen) return 0;  /* shouldn't happen */
+	for (size_t i = 0; i < len; ++i)
+		plainmembuf[plainmemoff + plainmemoff + i] = read8psram(offset + i);
 	plainmemoff += len;
 	return len;
 }

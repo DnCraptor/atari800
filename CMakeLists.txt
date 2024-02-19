@@ -32,6 +32,7 @@ add_subdirectory(drivers/ps2)
 add_subdirectory(drivers/fatfs)
 add_subdirectory(drivers/sdcard)
 add_subdirectory(drivers/nespad)
+add_subdirectory(drivers/psram)
 
 add_subdirectory(drivers/vga-nextgen)
 add_subdirectory(drivers/st7789)
@@ -62,6 +63,7 @@ pico_set_program_version(${PROJECT_NAME} "test")
 target_link_libraries(${PROJECT_NAME} PRIVATE
         ps2
         sdcard
+        psram
         fatfs
         nespad
 
@@ -135,7 +137,17 @@ target_compile_definitions(${PROJECT_NAME} PRIVATE
         NES_GPIO_CLK=14
         NES_GPIO_DATA=16
         NES_GPIO_LAT=15
-        
+
+        PSRAM
+        # PSRAM_MUTEX=1
+        PSRAM_SPINLOCK=1
+        PSRAM_ASYNC=1
+
+        PSRAM_PIN_CS=18
+        PSRAM_PIN_SCK=19
+        PSRAM_PIN_MOSI=20
+        PSRAM_PIN_MISO=21
+
         MNGR_DEBUG=1
         DEBUG2=1
 )

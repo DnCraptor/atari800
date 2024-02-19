@@ -7,6 +7,9 @@
 int StateSav_SaveAtariState(const char *filename, const char *mode, UBYTE SaveVerbose);
 int StateSav_ReadAtariState(const char *filename, const char *mode);
 
+void StateSav_Save2PSRAM(size_t offset, int len);
+void StateSav_Read2PSRAM(size_t offset, int len);
+
 void StateSav_SaveUBYTE(const UBYTE *data, int num);
 void StateSav_SaveUWORD(const UWORD *data, int num);
 void StateSav_SaveINT(const int *data, int num);
