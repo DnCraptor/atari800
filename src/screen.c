@@ -41,7 +41,7 @@
 #include "file_export.h"
 #endif
 
-static __aligned(4) UBYTE __screen[Screen_HEIGHT * Screen_WIDTH] = { 0 };
+UBYTE __aligned(4) __screen[Screen_HEIGHT * Screen_WIDTH] = { 0 };
 UBYTE *Screen_atari = &__screen;
 #ifdef DIRTYRECT
 UBYTE *Screen_dirty = NULL;

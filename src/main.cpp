@@ -20,6 +20,7 @@ extern "C" {
 #include "memory.h"
 #include "ff.h"
 #include "debug.h"
+#include "screen.h"
 }
 
 #include "nespad.h"
@@ -30,8 +31,8 @@ static FATFS fs;
 semaphore vga_start_semaphore;
 #define DISP_WIDTH (320)
 #define DISP_HEIGHT (240)
-
-uint16_t SCREEN[TEXTMODE_ROWS][TEXTMODE_COLS];
+extern "C" UBYTE __aligned(4) __screen[Screen_HEIGHT * Screen_WIDTH];
+///uint16_t SCREEN[TEXTMODE_ROWS][TEXTMODE_COLS];
 
 static uint32_t input;
 
@@ -48,13 +49,13 @@ void __time_critical_func(render_core)() {
     multicore_lockout_victim_init();
     graphics_init();
 
-    const auto buffer = (uint8_t *)SCREEN;
+    const auto buffer = (uint8_t *)__screen; // TODO: SCREEN;
     graphics_set_buffer(buffer, TEXTMODE_COLS, TEXTMODE_ROWS);
     graphics_set_textbuffer(buffer);
     graphics_set_bgcolor(0x000000);
     graphics_set_offset(0, 0);
     graphics_set_mode(TEXTMODE_DEFAULT);
-    clrScr(1);
+ ///   clrScr(1);
 
     sem_acquire_blocking(&vga_start_semaphore);
     // 60 FPS loop
