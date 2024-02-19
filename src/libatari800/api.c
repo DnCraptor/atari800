@@ -207,6 +207,7 @@ void libatari800_clear_input_array(input_template_t *input)
  */
 int libatari800_next_frame(input_template_t *input)
 {
+	printf("libatari800_next_frame");
 	LIBATARI800_Input_array = input;
 	INPUT_key_code = PLATFORM_Keyboard();
 	LIBATARI800_Mouse();
@@ -451,6 +452,7 @@ int libatari800_get_frame_number() {
  */
 void libatari800_get_current_state(emulator_state_t *state)
 {
+	printf("libatari800_get_current_state");
 	LIBATARI800_StateSave(state->state, &state->tags);
 	state->flags.selftest_enabled = MEMORY_selftest_enabled;
 	state->flags.nframes = (ULONG)Atari800_nframes;
