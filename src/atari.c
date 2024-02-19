@@ -816,7 +816,7 @@ int Atari800_Initialise(int *argc, char *argv[])
 		|| !PLATFORM_Initialise(argc, argv)
 #endif
 #if !defined(BASIC) && !defined(CURSES_BASIC)
-///		|| !Screen_Initialise(argc, argv) /////// TODO: ???
+		|| !Screen_Initialise(argc, argv)
 ///		|| !UI_Initialise(argc, argv)
 #if defined(AUDIO_RECORDING) || defined(VIDEO_RECORDING)
 		|| !File_Export_Initialise(argc, argv)

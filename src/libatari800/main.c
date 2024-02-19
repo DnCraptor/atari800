@@ -108,12 +108,15 @@ void LIBATARI800_Frame(void)
 {
 	switch (INPUT_key_code) {
 	case AKEY_COLDSTART:
+		printf("Atari800_Coldstart");
 		Atari800_Coldstart();
 		break;
 	case AKEY_WARMSTART:
+		printf("Atari800_Warmstart");
 		Atari800_Warmstart();
 		break;
 	case AKEY_UI:
+		printf("PLATFORM_Exit");
 		PLATFORM_Exit(TRUE);  /* run monitor */
 		break;
 	default:
@@ -129,13 +132,21 @@ void LIBATARI800_Frame(void)
 	Devices_Frame();
 	INPUT_Frame();
 	GTIA_Frame();
+	printf("ANTIC_Frame");
 	ANTIC_Frame(TRUE);
+	printf("INPUT_DrawMousePointer");
 	INPUT_DrawMousePointer();
+	printf("Screen_DrawAtariSpeed");
 	Screen_DrawAtariSpeed(Util_time());
+	printf("Screen_DrawDiskLED");
 	Screen_DrawDiskLED();
+	printf("Screen_Draw1200LED");
 	Screen_Draw1200LED();
+	printf("POKEY_Frame");
 	POKEY_Frame();
+	printf("Sound_Update");
 	Sound_Update();
+	printf("Atari800_nframes: %d", Atari800_nframes);
 	Atari800_nframes++;
 }
 

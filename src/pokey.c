@@ -1480,6 +1480,7 @@ void POKEY_Frame(void)
 
 void POKEY_Scanline(void)
 {
+	printf("POKEY_Scanline");
 #ifdef POKEYREC
     POKEYREC_Recorder();
 #endif
@@ -1504,9 +1505,11 @@ void POKEY_Scanline(void)
 			POKEY_DELAYED_SERIN_IRQ = 1;
 	}
 
-	if ((POKEY_SKCTL & 0x03) == 0)
+	if ((POKEY_SKCTL & 0x03) == 0) {
 		/* Don't process timers when POKEY is in reset mode. */
+		printf("POKEY_Scanline (POKEY_SKCTL & 0x03) == 0");
 		return;
+	}
 
 	if (pot_scanline < 228)
 		pot_scanline++;
@@ -1595,6 +1598,7 @@ void POKEY_Scanline(void)
 			CPU_GenerateIRQ();
 		}
 	}
+	printf("POKEY_Scanline DONE");
 }
 
 /*****************************************************************************/

@@ -41,7 +41,8 @@
 #include "file_export.h"
 #endif
 
-ULONG *Screen_atari = NULL;
+static __aligned(4) ULONG __screen[Screen_HEIGHT * Screen_WIDTH] = { 0 };
+ULONG *Screen_atari = &__screen;
 #ifdef DIRTYRECT
 UBYTE *Screen_dirty = NULL;
 #endif
@@ -143,11 +144,9 @@ int Screen_Initialise(int *argc, char *argv[])
 	/* don't bother mallocing Screen_atari with just "-help" */
 	if (help_only)
 		return TRUE;
-
-	if (Screen_atari == NULL) { /* platform-specific code can initialize it */
+/***
+	if (Screen_atari == NULL) { /* platform-specific code can initialize it * /
 		Screen_atari = (ULONG *) Util_malloc(Screen_HEIGHT * Screen_WIDTH);
-		/* Clear the screen. */
-		memset(Screen_atari, 0, Screen_HEIGHT * Screen_WIDTH);
 #ifdef DIRTYRECT
 		Screen_dirty = (UBYTE *) Util_malloc(Screen_HEIGHT * Screen_WIDTH / 8);
 		Screen_EntireDirty();
@@ -159,7 +158,9 @@ int Screen_Initialise(int *argc, char *argv[])
 		Screen_atari2 = Screen_atari_b;
 #endif
 	}
-
+**/
+	/* Clear the screen. */
+	memset(Screen_atari, 0, Screen_HEIGHT * Screen_WIDTH);
 	return TRUE;
 }
 
