@@ -146,7 +146,7 @@ void StateSav_SaveUBYTE(const UBYTE *data, int num)
 		GetGZErrorText();
 }
 
-void StateSav_ReadPSRAM(size_t offset, size_t len)
+void StateSav_Read2PSRAM(size_t offset, int len)
 {
 	if (!StateFile || nFileError != Z_OK)
 		return;
