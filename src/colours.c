@@ -65,9 +65,10 @@ static char const * const preset_cfg_strings[COLOURS_PRESET_SIZE] = {
 	"VIBRANT"
 };
 
-int Colours_table[256];
+///int Colours_table[256];
+void graphics_set_palette(const uint8_t i, const uint32_t color888);
 
-void Colours_SetRGB(int i, int r, int g, int b, int *colortable_ptr)
+void Colours_SetRGB(int i, int r, int g, int b)
 {
 	if (r < 0)
 		r = 0;
@@ -81,8 +82,7 @@ void Colours_SetRGB(int i, int r, int g, int b, int *colortable_ptr)
 		b = 0;
 	else if (b > 255)
 		b = 255;
-	colortable_ptr[i] = (r << 16) + (g << 8) + b;
-	printf("Colours_SetRGB[%d] = %04X", i, colortable_ptr[i]);
+	graphics_set_palette(i, (r << 16) + (g << 8) + b);
 }
 
 /* 3x3 matrix for conversion from RGB to YUV colourspace. */
@@ -169,7 +169,7 @@ static void CopyExternalWithoutAdjustments(void)
 	int i;
 	unsigned char *ext_ptr;
 	for (i = 0, ext_ptr = Colours_external->palette; i < 256; i ++, ext_ptr += 3)
-		Colours_SetRGB(i, *ext_ptr, *(ext_ptr + 1), *(ext_ptr + 2), Colours_table);
+		Colours_SetRGB(i, *ext_ptr, *(ext_ptr + 1), *(ext_ptr + 2));
 }
 
 /* Updates contents of Colours_table. */
@@ -178,9 +178,9 @@ static void UpdatePalette(void)
 	if (Colours_external->loaded && !Colours_external->adjust)
 		CopyExternalWithoutAdjustments();
 	else if (Atari800_tv_mode == Atari800_TV_NTSC)
-		COLOURS_NTSC_Update(Colours_table);
+		COLOURS_NTSC_Update();
 	else /* PAL */
-		COLOURS_PAL_Update(Colours_table);
+		COLOURS_PAL_Update();
 }
 
 void Colours_Update(void)

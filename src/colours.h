@@ -3,7 +3,7 @@
 
 #include "colours_external.h"
 
-extern int Colours_table[256];
+///extern int Colours_table[256];
 
 typedef enum {
 	COLOURS_PRESET_STANDARD,
@@ -49,11 +49,11 @@ typedef struct Colours_setup_t {
    COLOURS_PAL_setup.) */
 extern Colours_setup_t *Colours_setup;
 
-#define Colours_GetR(x) ((UBYTE) (Colours_table[x] >> 16))
-#define Colours_GetG(x) ((UBYTE) (Colours_table[x] >> 8))
-#define Colours_GetB(x) ((UBYTE) Colours_table[x])
+///#define Colours_GetR(x) ((UBYTE) (Colours_table[x] >> 16))
+///#define Colours_GetG(x) ((UBYTE) (Colours_table[x] >> 8))
+///#define Colours_GetB(x) ((UBYTE) Colours_table[x])
 /* Packs R, G, B into palette COLORTABLE_PTR for colour number I. */
-void Colours_SetRGB(int i, int r, int g, int b, int *colortable_ptr);
+void Colours_SetRGB(int i, int r, int g, int b);
 
 /* Called when the TV system changes, it updates the current palette
    accordingly. */

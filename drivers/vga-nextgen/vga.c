@@ -525,18 +525,9 @@ void graphics_set_palette(const uint8_t i, const uint32_t color888) {
 
     palette[0][i] = ((c_hi << 8) | c_lo) & 0x3f3f | palette16_mask;
     palette[1][i] = ((c_lo << 8) | c_hi) & 0x3f3f | palette16_mask;
-    
-    printf("palette[0][%d] %04X", i, palette[0][i]);
-    printf("palette[1][%d] %04X", i, palette[1][i]);
-}
 
-extern int Colours_table[256]; // colours.c PAL/NTSC depends // RGB (r << 16) + (g << 8) + b;
-
-void graphics_init_pal() {
-    for (int i = 0; i < 256; ++i) {
-        int ci = Colours_table[256];
-        graphics_set_palette(i, (uint32_t)ci);
-    }
+    printf("%04X palette[0][%d] %04X", color888, i, palette[0][i]);
+    printf("%04X palette[1][%d] %04X", color888, i, palette[1][i]);
 }
 
 void graphics_init() {

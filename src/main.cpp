@@ -198,7 +198,6 @@ int main() {
         sleep_ms(33);
         gpio_put(PICO_DEFAULT_LED_PIN, false);
     }
-    graphics_init_pal();
     //emulator_state_t state;
     //cpu_state_t *cpu;
     //int frame = 0;

@@ -11,5 +11,3 @@
 #define TEXTMODE_ROWS 30
 
 #define RGB888(r, g, b) ((r<<16) | (g << 8 ) | b )
-
-void graphics_init_pal();

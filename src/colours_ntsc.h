@@ -16,7 +16,7 @@ extern COLOURS_EXTERNAL_t COLOURS_NTSC_external;
 
 /* Updates the NTSC palette - should be called after changing palette setup
    or loading/unloading an external palette. */
-void COLOURS_NTSC_Update(int colourtable[256]);
+void COLOURS_NTSC_Update();
 /* Restores default values for NTSC-specific colour controls.
    Colours_NTSC_Update should be called afterwards to apply changes. */
 void COLOURS_NTSC_RestoreDefaults(void);

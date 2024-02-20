@@ -337,7 +337,7 @@ void COLOURS_PAL_GetYUV(double yuv_table[256*5])
 
 /* Averages YUV values from YUV_TABLE and converts them to RGB values. Stores
    them in COLOURTABLE. */
-static void YUV2RGB(int colourtable[256], double const yuv_table[256*5])
+static void YUV2RGB(double const yuv_table[256*5])
 {
 	double const *yuv_ptr = yuv_table;
 	int n;
@@ -367,15 +367,15 @@ static void YUV2RGB(int colourtable[256], double const yuv_table[256*5])
 			b = Colours_Linear2sRGB(b);
 		}
 
-		Colours_SetRGB(n, (int) (r * 255), (int) (g * 255), (int) (b * 255), colourtable);
+		Colours_SetRGB(n, (int) (r * 255), (int) (g * 255), (int) (b * 255));
 	}
 }
 
-void COLOURS_PAL_Update(int colourtable[256])
+void COLOURS_PAL_Update()
 {
 	double yuv_table[256*5];
 	COLOURS_PAL_GetYUV(yuv_table);
-	YUV2RGB(colourtable, yuv_table);
+	YUV2RGB(yuv_table);
 }
 
 void COLOURS_PAL_RestoreDefaults(void)

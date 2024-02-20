@@ -11,7 +11,7 @@ extern COLOURS_EXTERNAL_t COLOURS_PAL_external;
 
 /* Updates the PAL palette - should be called after changing palette setup
    or loading/unloading an external palette. */
-void COLOURS_PAL_Update(int colourtable[256]);
+void COLOURS_PAL_Update();
 
 /* Restores default values for PAL-specific colour controls.
    Colours_PAL_Update should be called afterwards to apply changes. */

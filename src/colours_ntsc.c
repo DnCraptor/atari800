@@ -170,7 +170,7 @@ void COLOURS_NTSC_GetYIQ(double yiq_table[768], const double start_angle)
 
 /* Converts YIQ values from YIQ_TABLE to RGB values. Stores them in
    COLOURTABLE. */
-static void YIQ2RGB(int colourtable[256], const double yiq_table[768])
+static void YIQ2RGB(const double yiq_table[768])
 {
 	const double *yiq_ptr = yiq_table;
 	int n;
@@ -196,15 +196,15 @@ static void YIQ2RGB(int colourtable[256], const double yiq_table[768])
 			b = Colours_Linear2sRGB(b);
 		}
 
-		Colours_SetRGB(n, (int) (r * 255), (int) (g * 255), (int) (b * 255), colourtable);
+		Colours_SetRGB(n, (int) (r * 255), (int) (g * 255), (int) (b * 255));
 	}
 }
 
-void COLOURS_NTSC_Update(int colourtable[256])
+void COLOURS_NTSC_Update()
 {
 	double yiq_table[768];
 	UpdateYIQTable(yiq_table, colorburst_angle + COLOURS_NTSC_setup.hue * M_PI, COLOURS_NTSC_setup.saturation);
-	YIQ2RGB(colourtable, yiq_table);
+	YIQ2RGB(yiq_table);
 }
 
 void COLOURS_NTSC_RestoreDefaults(void)
