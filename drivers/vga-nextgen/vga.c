@@ -11,6 +11,7 @@
 #include "pico/stdlib.h"
 #include "stdlib.h"
 #include "fnt8x16.h"
+#include "debug.h"
 
 uint16_t pio_program_VGA_instructions[] = {
     //     .wrap_target
@@ -68,7 +69,6 @@ static uint16_t* txt_palette_fast = NULL;
 //static uint16_t txt_palette_fast[256*4];
 
 enum graphics_mode_t graphics_mode;
-
 
 void __time_critical_func() dma_handler_VGA() {
     dma_hw->ints0 = 1u << dma_chan_ctrl;
@@ -517,14 +517,26 @@ void graphics_set_palette(const uint8_t i, const uint32_t color888) {
 
     const uint8_t b = (color888 & 0xff) / 42;
 
-    const uint8_t r = (color888 >> 16 & 0xff) / 42;
-    const uint8_t g = (color888 >> 8 & 0xff) / 42;
+    const uint8_t r = ((color888 >> 16) & 0xff) / 42;
+    const uint8_t g = ((color888 >> 8) & 0xff) / 42;
 
-    const uint8_t c_hi = conv0[r] << 4 | conv0[g] << 2 | conv0[b];
-    const uint8_t c_lo = conv1[r] << 4 | conv1[g] << 2 | conv1[b];
+    const uint8_t c_hi = (conv0[r] << 4) | (conv0[g] << 2) | conv0[b];
+    const uint8_t c_lo = (conv1[r] << 4) | (conv1[g] << 2) | conv1[b];
 
-    palette[0][i] = (c_hi << 8 | c_lo) & 0x3f3f | palette16_mask;
-    palette[1][i] = (c_lo << 8 | c_hi) & 0x3f3f | palette16_mask;
+    palette[0][i] = ((c_hi << 8) | c_lo) & 0x3f3f | palette16_mask;
+    palette[1][i] = ((c_lo << 8) | c_hi) & 0x3f3f | palette16_mask;
+    
+    printf("palette[0][%d] %04X", i, palette[0][i]);
+    printf("palette[1][%d] %04X", i, palette[1][i]);
+}
+
+extern int Colours_table[256]; // colours.c PAL/NTSC depends // RGB (r << 16) + (g << 8) + b;
+
+void graphics_init_pal() {
+    for (int i = 0; i < 256; ++i) {
+        int ci = Colours_table[256];
+        graphics_set_palette(i, (uint32_t)ci);
+    }
 }
 
 void graphics_init() {

@@ -234,7 +234,7 @@ int libatari800_next_frame(input_template_t *input)
 		}
 	}
 	PLATFORM_DisplayScreen();
-	printf("PLATFORM_DisplayScreen PASSED");
+	//printf("PLATFORM_DisplayScreen PASSED");
 	return !libatari800_error_code;
 }
 

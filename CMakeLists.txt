@@ -148,8 +148,8 @@ target_compile_definitions(${PROJECT_NAME} PRIVATE
         PSRAM_PIN_MOSI=20
         PSRAM_PIN_MISO=21
 
-        #MNGR_DEBUG=1
-        #DEBUG2=1
+        MNGR_DEBUG=1
+        DEBUG2=1
 )
 
 

@@ -82,6 +82,7 @@ void Colours_SetRGB(int i, int r, int g, int b, int *colortable_ptr)
 	else if (b > 255)
 		b = 255;
 	colortable_ptr[i] = (r << 16) + (g << 8) + b;
+	printf("Colours_SetRGB[%d] = %04X", i, colortable_ptr[i]);
 }
 
 /* 3x3 matrix for conversion from RGB to YUV colourspace. */
@@ -346,12 +347,14 @@ int Colours_Initialise(int *argc, char *argv[])
 	}
 	*argc = j;
 
-	if (!COLOURS_NTSC_Initialise(argc, argv) ||
-	    !COLOURS_PAL_Initialise(argc, argv))
+	if (!COLOURS_NTSC_Initialise(argc, argv) || !COLOURS_PAL_Initialise(argc, argv)) {
+		printf("!COLOURS_NTSC_Initialise(argc, argv) || !COLOURS_PAL_Initialise(argc, argv)");
 		return FALSE;
+	}
 
 	/* Assume that Atari800_tv_mode has been already initialised. */
 	UpdateModeDependentPointers(Atari800_tv_mode);
 	UpdatePalette();
+	printf("UpdatePalette DONE")
 	return TRUE;
 }
