@@ -396,7 +396,6 @@ int GTIA_Initialise(int *argc, char *argv[])
 	for (int tt = 0; tt < 4; ++tt) {
 		sprintf(tmp, " {\n"); f_write(&f, tmp, strlen(tmp), &bw);
 		for (i = 0; i < 256; i += 8) {
-		    printf("%d, ", grafp_lookup[tt][i]);
 			sprintf(tmp,
 			    "    0x%08X, 0x%08X, 0x%08X, 0x%08X, 0x%08X, 0x%08X, 0x%08X, 0x%08X,\n",
 			    grafp_lookup[tt][i],

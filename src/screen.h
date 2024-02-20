@@ -21,6 +21,9 @@ extern uint8_t *Screen_atari;
 #define Screen_WIDTH  384
 #define Screen_HEIGHT 240
 
+//#define Screen_WIDTH  2
+//#define Screen_HEIGHT 2
+
 #ifdef BITPL_SCR
 extern ULONG *Screen_atari_b;
 extern ULONG *Screen_atari1;
