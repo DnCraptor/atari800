@@ -326,10 +326,7 @@ void __time_critical_func() dma_handler_VGA() {
         case GRAPHICSMODE_DEFAULT:
             input_buffer_8bit = (24 + 8) + input_buffer + y * 384;
             for (int i = 320; i--;) {
-                //*output_buffer_16bit++=current_palette[*input_buffer_8bit++];
-                uint8_t c = *input_buffer_8bit;
-                *output_buffer_16bit++ = current_palette[c];
-                input_buffer_8bit++;
+                *output_buffer_16bit++ = current_palette[*input_buffer_8bit++];
             }
             break;
         case VGA_320x200x256x4:
@@ -515,10 +512,9 @@ void graphics_set_palette(const uint8_t i, const uint32_t color888) {
     const uint8_t conv0[] = { 0b00, 0b00, 0b01, 0b10, 0b10, 0b10, 0b11, 0b11 };
     const uint8_t conv1[] = { 0b00, 0b01, 0b01, 0b01, 0b10, 0b11, 0b11, 0b11 };
 
-    const uint8_t b = (color888 & 0xff) / 42;
-
     const uint8_t r = ((color888 >> 16) & 0xff) / 42;
     const uint8_t g = ((color888 >> 8) & 0xff) / 42;
+    const uint8_t b = (color888 & 0xff) / 42;
 
     const uint8_t c_hi = (conv0[r] << 4) | (conv0[g] << 2) | conv0[b];
     const uint8_t c_lo = (conv1[r] << 4) | (conv1[g] << 2) | conv1[b];
@@ -526,13 +522,13 @@ void graphics_set_palette(const uint8_t i, const uint32_t color888) {
     palette[0][i] = ((c_hi << 8) | c_lo) & 0x3f3f | palette16_mask;
     palette[1][i] = ((c_lo << 8) | c_hi) & 0x3f3f | palette16_mask;
 
-    printf("%04X palette[0][%d] %04X", color888, i, palette[0][i]);
-    printf("%04X palette[1][%d] %04X", color888, i, palette[1][i]);
+   // printf("%04X palette[0][%d] %04X", color888, i, palette[0][i]);
+   // printf("%04X palette[1][%d] %04X", color888, i, palette[1][i]);
 }
 
 void graphics_init() {
     //инициализация палитры по умолчанию
-#if 1
+#if 0
     const uint8_t conv0[] = { 0b00, 0b00, 0b01, 0b10, 0b10, 0b10, 0b11, 0b11 };
     const uint8_t conv1[] = { 0b00, 0b01, 0b01, 0b01, 0b10, 0b11, 0b11, 0b11 };
     for (int i = 0; i < 256; i++) {
