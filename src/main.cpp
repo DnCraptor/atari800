@@ -23,6 +23,7 @@ extern "C" {
 #include "screen.h"
 }
 
+#include "psram_spi.h"
 #include "nespad.h"
 ///#include <stdio.h>
 extern "C" int	snprintf (char *__restrict, size_t, const char *__restrict, ...) _ATTRIBUTE ((__format__ (__printf__, 3, 4)));
@@ -167,25 +168,20 @@ int main() {
     nespad_read();
     sleep_ms(50);
 
-    init_fs();
-    printf("main: init_fs passed");
+    init_fs(); // TODO: psram replacement (pagefile)
+    init_psram();
 
     // F12 Boot to USB FIRMWARE UPDATE mode
     if (nespad_state & DPAD_START || input == 0x58) {
         printf("reset_usb_boot");
         reset_usb_boot(0, 0);
     }
-
-
-
     input_template_t input;
-
     /* force the 400/800 OS to get the Memo Pad */
     char *test_args[] = {
         "-atari",
         NULL,
     };
-
     printf("libatari800_init");
     libatari800_init(-1, test_args);
     printf("libatari800_clear_input_array");
@@ -202,20 +198,12 @@ int main() {
         sleep_ms(33);
         gpio_put(PICO_DEFAULT_LED_PIN, false);
     }
-
-
-    emulator_state_t state;
-    cpu_state_t *cpu;
-
-    int frame = 0;
-    char tmp[255];
-    // Uncomment if we reach this line
-    printf("libatari800_get_screen_ptr");
-    // graphics_set_buffer(libatari800_get_screen_ptr(), 384, 240);
- ///   printf("GRAPHICSMODE_DEFAULT");
- ///   graphics_set_mode(GRAPHICSMODE_DEFAULT);
-    bool blinker = true;
-    gpio_put(PICO_DEFAULT_LED_PIN, blinker);
+    //emulator_state_t state;
+    //cpu_state_t *cpu;
+    //int frame = 0;
+    //char tmp[255];
+    //bool blinker = true;
+    //gpio_put(PICO_DEFAULT_LED_PIN, blinker);
     while(true) {
     //    libatari800_get_current_state(&state);
     //    cpu = (cpu_state_t *)&state.state[state.tags.cpu];  /* order: A,SR,SP,X,Y */
@@ -223,8 +211,8 @@ int main() {
     //    printf(tmp);
     //    draw_text(tmp, 0, 0, 15, 0);
         libatari800_next_frame(&input);
-        blinker = ~blinker;
-        gpio_put(PICO_DEFAULT_LED_PIN, blinker);
+        //blinker = ~blinker;
+        //gpio_put(PICO_DEFAULT_LED_PIN, blinker);
     }
 
     __unreachable();

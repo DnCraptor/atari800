@@ -8,6 +8,7 @@ extern void logMsg(char* msg);
 #define DBGM_PRINT( X) printf X
 #else
 #define DBGM_PRINT( X)
+#define printf(...)
 #endif
 
 #endif

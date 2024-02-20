@@ -1,7 +1,7 @@
 #include "psram_spi.h"
 
 static psram_spi_inst_t psram_spi;
-extern bool PSRAM_AVAILABLE;
+bool PSRAM_AVAILABLE = false;
 
 void init_psram() {
     psram_spi = psram_spi_init_clkdiv(pio0, -1, 2.0, true);
