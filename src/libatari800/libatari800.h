@@ -100,6 +100,7 @@ typedef struct {
     UBYTE keycode;
     UBYTE special;
     UBYTE shift;
+    UBYTE alt;
     UBYTE control;
     UBYTE start;
     UBYTE select;

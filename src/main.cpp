@@ -35,13 +35,97 @@ semaphore vga_start_semaphore;
 extern "C" UBYTE __aligned(4) __screen[Screen_HEIGHT * Screen_WIDTH];
 ///uint16_t SCREEN[TEXTMODE_ROWS][TEXTMODE_COLS];
 
-static uint32_t input;
-
+static input_template_t input_map;
+static unsigned int sp = 0;
 extern "C" {
 bool __time_critical_func(handleScancode)(const uint32_t ps2scancode) {
-    if (ps2scancode)
-        input = ps2scancode;
+    if (!ps2scancode) {
+        input_map.keychar = 0;
+        input_map.select = 0;
+        input_map.option = 0;
+        input_map.start = 0;
+    } else {
+        if ((ps2scancode & 0xFF) > 0x80) {
+            switch(ps2scancode & 0xFF) {
+                case 0xb6: sp &= ~1; input_map.shift = sp; break; // rshift
+                case 0xaa: sp &= ~2; input_map.shift = sp; break; // lshift
+                case 0x9d: input_map.control = 0; break; // lctrl
+                case 0xb8: input_map.alt &= ~1; break; // lalt
+            //    case 0xba: sp &= ~4; break; // CapsLock TODO: reverse shift
+                default: input_map.keychar = 0; break;
+            }
+            return true;
+        }
+        if (ps2scancode == 0xE053) { input_map.keychar = 127; return true; } // Del
+        //if (ps2scancode == 0xE05B) { ; return true; } // lWin
+        switch(ps2scancode & 0xFF) {
+            case 0x1c: input_map.keychar = '\n'; break;
+            case 0x39: input_map.keychar = ' '; break;
+            case 0x0b: input_map.keychar = sp ? ')' : '0'; break;
+            case 0x02: input_map.keychar = sp ? '!' : '1'; break;
+            case 0x03: input_map.keychar = sp ? '@' : '2'; break;
+            case 0x04: input_map.keychar = sp ? '#' : '3'; break;
+            case 0x05: input_map.keychar = sp ? '$' : '4'; break;
+            case 0x06: input_map.keychar = sp ? '%' : '5'; break;
+            case 0x07: input_map.keychar = sp ? '^' : '6'; break;
+            case 0x08: input_map.keychar = sp ? '&' : '7'; break;
+            case 0x09: input_map.keychar = sp ? '*' : '8'; break;
+            case 0x0a: input_map.keychar = sp ? '(' : '9'; break;
+            case 0x34: input_map.keychar = sp ? '>' : '.'; break;
+            case 0x33: input_map.keychar = sp ? '<' : ','; break;
+            case 0x27: input_map.keychar = sp ? ':' : ';'; break;
+            case 0x35: input_map.keychar = sp ? '?' : '/'; break;
+            case 0x2b: input_map.keychar = sp ? '|' : '\\'; break;
+            case 0x29: input_map.keychar = sp ? '`' : '~'; break;
+            case 0x0c: input_map.keychar = sp ? '_' : '-'; break;
+            case 0x0d: input_map.keychar = sp ? '+' : '='; break;
+            case 0x1a: input_map.keychar = sp ? '{' : '['; break;
+            case 0x1b: input_map.keychar = sp ? '}' : ']'; break;
+            case 0x28: input_map.keychar = sp ? '\'' : '"'; break;
+            case 0x0f: input_map.keychar = '\t'; break;
+            case 0x3a: if(sp & 4) sp &= ~4; else sp |= 4; input_map.shift = sp; break; // CapsLock
+            case 0x1d: input_map.control = 1; break; // lctl
+            case 0x38: input_map.alt |= 1; break; // lalt
+           // case 0x1b: input_map.keychar = sp ? '}' : ']'; break;
 
+            case 0x1e: input_map.keychar = sp ? 'A' : 'a'; break;
+            case 0x30: input_map.keychar = sp ? 'B' : 'b'; break;
+            case 0x2e: input_map.keychar = sp ? 'C' : 'c'; break;
+            case 0x20: input_map.keychar = sp ? 'D' : 'd'; break;
+            case 0x12: input_map.keychar = sp ? 'E' : 'e'; break;
+            case 0x21: input_map.keychar = sp ? 'F' : 'f'; break;
+            case 0x22: input_map.keychar = sp ? 'G' : 'g'; break;
+            case 0x23: input_map.keychar = sp ? 'H' : 'h'; break;
+            case 0x17: input_map.keychar = sp ? 'I' : 'i'; break;
+            case 0x24: input_map.keychar = sp ? 'J' : 'j'; break;
+            case 0x25: input_map.keychar = sp ? 'K' : 'k'; break;
+            case 0x26: input_map.keychar = sp ? 'L' : 'l'; break;
+            case 0x32: input_map.keychar = sp ? 'M' : 'm'; break;
+            case 0x31: input_map.keychar = sp ? 'N' : 'n'; break;
+            case 0x18: input_map.keychar = sp ? 'O' : 'o'; break;
+            case 0x19: input_map.keychar = sp ? 'P' : 'p'; break;
+            case 0x10: input_map.keychar = sp ? 'Q' : 'q'; break;
+            case 0x13: input_map.keychar = sp ? 'R' : 'r'; break;
+            case 0x1f: input_map.keychar = sp ? 'S' : 's'; break;
+            case 0x14: input_map.keychar = sp ? 'T' : 't'; break;
+            case 0x16: input_map.keychar = sp ? 'U' : 'u'; break;
+            case 0x2f: input_map.keychar = sp ? 'V' : 'v'; break;
+            case 0x11: input_map.keychar = sp ? 'W' : 'w'; break;
+            case 0x2d: input_map.keychar = sp ? 'X' : 'x'; break;
+            case 0x15: input_map.keychar = sp ? 'Y' : 'y'; break;
+            case 0x2c: input_map.keychar = sp ? 'Z' : 'z'; break;
+            case 0x36: sp |= 1; input_map.shift = sp; break; // rshift
+            case 0x2a: sp |= 2; input_map.shift = sp; break; // lshift
+            case 0x01: input_map.keychar = 27; break; // Esc
+            case 0x0e: input_map.keychar = '\b'; break; // Backspace
+        }
+        if(input_map.alt) {
+            if(input_map.keychar >= 'a' && input_map.keychar <= 'z')
+                input_map.keychar -= 'a' - 1;
+            else if(input_map.keychar >= 'A' && input_map.keychar <= 'Z')
+                input_map.keychar -= 'A' - 1;
+        }
+    }
     return true;
 }
 }
@@ -50,13 +134,12 @@ void __time_critical_func(render_core)() {
     multicore_lockout_victim_init();
     graphics_init();
 
-    const auto buffer = libatari800_get_screen_ptr(); // TODO: SCREEN;
+    const auto buffer = libatari800_get_screen_ptr();
     graphics_set_buffer(buffer, Screen_WIDTH, Screen_HEIGHT);
     graphics_set_textbuffer(buffer);
     graphics_set_bgcolor(0x000000);
     graphics_set_offset(0, 0);
     graphics_set_mode(GRAPHICSMODE_DEFAULT);
- ///   clrScr(1);
 
     sem_acquire_blocking(&vga_start_semaphore);
     // 60 FPS loop
@@ -172,11 +255,10 @@ int main() {
     init_psram();
 
     // F12 Boot to USB FIRMWARE UPDATE mode
-    if (nespad_state & DPAD_START || input == 0x58) {
+    if (nespad_state & DPAD_START || input_map.keycode == 0x58) { // F12
         printf("reset_usb_boot");
         reset_usb_boot(0, 0);
     }
-    input_template_t input;
     /* force the 400/800 OS to get the Memo Pad */
     char *test_args[] = {
         "-atari",
@@ -185,7 +267,7 @@ int main() {
     printf("libatari800_init");
     libatari800_init(-1, test_args);
     printf("libatari800_clear_input_array");
-    libatari800_clear_input_array(&input);
+    libatari800_clear_input_array(&input_map);
 
     sem_init(&vga_start_semaphore, 0, 1);
     multicore_launch_core1(render_core);
@@ -210,7 +292,7 @@ int main() {
     //    snprintf(tmp, 255, "frame %d: A=%02x X=%02x Y=%02x SP=%02x SR=%02x\n", frame++, cpu->A, cpu->X, cpu->Y, cpu->P, cpu->S);
     //    printf(tmp);
     //    draw_text(tmp, 0, 0, 15, 0);
-        libatari800_next_frame(&input);
+        libatari800_next_frame(&input_map);
         //blinker = ~blinker;
         //gpio_put(PICO_DEFAULT_LED_PIN, blinker);
     }

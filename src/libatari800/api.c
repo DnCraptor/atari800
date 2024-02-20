@@ -209,7 +209,7 @@ int libatari800_next_frame(input_template_t *input)
 {
 	//printf("libatari800_next_frame");
 	LIBATARI800_Input_array = input;
-	INPUT_key_code = PLATFORM_Keyboard(); // TODO: !!!
+	INPUT_key_code = PLATFORM_Keyboard();
 	//printf("PLATFORM_Keyboard: %04Xh", INPUT_key_code);
 	LIBATARI800_Mouse();
 	//printf("LIBATARI800_Mouse PASSED");
