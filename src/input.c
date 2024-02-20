@@ -972,7 +972,7 @@ int INPUT_PlaybackInt(void)
 
 void INPUT_Scanline(void)
 {
-	printf("INPUT_Scanline scanline_counter: %d", scanline_counter);
+	///printf("INPUT_Scanline scanline_counter: %d", scanline_counter);
 	if (--scanline_counter == 0) {
 		mouse_step();
 		if (INPUT_mouse_mode == INPUT_MOUSE_TRAK) {
