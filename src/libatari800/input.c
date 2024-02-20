@@ -39,7 +39,6 @@ static int lastkey = -1, key_control = 0;
 
 input_template_t *LIBATARI800_Input_array = NULL;
 
-
 int PLATFORM_Keyboard(void)
 {
 	int shiftctrl = 0;
@@ -79,6 +78,9 @@ int PLATFORM_Keyboard(void)
 		INPUT_key_consol &= ~INPUT_CONSOL_SELECT;
 	if (input->start)
 		INPUT_key_consol &= ~INPUT_CONSOL_START;
+	if (input->keychar == 255) {
+		return AKEY_HELP;
+	}
 
 	if (!lastkey) {
 		return AKEY_NONE;
