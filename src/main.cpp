@@ -49,12 +49,12 @@ void __time_critical_func(render_core)() {
     multicore_lockout_victim_init();
     graphics_init();
 
-    const auto buffer = (uint8_t *)__screen; // TODO: SCREEN;
-    graphics_set_buffer(buffer, TEXTMODE_COLS, TEXTMODE_ROWS);
+    const auto buffer = libatari800_get_screen_ptr(); // TODO: SCREEN;
+    graphics_set_buffer(buffer, Screen_WIDTH, Screen_HEIGHT);
     graphics_set_textbuffer(buffer);
     graphics_set_bgcolor(0x000000);
     graphics_set_offset(0, 0);
-    graphics_set_mode(TEXTMODE_DEFAULT);
+    graphics_set_mode(GRAPHICSMODE_DEFAULT);
  ///   clrScr(1);
 
     sem_acquire_blocking(&vga_start_semaphore);
@@ -156,13 +156,10 @@ static void init_fs() {
 }
 
 int main() {
-    gpio_init(PICO_DEFAULT_LED_PIN);
-    gpio_set_dir(PICO_DEFAULT_LED_PIN, GPIO_OUT);
-
     hw_set_bits(&vreg_and_chip_reset_hw->vreg, VREG_AND_CHIP_RESET_VREG_VSEL_BITS);
     sleep_ms(10);
-    set_sys_clock_khz(252 * KHZ, true);
-    // stdio_init_all();
+    set_sys_clock_khz(378 * KHZ, true);
+    stdio_init_all();
     keyboard_init();
     //keyboard_send(0xFF);
     nespad_begin(clock_get_hz(clk_sys) / 1000, NES_GPIO_CLK, NES_GPIO_DATA, NES_GPIO_LAT);
@@ -179,10 +176,7 @@ int main() {
         reset_usb_boot(0, 0);
     }
 
-    sem_init(&vga_start_semaphore, 0, 1);
-    multicore_launch_core1(render_core);
-    sem_release(&vga_start_semaphore);
-    sleep_ms(250);
+
 
     input_template_t input;
 
@@ -197,6 +191,19 @@ int main() {
     printf("libatari800_clear_input_array");
     libatari800_clear_input_array(&input);
 
+    sem_init(&vga_start_semaphore, 0, 1);
+    multicore_launch_core1(render_core);
+    sem_release(&vga_start_semaphore);
+    gpio_init(PICO_DEFAULT_LED_PIN);
+    gpio_set_dir(PICO_DEFAULT_LED_PIN, GPIO_OUT);
+    for (int i = 0; i < 6; i++) {
+        sleep_ms(33);
+        gpio_put(PICO_DEFAULT_LED_PIN, true);
+        sleep_ms(33);
+        gpio_put(PICO_DEFAULT_LED_PIN, false);
+    }
+
+
     emulator_state_t state;
     cpu_state_t *cpu;
 
@@ -204,7 +211,7 @@ int main() {
     char tmp[255];
     // Uncomment if we reach this line
     printf("libatari800_get_screen_ptr");
-    graphics_set_buffer(libatari800_get_screen_ptr(), 384, 240);
+    // graphics_set_buffer(libatari800_get_screen_ptr(), 384, 240);
  ///   printf("GRAPHICSMODE_DEFAULT");
  ///   graphics_set_mode(GRAPHICSMODE_DEFAULT);
     bool blinker = true;
