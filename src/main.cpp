@@ -45,19 +45,27 @@ bool __time_critical_func(handleScancode)(const uint32_t ps2scancode) {
         input_map.option = 0;
         input_map.start = 0;
     } else {
+        if (ps2scancode == 0xE053) { input_map.keychar = 127; return true; } // Del
+        if (ps2scancode == 0xE01D) { input_map.control |= 2; return true; } // rCnt
+        if (ps2scancode == 0xE09D) { input_map.control &= ~2; return true; } // rCnt
+        if (ps2scancode == 0xE038) { input_map.alt |= 2; return true; } // rAlt
+        if (ps2scancode == 0xE0B8) { input_map.alt &= ~2; return true; } // rAlt
+        //if (ps2scancode == 0xE05B) { ; return true; } // lWin
+        //if (ps2scancode == 0xE05C) { ; return true; } // rWin
+        //if (ps2scancode == 0xE05D) { ; return true; } // Menu
         if ((ps2scancode & 0xFF) > 0x80) {
             switch(ps2scancode & 0xFF) {
                 case 0xb6: sp &= ~1; input_map.shift = sp; break; // rshift
-                case 0xaa: sp &= ~2; input_map.shift = sp; break; // lshift
+                case 0xaa: sp &= ~2; input_map.shift = sp; break; // lshift // CapsLock TODO: reverse shift
                 case 0x9d: input_map.control = 0; break; // lctrl
                 case 0xb8: input_map.alt &= ~1; break; // lalt
-            //    case 0xba: sp &= ~4; break; // CapsLock TODO: reverse shift
+                case 0xbc: input_map.option = 0; break; // F2 Option
+                case 0xbd: input_map.select = 0; break; // F3 Select
+                case 0xbe: input_map.start = 0; break; // F4 Start
                 default: input_map.keychar = 0; break;
             }
             return true;
         }
-        if (ps2scancode == 0xE053) { input_map.keychar = 127; return true; } // Del
-        //if (ps2scancode == 0xE05B) { ; return true; } // lWin
         switch(ps2scancode & 0xFF) {
             case 0x1c: input_map.keychar = '\n'; break;
             case 0x39: input_map.keychar = ' '; break;
@@ -117,6 +125,15 @@ bool __time_critical_func(handleScancode)(const uint32_t ps2scancode) {
             case 0x01: input_map.keychar = 27; break; // Esc
             case 0x0e: input_map.keychar = '\b'; break; // Backspace
             case 0x3b: input_map.keychar = 255; break; // F1 Help
+            case 0x3c: input_map.option = 1; break; // F2 Option
+            case 0x3d: input_map.select = 1; break; // F3 Select
+            case 0x3e: input_map.start = 1; break; // F4 Start
+            case 0x48: input_map.keychar = 254; break; // Up
+            case 0x4b: input_map.keychar = 253; break; // Left
+            case 0x50: input_map.keychar = 252; break; // Down
+            case 0x4d: input_map.keychar = 251; break; // Right
+            default:
+                return true;
         }
         if(input_map.alt) {
             if(input_map.keychar >= 'a' && input_map.keychar <= 'z')
