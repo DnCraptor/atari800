@@ -84,7 +84,7 @@ int POKEYREC_Initialise(int *argc, char *argv[]) {
             fmt = "%02x";
         } else if (!strcmp(argv[i], "-pokeyrec-file")) {
             if (!available) goto missing_argument;
-            filename = Util_strdup(argv[++i]);
+            filename = Util_strdup(argv[++i], "POKEYREC_Initialise filename");
 #ifdef STEREO_SOUND
         } else if (!strcmp(argv[i], "-pokeyrec-stereo")) {
             stereo = 1;

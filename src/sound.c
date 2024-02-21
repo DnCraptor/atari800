@@ -245,7 +245,7 @@ int Sound_Setup(void)
 #ifndef SOUND_CALLBACK
 	free(process_buffer);
 	process_buffer_size = Sound_out.buffer_frames * Sound_out.channels * Sound_out.sample_size;
-	process_buffer = Util_malloc(process_buffer_size);
+	process_buffer = Util_malloc(process_buffer_size, "Sound_Setup");
 #endif /* !SOUND_CALLBACK */
 
 	POKEYSND_Init(POKEYSND_FREQ_17_EXACT, Sound_out.freq, Sound_out.channels, Sound_out.sample_size == 2 ? POKEYSND_BIT16 : 0);

@@ -63,7 +63,7 @@ int PBI_PROTO80_Initialise(int *argc, char *argv[])
 	*argc = j;
 
 	if (PBI_PROTO80_enabled) {
-		proto80rom = (UBYTE *)Util_malloc(0x800);
+		proto80rom = (UBYTE *)Util_malloc(0x800, "PBI_PROTO80_Initialise");
 		if (!Atari800_LoadImage(proto80_rom_filename, proto80rom, 0x800)) {
 			free(proto80rom);
 			PBI_PROTO80_enabled = FALSE;

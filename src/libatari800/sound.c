@@ -61,7 +61,7 @@ int PLATFORM_SoundSetup(Sound_setup_t *setup)
 	if (sound_hw_buffer_size == 0)
 	        return FALSE;
 
-	LIBATARI800_Sound_array = Util_malloc(sound_hw_buffer_size);
+	LIBATARI800_Sound_array = Util_malloc(sound_hw_buffer_size, "PLATFORM_SoundSetup");
 
 	sample_diff = (double)setup->buffer_frames - samples_per_video_frame;
 	sample_residual = 0;

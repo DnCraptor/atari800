@@ -122,9 +122,9 @@ void VOTRAXSND_Init(int playback_freq, int n_pokeys, int b16)
 	temp_votrax_buffer_size = (int)(VTRX_BLOCK_SIZE*ratio + 10); /* +10 .. little extra? */
 #endif
 	free(temp_votrax_buffer);
-	temp_votrax_buffer = (SWORD *)Util_malloc(temp_votrax_buffer_size*sizeof(SWORD));
+	temp_votrax_buffer = (SWORD *)Util_malloc(temp_votrax_buffer_size*sizeof(SWORD), "VOTRAXSND_Init");
 	free(votrax_buffer);
-	votrax_buffer = (SWORD *)Util_malloc(VTRX_BLOCK_SIZE*sizeof(SWORD));
+	votrax_buffer = (SWORD *)Util_malloc(VTRX_BLOCK_SIZE*sizeof(SWORD), "VOTRAXSND_Init");
 
 	VOTRAXSND_busy = FALSE;
 	votrax_sync_samples = 0;

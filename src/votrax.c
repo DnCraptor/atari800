@@ -431,7 +431,7 @@ int Votrax_Start(void *sound_interface)
 		size = dwCount + AdditionalSamples;
 		if (size > buffer_size)  buffer_size = size;
 	}
-	votraxsc01_locals.lpBuffer = (SWORD*) Util_malloc(buffer_size*sizeof(SWORD));
+	votraxsc01_locals.lpBuffer = (SWORD*) Util_malloc(buffer_size*sizeof(SWORD), "Votrax_Start");
 	PrepareVoiceData(votraxsc01_locals.actPhoneme, votraxsc01_locals.actIntonation);
 	return 0;
 }

@@ -131,7 +131,7 @@ static void alloc_axlon_memory(void){
 		int size = MEMORY_axlon_num_banks * 0x4000;
 		if (axlon_ram == NULL || axlon_current_bankmask != MEMORY_axlon_num_banks - 1) {
 			axlon_current_bankmask = MEMORY_axlon_num_banks - 1;
-			axlon_ram = (UBYTE *)Util_realloc(axlon_ram, size);
+			axlon_ram = (UBYTE *)Util_realloc(axlon_ram, size, "alloc_axlon_memory axlon_ram (realloc)");
 		}
 		memset(axlon_ram, 0, size);
 	} else {
@@ -148,7 +148,7 @@ static void alloc_mosaic_memory(void){
 		int size = MEMORY_mosaic_num_banks * 0x1000;
 		if (mosaic_ram == NULL || mosaic_current_num_banks != MEMORY_mosaic_num_banks) {
 			mosaic_current_num_banks = MEMORY_mosaic_num_banks;
-			mosaic_ram = (UBYTE *)Util_realloc(mosaic_ram, size);
+			mosaic_ram = (UBYTE *)Util_realloc(mosaic_ram, size, "alloc_mosaic_memory mosaic_ram (realloc)");
 		}
 		memset(mosaic_ram, 0, size);
 	} else {
@@ -169,7 +169,7 @@ static void AllocXEMemory(void)
 		if (size != atarixe_memory_size) {
 			if (atarixe_memory != NULL)
 				free(atarixe_memory);
-			atarixe_memory = (UBYTE *) Util_malloc(size);
+			atarixe_memory = (UBYTE *) Util_malloc(size, "AllocXEMemory");
 			atarixe_memory_size = size;
 			memset(atarixe_memory, 0, size);
 		}
@@ -187,7 +187,7 @@ static void AllocMapRAM(void)
 	if (MEMORY_enable_mapram && Atari800_machine_type == Atari800_MACHINE_XLXE
 	    && MEMORY_ram_size > 20) {
 		if (mapram_memory == NULL)
-			mapram_memory = (UBYTE *)Util_malloc(0x800);
+			mapram_memory = (UBYTE *)Util_malloc(0x800, "AllocMapRAM");
 	}
 	else if (mapram_memory != NULL) {
 		free(mapram_memory);

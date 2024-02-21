@@ -217,11 +217,11 @@ static int ide_init_drive(struct ide_device *s, char *filename) {
     s->filesize = f_size(&s->file);
 
     if (IDE_debug)
-        fprintf(stderr, "ide: filesize: %"PRId64"\n", (int64_t)s->filesize);
+        printf("ide: filesize: %"PRId64"\n", (int64_t)s->filesize);
 
     if (!s->io_buffer) {
         s->io_buffer_size = SECTOR_SIZE * MAX_MULT_SECTORS;
-        s->io_buffer      = Util_malloc(s->io_buffer_size);
+        s->io_buffer      = Util_malloc(s->io_buffer_size, "ide_init_drive");
     }
 
     s->nb_sectors = s->filesize / SECTOR_SIZE;
@@ -877,7 +877,7 @@ int IDE_Initialise(int *argc, char *argv[]) {
                 Log_print("Missing argument for '%s'", argv[i]);
                 return FALSE;
             }
-            filename = Util_strdup(argv[++i]);
+            filename = Util_strdup(argv[++i], "IDE_Initialise filename");
         } else if (!strcmp(argv[i], "-ide_debug")) {
             IDE_debug = 1;
         } else if (!strcmp(argv[i], "-ide_cf")) {

@@ -58,7 +58,7 @@ static int mio_scsi_enabled = FALSE;
 static void init_mio(void)
 {
 	free(mio_rom);
-	mio_rom = (UBYTE *)Util_malloc(mio_rom_size);
+	mio_rom = (UBYTE *)Util_malloc(mio_rom_size, "init_mio rom");
 	if (!Atari800_LoadImage(mio_rom_filename, mio_rom, mio_rom_size)) {
 		free(mio_rom);
 		mio_rom = NULL;
@@ -81,7 +81,7 @@ static void init_mio(void)
 		PBI_SCSI_BSY = TRUE; /* makes MIO give up easier */
 	}
 	free(mio_ram);
-	mio_ram = (UBYTE *)Util_malloc(mio_ram_size);
+	mio_ram = (UBYTE *)Util_malloc(mio_ram_size, "init_mio ram");
 	memset(mio_ram, 0, mio_ram_size);
 }
 

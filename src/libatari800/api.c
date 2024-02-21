@@ -101,7 +101,7 @@ int libatari800_init(int argc, char **argv) {
 	}
 	if ((argc == 0) || ((argc > 0) && argv[0] && (!Util_striendswith(argv[0], "atari800")))) {
 		argv_alloced = argc + 1;
-		argv_ptr = (Util_malloc(sizeof(char *) * argv_alloced));
+		argv_ptr = Util_malloc(sizeof(char *) * argv_alloced, "libatari800_init argv_ptr");
 		argv_ptr[0] = NULL;
 		for (i = 0; i < argc; i++) {
 			argv_ptr[i + 1] = argv[i];

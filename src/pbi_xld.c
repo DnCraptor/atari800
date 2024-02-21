@@ -83,7 +83,7 @@ static UBYTE PIO_Command_Frame(void);
 static void init_xld_v(void)
 {
 	free(voicerom);
-	voicerom = (UBYTE *)Util_malloc(0x1000);
+	voicerom = (UBYTE *)Util_malloc(0x1000, "init_xld_v");
 	if (!Atari800_LoadImage(xld_v_rom_filename, voicerom, 0x1000)) {
 		free(voicerom);
 		PBI_XLD_v_enabled = FALSE;
@@ -97,7 +97,7 @@ static void init_xld_v(void)
 static void init_xld_d(void)
 {
 	free(diskrom);
-	diskrom = (UBYTE *)Util_malloc(0x800);
+	diskrom = (UBYTE *)Util_malloc(0x800, "init_xld_d");
 	if (!Atari800_LoadImage(xld_d_rom_filename, diskrom, 0x800)) {
 		free(diskrom);
 		xld_d_enabled = FALSE;

@@ -2491,7 +2491,7 @@ static void trainer_start_search(void)
 
 	/* alloc needed memory at first use */
 	if (trainer_memory == NULL) {
-		trainer_memory = (UBYTE *)malloc(65536*2);
+		trainer_memory = (UBYTE *)Util_malloc(65536*2, "trainer_start_search"); // TODO: !!!
 		if (trainer_memory != NULL) {
 			trainer_flags = trainer_memory + 65536;
 		} else {

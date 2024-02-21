@@ -298,35 +298,35 @@ double Util_round(double x)
 }
 #endif
 
-void *Util_malloc(size_t size)
+void *Util_malloc(size_t size, const char* from)
 {
-	printf("Util_malloc(%d)", size);
+	printf("Util_malloc(%d, '%s')", size, from);
 	void *ptr = malloc(size);
 	if (ptr == NULL) {
-		Atari800_ErrExit();
 		printf("Fatal error: out of memory\n");
+		Atari800_ErrExit(); // TODO: ??
 		exit(1);
 	}
 	return ptr;
 }
 
-void *Util_realloc(void *ptr, size_t size)
+void *Util_realloc(void *ptr, size_t size, const char* from)
 {
-	printf("Util_realloc(%d)", size);
+	printf("Util_realloc(%d, '%s')", size, from);
 	ptr = realloc(ptr, size);
 	if (ptr == NULL) {
-		Atari800_ErrExit();
 		printf("Fatal error: out of memory\n");
+		Atari800_ErrExit();
 		exit(1);
 	}
 	return ptr;
 }
 
-char *Util_strdup(const char *s)
+char *Util_strdup(const char *s, const char* from)
 {
 	/* don't use strdup(): it is unavailable on WinCE */
 	size_t size = strlen(s) + 1;
-	char *ptr = (char *) Util_malloc(size);
+	char *ptr = (char *) Util_malloc(size, from);
 	memcpy(ptr, s, size); /* faster than strcpy(ptr, s) */
 	return ptr;
 }

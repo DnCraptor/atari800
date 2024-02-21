@@ -119,13 +119,13 @@ double Util_round(double x);
 /* Memory management ----------------------------------------------------- */
 
 /* malloc() with out-of-memory checking. Never returns NULL. */
-void *Util_malloc(size_t size);
+void *Util_malloc(size_t size, const char* from);
 
 /* realloc() with out-of-memory checking. Never returns NULL. */
-void *Util_realloc(void *ptr, size_t size);
+void *Util_realloc(void *ptr, size_t size, const char* from);
 
 /* strdup() with out-of-memory checking. Never returns NULL. */
-char *Util_strdup(const char *s);
+char *Util_strdup(const char *s, const char* from);
 
 
 /* Filenames ------------------------------------------------------------- */

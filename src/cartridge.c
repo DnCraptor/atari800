@@ -1468,7 +1468,7 @@ static void PreprocessCart(CARTRIDGE_image_t *cart)
 	{
 		unsigned int i;
 		unsigned int const size = cart->size << 10;
-		UBYTE *new_image = (UBYTE *) Util_malloc(size);
+		UBYTE *new_image = (UBYTE *) Util_malloc(size, "PreprocessCart new_image");
 		/* FIXME: Can be optimised by caching the results in a conversion
 		   table, but doesn't seem to be worth it. */
 		for (i = 0; i < size; i++) {
@@ -1664,7 +1664,7 @@ int CARTRIDGE_ReadImage(const char *filename, CARTRIDGE_image_t *cart)
 	/* if full kilobytes, assume it is raw image */
 	if ((len & 0x3ff) == 0) {
 		/* alloc memory and read data */
-		cart->image = (UBYTE *) Util_malloc(len);
+		cart->image = (UBYTE *) Util_malloc(len, "CARTRIDGE_ReadImage cart");
 		if (fread(cart->image, 1, len, fp) < len) {
 			Log_print("Error reading cartridge.\n");
 			fclose(fp);
@@ -1717,7 +1717,7 @@ int CARTRIDGE_ReadImage(const char *filename, CARTRIDGE_image_t *cart)
 			cart->raw = FALSE;
 			cart->size = CARTRIDGES[type].kb;
 			/* alloc memory and read data */
-			cart->image = (UBYTE *) Util_malloc(len);
+			cart->image = (UBYTE *) Util_malloc(len, "CARTRIDGE_ReadImage cart->image");
 			if (fread(cart->image, 1, len, fp) < len) {
 				Log_print("Error reading cartridge.\n");
 				fclose(fp);

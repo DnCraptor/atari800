@@ -138,7 +138,7 @@ int AF80_Initialise(int *argc, char *argv[])
 
 	if (AF80_enabled) {
 		Log_print("Austin Franklin 80 enabled");
-		af80_rom = (UBYTE *)Util_malloc(0x1000);
+		af80_rom = (UBYTE *)Util_malloc(0x1000, "AF80_Initialise af80_rom");
 		if (!Atari800_LoadImage(af80_rom_filename, af80_rom, 0x1000)) {
 			free(af80_rom);
 			af80_rom = NULL;
@@ -149,7 +149,7 @@ int AF80_Initialise(int *argc, char *argv[])
 		else {
 			Log_print("loaded Austin Franklin rom image");
 		}
-		af80_charset = (UBYTE *)Util_malloc(0x1000);
+		af80_charset = (UBYTE *)Util_malloc(0x1000, "AF80_Initialise af80_charset");
 		if (!Atari800_LoadImage(af80_charset_filename, af80_charset, 0x1000)) {
 			free(af80_charset);
 			free(af80_rom);
@@ -161,8 +161,8 @@ int AF80_Initialise(int *argc, char *argv[])
 		else {
 			Log_print("loaded Austin Franklin charset image");
 		}
-		af80_screen = (UBYTE *)Util_malloc(0x800);
-		af80_attrib = (UBYTE *)Util_malloc(0x800);
+		af80_screen = (UBYTE *)Util_malloc(0x800, "AF80_Initialise af80_screen");
+		af80_attrib = (UBYTE *)Util_malloc(0x800, "AF80_Initialise af80_attrib");
 		AF80_Reset();
 
 		/* swap palette */

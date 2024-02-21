@@ -315,7 +315,7 @@ static void Search(int r, int Ext[], int gridsize, const double E[])
 	int *foundExt;             /* Array of found extremals */
 
 	/* Allocate enough space for found extremals. */
-	foundExt = (int *) Util_malloc((2 * r) * sizeof(int));
+	foundExt = (int *) Util_malloc((2 * r) * sizeof(int), "Search");
 	k = 0;
 
 	/* Check for extremum at 0. */
@@ -539,15 +539,15 @@ void REMEZ_CreateFilter(double h[], int numtaps, int numband, double bands[],
 	}
 
 	/* Dynamically allocate memory for arrays with proper sizes */
-	Grid = (double *) Util_malloc(gridsize * sizeof(double));
-	D = (double *) Util_malloc(gridsize * sizeof(double));
-	W = (double *) Util_malloc(gridsize * sizeof(double));
-	E = (double *) Util_malloc(gridsize * sizeof(double));
-	Ext = (int *) Util_malloc((r + 1) * sizeof(int));
-	taps = (double *) Util_malloc((r + 1) * sizeof(double));
-	x = (double *) Util_malloc((r + 1) * sizeof(double));
-	y = (double *) Util_malloc((r + 1) * sizeof(double));
-	ad = (double *) Util_malloc((r + 1) * sizeof(double));
+	Grid = (double *) Util_malloc(gridsize * sizeof(double), "REMEZ_CreateFilter Grid");
+	D = (double *) Util_malloc(gridsize * sizeof(double), "REMEZ_CreateFilter");
+	W = (double *) Util_malloc(gridsize * sizeof(double), "REMEZ_CreateFilter");
+	E = (double *) Util_malloc(gridsize * sizeof(double), "REMEZ_CreateFilter");
+	Ext = (int *) Util_malloc((r + 1) * sizeof(int), "REMEZ_CreateFilter");
+	taps = (double *) Util_malloc((r + 1) * sizeof(double), "REMEZ_CreateFilter");
+	x = (double *) Util_malloc((r + 1) * sizeof(double), "REMEZ_CreateFilter");
+	y = (double *) Util_malloc((r + 1) * sizeof(double), "REMEZ_CreateFilter");
+	ad = (double *) Util_malloc((r + 1) * sizeof(double), "REMEZ_CreateFilter ad");
 
 	/* Create dense frequency grid */
 	CreateDenseGrid(r, numtaps, numband, bands, des, weight,

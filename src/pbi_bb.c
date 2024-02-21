@@ -73,7 +73,7 @@ static void init_bb(void)
 		return;
 	}
 	free(bb_rom);
-	bb_rom = (UBYTE *)Util_malloc(bb_rom_size);
+	bb_rom = (UBYTE *)Util_malloc(bb_rom_size, "init_bb rom");
 	if (!Atari800_LoadImage(bb_rom_filename, bb_rom, bb_rom_size)) {
 		free(bb_rom);
 		bb_rom = NULL;
@@ -96,7 +96,7 @@ static void init_bb(void)
 		PBI_SCSI_BSY = TRUE; /* makes BB give up easier? */
 	}
 	free(bb_ram);
-	bb_ram = (UBYTE *)Util_malloc(BB_RAM_SIZE);
+	bb_ram = (UBYTE *)Util_malloc(BB_RAM_SIZE, "init_bb ram");
 	memset(bb_ram,0,BB_RAM_SIZE);
 }
 
