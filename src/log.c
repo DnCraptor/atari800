@@ -46,37 +46,6 @@
 char Log_buffer[Log_BUFFER_SIZE];
 #endif
 
-void Log_print(const char *format, ...)
-{
-	va_list args;
-	printf(format, args);
-/**	char buffer[8192];
-
-	va_start(args, format);
-#ifdef HAVE_VSNPRINTF
-	vsnprintf(buffer, sizeof(buffer) - 2 /* -2 for the strcat() * /, format, args);
-#else
-	vsprintf(buffer, format, args);
-#endif
-	va_end(args);
-
-#ifdef __PLUS
-	strcat(buffer, "\r\n");
-#else
-	strcat(buffer, "\n");
-#endif
-
-#ifdef BUFFERED_LOG
-	if ((strlen(Log_buffer) + strlen(buffer) + 1) > Log_BUFFER_SIZE)
-		*Log_buffer = 0;
-
-	strcat(Log_buffer, buffer);
-#else
-	PRINT(buffer);
-#endif 
-*/
-}
-
 void Log_flushlog(void)
 {
 #ifdef BUFFERED_LOG

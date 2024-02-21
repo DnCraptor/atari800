@@ -1,6 +1,8 @@
 #ifndef ESC_H_
 #define ESC_H_
 
+#include "atari.h"
+
 /* TRUE to enable patched (fast) Serial I/O. */
 extern int ESC_enable_sio_patch;
 

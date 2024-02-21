@@ -429,6 +429,7 @@ static FIL *__stderr = &__nofil;
 #define fprintf(F, ...) { char b[FILENAME_MAX]; snprintf(b, FILENAME_MAX, __VA_ARGS__); UINT bw; f_write(F, b, strlen(b), &bw); }
 inline static void fputc(char c, FIL * F) { char _c = c; UINT wr; f_write(F, &_c, 1, &wr); }
 #define EOF -1
+inline static int _fgetc(FIL* F) { char _c; UINT wr; f_read(F, &_c, 1, &wr); return wr != 1 ? EOF : _c; }
 
 #undef fread
 inline static int fread(char *n, int m, int len, FIL * f) {
@@ -463,6 +464,22 @@ inline static FIL * fopen(const char* f, const char* mode) { // TODO: free
 	   return NULL;
 	}
 	return res;
+}
+#include "debug.h"
+inline static int fgets(char* string, const size_t sz, FIL* fp) {
+	if (f_size(fp) == f_tell(fp)) return 0;
+	size_t i = 0;
+    while(f_size(fp) > f_tell(fp) && i < sz - 1) {
+		char c = _fgetc(fp);
+		if (c == '\r') continue;
+		if (c == 0 || c == EOF || c == '\n') {
+			break;
+		}
+		string[i++] = c;
+		
+	}
+	string[i] = 0;
+	return 1;
 }
 
 #endif /* FF_DEFINED */

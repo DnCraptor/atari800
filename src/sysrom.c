@@ -353,6 +353,7 @@ int SYSROM_FindInDir(char const *directory, int only_if_not_set) {
 
 void SYSROM_SetDefaults(void)
 {
+	printf("SYSROM_SetDefaults");
 	int i;
 	for (i = 0; i < SYSROM_LOADABLE_SIZE; ++i)
 		SYSROM_roms[i].unset = FALSE;
@@ -410,18 +411,25 @@ static int const autochoose_order_xegame[] = { SYSROM_XEGAME, SYSROM_XEGAME_CUST
 
 static int AutoChooseROM(int const *order)
 {
+	printf("AutoChooseROM(%08Xh) *order: %d", order, *order);
 	do {
-		if (SYSROM_roms[*order].data != NULL
-		    || SYSROM_roms[*order].filename[0] != '\0')
+		if (SYSROM_roms[*order].data != NULL) {
+			printf("AutoChooseROM(%08Xh) *order: %d data: %08Xh", order, *order, SYSROM_roms[*order].data);
 			return *order;
+		}
+		if (SYSROM_roms[*order].filename[0] != '\0') {
+			printf("AutoChooseROM(%08Xh) *order: %d filename: '%s'", order, *order, SYSROM_roms[*order].filename);
+			return *order;
+		}
 	} while (*++order != -1);
+	printf("AutoChooseROM(%08Xh) returns -1", order);
 	return -1;
 }
 
 int SYSROM_AutoChooseOS(int machine_type, int ram_size, int tv_system)
 {
 	int const *order;
-
+	printf("SYSROM_AutoChooseOS(machine_type: %d, ram_size: %d, tv_system: %d)", machine_type, ram_size, tv_system);
 	switch (machine_type) {
 	case Atari800_MACHINE_800:
 		if (tv_system == Atari800_TV_NTSC)
@@ -452,22 +460,24 @@ int SYSROM_AutoChooseOS(int machine_type, int ram_size, int tv_system)
 		order = autochoose_order_5200;
 		break;
 	}
-
 	return AutoChooseROM(order);
 }
 
 int SYSROM_AutoChooseBASIC(void)
 {
+	printf("SYSROM_AutoChooseBASIC");
 	return AutoChooseROM(autochoose_order_basic);
 }
 
 int SYSROM_AutoChooseXEGame(void)
 {
+	printf("SYSROM_AutoChooseXEGame");
 	return AutoChooseROM(autochoose_order_xegame);
 }
 
 void SYSROM_ChooseROMs(int machine_type, int ram_size, int tv_system, int *os_version, int *basic_version, int *xegame_version)
 {
+	printf("SYSROM_ChooseROMs(%d, %d, %d)", machine_type, ram_size, tv_system);
 	int os_ver;
 	if (SYSROM_os_versions[machine_type] == SYSROM_AUTO)
 		os_ver = SYSROM_AutoChooseOS(machine_type, ram_size, tv_system);
@@ -508,10 +518,13 @@ void SYSROM_ChooseROMs(int machine_type, int ram_size, int tv_system, int *os_ve
 			xegame_ver = -1;
 		*xegame_version = xegame_ver;
 	}
+	printf("SYSROM_ChooseROMs(%d, %d, %d) os_version: %d, basic_version: %d, xegame_version: %d",
+	        machine_type, ram_size, tv_system, *os_version, *basic_version, *xegame_version);
 }
 
 int SYSROM_LoadImage(int id, UBYTE *buffer)
 {
+	printf("SYSROM_LoadImage(%d, %08Xh)", id, buffer);
 	if (buffer < 0x20000000) { // it is ROM
 		return TRUE;
 	}
@@ -544,6 +557,7 @@ static int MatchROMVersionParameter(char const *string, int const *allowed_vals,
 
 int SYSROM_ReadConfig(char *string, char *ptr)
 {
+	printf("SYSROM_ReadConfig('%s', '%s')", string, ptr);
 	int id = CFG_MatchTextParameter(string, cfg_strings, SYSROM_LOADABLE_SIZE);
 	if (id >= 0) {
 		/* For faster start, don't check if CRC matches. */

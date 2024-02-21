@@ -10,6 +10,11 @@
         "atari.h": "c",
         "ff.h": "c",
         "string.h": "c",
-        "config.h": "c"
+        "config.h": "c",
+        "debug.h": "c",
+        "util.h": "c",
+        "log.h": "c",
+        "crc32.h": "c",
+        "cfg.h": "c"
     }
 }

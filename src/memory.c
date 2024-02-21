@@ -716,21 +716,29 @@ void MEMORY_CopyToMem(const UBYTE *from, UWORD to, int size)
    BASIC or XEGS game ROM contents. */
 static UBYTE const * builtin_cart(UBYTE portb)
 {
+	printf("builtin_cart(%02Xh)", portb);
 	/* Normally BASIC is enabled by clearing bit 1 of PORTB, but it's disabled
 	   when using 576K and 1088K memory expansions, where bit 1 is used for
 	   selecting extended memory bank number. */
 	if (Atari800_builtin_basic
 	    && (portb & 0x02) == 0
-	    && ((portb & 0x10) != 0 || (MEMORY_ram_size != 576 && MEMORY_ram_size != 1088)))
+	    && ((portb & 0x10) != 0 || (MEMORY_ram_size != 576 && MEMORY_ram_size != 1088))
+	) {
+		printf("MEMORY_basic: %08Xh", MEMORY_basic);
 		return MEMORY_basic;
+	}
 	/* The builtin XEGS game is disabled when BASIC is enabled. It is enabled
 	   by setting bit 6 of PORTB, but it's disabled when using 320K and larger
 	   XE memory expansions, where bit 6 is used for selecting extended memory
 	   bank number. */
 	if (Atari800_builtin_game
 	    && (portb & 0x40) == 0
-	    && ((portb & 0x10) != 0 || MEMORY_ram_size < 320))
+	    && ((portb & 0x10) != 0 || MEMORY_ram_size < 320)
+	) {
+		printf("MEMORY_xegame: %08Xh", MEMORY_xegame);
 		return MEMORY_xegame;
+	}
+	printf("builtin_cart(%02Xh) return NULL", portb);
 	return NULL;
 }
 

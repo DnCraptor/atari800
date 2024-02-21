@@ -299,7 +299,7 @@ int run_machine(machine_config_t *machine, char *pathname, int num_frames, int c
 		}
 		else {
 			printf("%s: %s", pathname, machine->label);
-			if (success > 0) printf(" status: OK through %d frames", success);
+			if (success > 0) { printf(" status: OK through %d frames", success) }
 			else {
 				printf(" status: FAIL");
 				if (libatari800_error_code) {

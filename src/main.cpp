@@ -25,8 +25,6 @@ extern "C" {
 
 #include "psram_spi.h"
 #include "nespad.h"
-///#include <stdio.h>
-extern "C" int	snprintf (char *__restrict, size_t, const char *__restrict, ...) _ATTRIBUTE ((__format__ (__printf__, 3, 4)));
 
 static FATFS fs;
 semaphore vga_start_semaphore;
@@ -221,10 +219,8 @@ int main() {
     }
     /* force the 400/800 OS to get the Memo Pad */
     char *test_args[] = {
-        "-atari",
+        "-xl",
         NULL,
-
-
     };
 
     sem_init(&vga_start_semaphore, 0, 1);
@@ -244,9 +240,6 @@ int main() {
         sleep_ms(33);
         gpio_put(PICO_DEFAULT_LED_PIN, false);
     }
-
-
-
 
     while(true) {
         libatari800_next_frame(&input_map);

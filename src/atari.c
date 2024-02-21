@@ -197,6 +197,7 @@ static RETSIGTYPE sigint_handler(int num)
 
 void Atari800_SetMachineType(int type)
 {
+	printf("Atari800_SetMachineType(%d)", type);
 	Atari800_machine_type = type;
 	if (Atari800_machine_type != Atari800_MACHINE_XLXE) {
 		Atari800_builtin_basic = FALSE;
@@ -280,6 +281,7 @@ void Atari800_Coldstart(void)
 }
 
 int Atari800_LoadImage(const char *filename, UBYTE *buffer, int nbytes) {
+	printf("Atari800_LoadImage(%s, %08Xh, %d)", filename, buffer, nbytes);
 	if (buffer < 0x20000000) { // it is ROM
 	    Log_print("WARN loading ROM image %s to ROM is usupported", filename);
 		return TRUE;

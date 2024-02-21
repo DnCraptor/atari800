@@ -630,8 +630,7 @@ char *Util_getcwd(char *buf, size_t size)
 		buf[1] = '\0';
 	}
 #else
-	buf[0] = '\\';
-	buf[1] = '\0';
+    strncpy(buf, "\\atari800", size);
 #endif
 	return buf;
 }

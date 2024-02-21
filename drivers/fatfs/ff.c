@@ -3644,7 +3644,7 @@ FRESULT f_mount (
 }
 
 
-
+#include "debug.h"
 
 /*-----------------------------------------------------------------------*/
 /* Open or Create a File                                                 */
@@ -3656,6 +3656,9 @@ FRESULT f_open (
 	BYTE mode			/* Access mode and open mode flags */
 )
 {
+	#ifdef MNGR_DEBUG
+	if (strcmp(path, "\\atari.log") != 0) printf("f_open(%s, %02Xh)", path, mode);
+	#endif
 	FRESULT res;
 	DIR dj;
 	FATFS *fs;
