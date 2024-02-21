@@ -18,6 +18,10 @@ extern "C" {
 #include "tv.h"
 #endif
 
+#include "font6x8.h"
+#include "font8x8.h"
+#include "font8x16.h"
+
 enum graphics_mode_t {
     TEXTMODE_DEFAULT,
     GRAPHICSMODE_DEFAULT,
@@ -34,8 +38,6 @@ enum graphics_mode_t {
     EGA_320x200x16x4,
     VGA_320x240x256,
     VGA_320x200x256x4,
-
-    ATARI_384x240x2
     // planar VGA
 };
 

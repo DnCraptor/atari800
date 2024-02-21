@@ -156,6 +156,8 @@ void __time_critical_func(render_core)() {
     graphics_set_bgcolor(0x000000);
     graphics_set_offset(0, 0);
     graphics_set_mode(GRAPHICSMODE_DEFAULT);
+    graphics_set_flashmode(false, false);
+ ///   clrScr(1);
 
     sem_acquire_blocking(&vga_start_semaphore);
     // 60 FPS loop
@@ -221,15 +223,19 @@ int main() {
     char *test_args[] = {
         "-atari",
         NULL,
+
+
     };
+
+    sem_init(&vga_start_semaphore, 0, 1);
+    multicore_launch_core1(render_core);
+    sem_release(&vga_start_semaphore);
+
     printf("libatari800_init");
     libatari800_init(-1, test_args);
     printf("libatari800_clear_input_array");
     libatari800_clear_input_array(&input_map);
 
-    sem_init(&vga_start_semaphore, 0, 1);
-    multicore_launch_core1(render_core);
-    sem_release(&vga_start_semaphore);
     gpio_init(PICO_DEFAULT_LED_PIN);
     gpio_set_dir(PICO_DEFAULT_LED_PIN, GPIO_OUT);
     for (int i = 0; i < 6; i++) {
@@ -238,6 +244,10 @@ int main() {
         sleep_ms(33);
         gpio_put(PICO_DEFAULT_LED_PIN, false);
     }
+
+
+
+
     while(true) {
         libatari800_next_frame(&input_map);
     }
