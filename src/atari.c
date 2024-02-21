@@ -303,35 +303,39 @@ int Atari800_LoadImage(const char *filename, UBYTE *buffer, int nbytes) {
 
 static int load_roms(void)
 {
+	printf("[load_roms]");
 	int basic_ver, xegame_ver;
 	SYSROM_ChooseROMs(Atari800_machine_type, MEMORY_ram_size, Atari800_tv_mode, &Atari800_os_version, &basic_ver, &xegame_ver);
-	if (Atari800_os_version == -1
-		|| !SYSROM_LoadImage(Atari800_os_version, MEMORY_os)) {
+	if (Atari800_os_version == -1 || !SYSROM_LoadImage(Atari800_os_version, MEMORY_os)) {
+		printf("[load_roms] NO OS ROM");
 		/* Missing OS ROM. */
 		Atari800_os_version = -1;
 		/* Avoid MEMORY_os containing old OS when the user explicitly removed
 		   all system ROMs from settings. */
-		memset(MEMORY_os, 0, sizeof(MEMORY_os));
+		if (MEMORY_os >= 0x20000000) // it is RAM
+			memset(MEMORY_os, 0, sizeof(MEMORY_os));
 		return FALSE;
 	}
 	else if (Atari800_machine_type != Atari800_MACHINE_5200) {
+		printf("[load_roms] Atari800_machine_type != Atari800_MACHINE_5200");
 		/* OS ROM found, try loading BASIC. */
-		//// TODO: ensure
-	///	MEMORY_have_basic = basic_ver != -1 && SYSROM_LoadImage(basic_ver, MEMORY_basic);
-		if (!MEMORY_have_basic)
+		MEMORY_have_basic = basic_ver != -1 && SYSROM_LoadImage(basic_ver, MEMORY_basic);
+		if (!MEMORY_have_basic) {
+			printf("[load_roms] NO BASIC ROM");
 			/* Missing BASIC ROM. Don't fail when it happens. */
 			Atari800_builtin_basic = FALSE;
-
+		}
 		if (Atari800_builtin_game) {
 			/* Try loading built-in XEGS game. */
-			if (xegame_ver == -1
-				|| !SYSROM_LoadImage(xegame_ver, MEMORY_xegame))
+			if (xegame_ver == -1 || !SYSROM_LoadImage(xegame_ver, MEMORY_xegame)) {
+				printf("[load_roms] NO XEGS game ROM");
 				/* Missing XEGS game ROM. */
 				Atari800_builtin_game = FALSE;
+			}
 		}
 	}
-
 	MEMORY_xe_bank = 0;
+	printf("[load_roms] PASSED");
 	return TRUE;
 }
 

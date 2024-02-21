@@ -524,7 +524,7 @@ void SYSROM_ChooseROMs(int machine_type, int ram_size, int tv_system, int *os_ve
 
 int SYSROM_LoadImage(int id, UBYTE *buffer)
 {
-	printf("SYSROM_LoadImage(%d, %08Xh)", id, buffer);
+	printf("SYSROM_LoadImage(id: %d, to: %08Xh)", id, buffer);
 	if (buffer < 0x20000000) { // it is ROM
 		return TRUE;
 	}
