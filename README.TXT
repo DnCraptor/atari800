@@ -1,4 +1,5 @@
-Atari800 emulator version 5.2.0
+Atari emulator for ZX Murmulator dev. board (RP2040)
+Based on Atari800 emulator version 5.2.0: https://github.com/atari800/atari800
 -------------------------------
 
 This is a free and portable Atari 8-bit computer and 5200 console emulator,
@@ -6,6 +7,14 @@ originally written by David Firth and now developed by the Atari800
 Development Team (please see DOC/CREDITS). This program is copyrighted and
 released under the GPL (see COPYING).
 
+Optimised for ZX Murmulator by me ;)
+PS2 Keyboard mapping:
+F1 - Help
+F2 - Option
+F3 - Select
+F4 - Start
+
+TBA:
 Please read DOC/README, DOC/INSTALL and DOC/USAGE and eventual platform
 specific versions of the above mentioned files.
 
