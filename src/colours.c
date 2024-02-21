@@ -33,6 +33,9 @@
 #include "atari.h"
 #include "cfg.h"
 #include "colours.h"
+
+#include <graphics.h>
+
 #include "colours_external.h"
 #include "colours_ntsc.h"
 #include "colours_pal.h"
@@ -66,7 +69,6 @@ static char const * const preset_cfg_strings[COLOURS_PRESET_SIZE] = {
 };
 
 ///int Colours_table[256];
-void graphics_set_palette(const uint8_t i, const uint32_t color888);
 
 void Colours_SetRGB(int i, int r, int g, int b)
 {
@@ -82,7 +84,7 @@ void Colours_SetRGB(int i, int r, int g, int b)
 		b = 0;
 	else if (b > 255)
 		b = 255;
-	graphics_set_palette(i, (r << 16) + (g << 8) + b);
+	graphics_set_palette(i, RGB888(r,g, b));
 }
 
 /* 3x3 matrix for conversion from RGB to YUV colourspace. */

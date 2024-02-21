@@ -7,11 +7,10 @@
 #include "hardware/dma.h"
 #include "hardware/irq.h"
 #include <string.h>
+#include <stdio.h>
 #include "hardware/pio.h"
 #include "pico/stdlib.h"
 #include "stdlib.h"
-#include "fnt8x16.h"
-#include "debug.h"
 
 uint16_t pio_program_VGA_instructions[] = {
     //     .wrap_target
@@ -70,6 +69,7 @@ static uint16_t* txt_palette_fast = NULL;
 
 enum graphics_mode_t graphics_mode;
 
+
 void __time_critical_func() dma_handler_VGA() {
     dma_hw->ints0 = 1u << dma_chan_ctrl;
     static uint32_t frame_number = 0;
@@ -118,7 +118,6 @@ void __time_critical_func() dma_handler_VGA() {
         case TGA_320x200x16:
         case EGA_320x200x16x4:
         case VGA_320x200x256x4:
-        case ATARI_384x240x2:
         case GRAPHICSMODE_DEFAULT:
             line_number = screen_line / 2;
             if (screen_line % 2) return;
@@ -251,20 +250,6 @@ void __time_critical_func() dma_handler_VGA() {
 
     uint8_t* output_buffer_8bit;
     switch (graphics_mode) {
-        case ATARI_384x240x2:
-            output_buffer_8bit = (uint8_t *)output_buffer_16bit;
-            for (int x = width / 4; x--;) { // TBA
-                *output_buffer_8bit++ = current_palette[*input_buffer_8bit >> 7 & 1];
-                *output_buffer_8bit++ = current_palette[*input_buffer_8bit >> 6 & 1];
-                *output_buffer_8bit++ = current_palette[*input_buffer_8bit >> 5 & 1];
-                *output_buffer_8bit++ = current_palette[*input_buffer_8bit >> 4 & 1];
-                *output_buffer_8bit++ = current_palette[*input_buffer_8bit >> 3 & 1];
-                *output_buffer_8bit++ = current_palette[*input_buffer_8bit >> 2 & 1];
-                *output_buffer_8bit++ = current_palette[*input_buffer_8bit >> 1 & 1];
-                *output_buffer_8bit++ = current_palette[*input_buffer_8bit >> 0 & 1];
-                input_buffer_8bit++;
-            }
-            break;
         case CGA_640x200x2:
             output_buffer_8bit = (uint8_t *)output_buffer_16bit;
         //1bit buf
@@ -323,9 +308,10 @@ void __time_critical_func() dma_handler_VGA() {
             }
             break;
         }
+        // Это только для sega
         case GRAPHICSMODE_DEFAULT:
-            input_buffer_8bit = (24 + 8) + input_buffer + y * 384;
-            for (int i = 320; i--;) {
+            input_buffer_8bit = (24 + 8 ) + input_buffer + y * graphics_buffer_width;
+            for (int i = width; i--;) {
                 *output_buffer_16bit++ = current_palette[*input_buffer_8bit++];
             }
             break;
@@ -405,18 +391,24 @@ void graphics_set_mode(enum graphics_mode_t mode) {
         case VGA_320x200x256x4:
         case EGA_320x200x16x4:
         case TGA_320x200x16:
-        case ATARI_384x240x2:
+
             TMPL_LINE8 = 0b11000000;
             HS_SHIFT = 328 * 2;
             HS_SIZE = 48 * 2;
+
             line_size = 400 * 2;
+
             shift_picture = line_size - HS_SHIFT;
+
             palette16_mask = 0xc0c0;
+
             visible_line_size = 320;
+
             N_lines_total = 525;
             N_lines_visible = 480;
             line_VS_begin = 490;
             line_VS_end = 491;
+
             fdiv = clock_get_hz(clk_sys) / 25175000.0; //частота пиксельклока
             break;
         default:
@@ -512,23 +504,21 @@ void graphics_set_palette(const uint8_t i, const uint32_t color888) {
     const uint8_t conv0[] = { 0b00, 0b00, 0b01, 0b10, 0b10, 0b10, 0b11, 0b11 };
     const uint8_t conv1[] = { 0b00, 0b01, 0b01, 0b01, 0b10, 0b11, 0b11, 0b11 };
 
-    const uint8_t r = ((color888 >> 16) & 0xff) / 42;
-    const uint8_t g = ((color888 >> 8) & 0xff) / 42;
     const uint8_t b = (color888 & 0xff) / 42;
 
-    const uint8_t c_hi = (conv0[r] << 4) | (conv0[g] << 2) | conv0[b];
-    const uint8_t c_lo = (conv1[r] << 4) | (conv1[g] << 2) | conv1[b];
+    const uint8_t r = (color888 >> 16 & 0xff) / 42;
+    const uint8_t g = (color888 >> 8 & 0xff) / 42;
 
-    palette[0][i] = ((c_hi << 8) | c_lo) & 0x3f3f | palette16_mask;
-    palette[1][i] = ((c_lo << 8) | c_hi) & 0x3f3f | palette16_mask;
+    const uint8_t c_hi = conv0[r] << 4 | conv0[g] << 2 | conv0[b];
+    const uint8_t c_lo = conv1[r] << 4 | conv1[g] << 2 | conv1[b];
 
-   // printf("%04X palette[0][%d] %04X", color888, i, palette[0][i]);
-   // printf("%04X palette[1][%d] %04X", color888, i, palette[1][i]);
+    palette[0][i] = (c_hi << 8 | c_lo) & 0x3f3f | palette16_mask;
+    palette[1][i] = (c_lo << 8 | c_hi) & 0x3f3f | palette16_mask;
 }
 
 void graphics_init() {
     //инициализация палитры по умолчанию
-#if 0
+#if 1
     const uint8_t conv0[] = { 0b00, 0b00, 0b01, 0b10, 0b10, 0b10, 0b11, 0b11 };
     const uint8_t conv1[] = { 0b00, 0b01, 0b01, 0b01, 0b10, 0b11, 0b11, 0b11 };
     for (int i = 0; i < 256; i++) {
@@ -622,7 +612,7 @@ void graphics_init() {
     );
     //dma_channel_set_read_addr(dma_chan, &DMA_BUF_ADDR[0], false);
 
-    graphics_set_mode(ATARI_384x240x2);
+    graphics_set_mode(TGA_320x200x16);
 
     irq_set_exclusive_handler(VGA_DMA_IRQ, dma_handler_VGA);
 
