@@ -1,5 +1,12 @@
-Atari emulator for ZX Murmulator dev. board (RP2040)
-Based on Atari800 emulator version 5.2.0: https://github.com/atari800/atari800
+Atari emulator for ZX Murmulator dev. board (based on RP2040 Arm Cortex M0+ microcontroller)
+Related hardware description: https://murmulator.ru/howto 
++ https://github.com/AlexEkb4ever/MURMULATOR_classical_scheme
+Telegram canal to discuss it: https://t.me/ZX_MURMULATOR
+Telegrem canal with useful things: https://t.me/ZX_MURMULATOR_DATA
+Data storage with useful things: https://file.murmulator.ru/data/
+N.B. current port uses PSRAM connected like this: https://github.com/DnCraptor/PICO-BK/raw/master/psram.jpg
+
+This port is based on Atari800 emulator version 5.2.0: https://github.com/atari800/atari800
 -------------------------------
 
 This is a free and portable Atari 8-bit computer and 5200 console emulator,
