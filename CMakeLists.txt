@@ -107,7 +107,7 @@ target_compile_options(${PROJECT_NAME} PUBLIC
 endif ()
 
 target_compile_definitions(${PROJECT_NAME} PRIVATE
-        PACKAGE_VERSION="0.0.1"
+        PACKAGE_VERSION="3.2.0"
 
         PICO_FLASH_SIZE_BYTES=16777216
 

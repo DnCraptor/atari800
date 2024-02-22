@@ -2730,20 +2730,20 @@ void Devices_UpdatePatches(void)
 	}
 }
 
-/*
-vim:ts=4:sw=4:
-*/
-
-/// TODO:
 #include <pico/time.h>
 
 void PLATFORM_Sleep(double s) {
-	sleep_ms((uint32_t)s * 1e3);
+	uint32_t slp = s * 1e3;
+	printf("PLATFORM_Sleep(%f) sleep_ms(%d)", s, slp);
+	sleep_ms(slp);
 }
 
 double PLATFORM_Time(void) {
 	absolute_time_t at = get_absolute_time();
-	return to_us_since_boot(at) * 1e-3;
+	uint32_t t = to_ms_since_boot(at);
+	double r = t * 1e-3;
+	printf("PLATFORM_Time %d -> %f", t, r)
+	return r;
 }
 
 void PLATFORM_ConfigInit(void) {
