@@ -37,8 +37,6 @@
  * the memory starting with hexaddr1 at going up to,
  * but not including, hexaddr2.
  */
-
-///#include <stdio.h>
 #include "ff.h"
 #define fprintf(F, ...) { char b[256]; snprintf(b, 256, __VA_ARGS__); UINT bw; f_write(&F, b, strlen(b), &bw); }
 

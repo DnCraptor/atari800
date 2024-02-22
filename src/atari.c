@@ -26,7 +26,6 @@
 
 #include "afile.h"
 #include "config.h"
-///#include <stdio.h>
 #include "ff.h"
 
 #include <stdlib.h>
@@ -66,7 +65,6 @@
 #include "cartridge.h"
 #include "cassette.h"
 #include "cfg.h"
-int CFG_save_on_exit = TRUE;
 #include "cpu.h"
 #include "devices.h"
 #include "esc.h"
@@ -154,6 +152,7 @@ extern int UI_is_active;
 #ifdef DIRECTX
 #include "win32\main.h"
 #endif
+#include "ui.h"
 
 int Atari800_machine_type = Atari800_MACHINE_XLXE;
 
@@ -823,7 +822,7 @@ int Atari800_Initialise(int *argc, char *argv[])
 #endif
 #if !defined(BASIC) && !defined(CURSES_BASIC)
 		|| !Screen_Initialise(argc, argv)
-///		|| !UI_Initialise(argc, argv)
+		|| !UI_Initialise(argc, argv)
 #if defined(AUDIO_RECORDING) || defined(VIDEO_RECORDING)
 		|| !File_Export_Initialise(argc, argv)
 #endif
@@ -1076,7 +1075,7 @@ void Atari800_ErrExit(void)
 }
 
 #ifndef __PLUS
-#ifndef LIBATARI800
+///#ifndef LIBATARI800
 static void autoframeskip(double curtime, double lasttime)
 {
 	static int afs_lastframe = 0, afs_discard = 0;
@@ -1427,7 +1426,7 @@ void Atari800_Frame(void)
 #endif /* LIBATARI800 */
 }
 
-#endif /* __PLUS */
+///#endif /* __PLUS */
 
 #ifndef BASIC
 

@@ -1,4 +1,5 @@
 
+extern int CFG_save_on_exit;
 ///
 int CFG_MatchTextParameter(char const *param, char const * const cfg_strings[], int cfg_strings_size);
 

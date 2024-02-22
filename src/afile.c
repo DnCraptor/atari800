@@ -38,7 +38,7 @@
 #ifdef HAVE_LIBZ
 #include <zlib.h>
 #endif
-///#include <stdio.h>
+
 #include "ff.h"
 
 int AFILE_DetectFileType(const char *filename)

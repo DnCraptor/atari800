@@ -219,7 +219,11 @@ int main() {
     }
     /* force the 400/800 OS to get the Memo Pad */
     char *test_args[] = {
-        "-xl",
+        "-atari",
+       // "-xl",
+       // "-atari_files",
+       // "\\atari800",
+       // "-basic",
         NULL,
     };
 

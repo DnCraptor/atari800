@@ -25,7 +25,6 @@
 #define _POSIX_C_SOURCE 200112L /* for snprintf */
 
 #include "config.h"
-#include <stdio.h>
 #include <string.h>
 #include <stdlib.h> /* free() */
 
@@ -750,7 +749,7 @@ static void SystemSettings(void)
 /* Inspired by LNG (lng.sourceforge.net) */
 /* Writes a blank ATR. The ATR must by formatted by an Atari DOS
    before files are written to it. */
-static void MakeBlankDisk(FILE *setFile)
+static void MakeBlankDisk(FIL *setFile)
 {
 /* 720, so it's a standard Single Density disk,
    which can be formatted by 2.x DOSes.
@@ -779,6 +778,9 @@ int UI_show_hidden_files = FALSE;
 
 static void DiskManagement(void)
 {
+	FIL f, f2;
+	FIL *fp = &f;
+	FIL *fp2 = &f2;
 	static char drive_array[8][5] = { " D1:", " D2:", " D3:", " D4:", " D5:", " D6:", " D7:", " D8:" };
 
 	static UI_tMenuItem menu_array[] = {
@@ -832,7 +834,7 @@ static void DiskManagement(void)
 		switch (dsknum) {
 		case 8:
 			if (UI_driver->fGetSaveFilename(set_filename, UI_saved_files_dir, UI_n_saved_files_dir)) {
-				FILE *fp = fopen(set_filename, "w");
+				fp = f_open(fp, set_filename, FA_WRITE) == FR_OK ? fp : NULL;
 				if (fp == NULL) {
 					CantSave(set_filename);
 					break;
@@ -845,7 +847,7 @@ static void DiskManagement(void)
 			break;
 		case 9:
 			if (UI_driver->fGetLoadFilename(set_filename, UI_saved_files_dir, UI_n_saved_files_dir)) {
-				FILE *fp = fopen(set_filename, "r");
+				fp = f_open(fp, set_filename, FA_READ) == FR_OK ? fp : NULL;
 				if (fp == NULL) {
 					CantLoad(set_filename);
 					break;
@@ -858,7 +860,7 @@ static void DiskManagement(void)
 							SIO_Mount(i + 1, filename, FALSE);
 					}
 				}
-				fclose(fp);
+				f_close(fp);
 			}
 			break;
 		case 10:
@@ -866,7 +868,7 @@ static void DiskManagement(void)
 			break;
 		case 11:
 			if (UI_driver->fGetSaveFilename(disk_filename, UI_atari_files_dir, UI_n_atari_files_dir)) {
-				FILE *fp = fopen(disk_filename, "wb");
+				fp = f_open(fp, disk_filename, FA_WRITE) == FR_OK ? fp : NULL;
 				if (fp == NULL) {
 					CantSave(disk_filename);
 					break;
@@ -879,7 +881,7 @@ static void DiskManagement(void)
 		case 12:
 			if (UI_driver->fGetLoadFilename(disk_filename, UI_atari_files_dir, UI_n_atari_files_dir)) {
 				char uncompr_filename[FILENAME_MAX];
-				FILE *fp = fopen(disk_filename, "rb");
+				fp = f_open(fp, disk_filename, FA_READ) == FR_OK ? fp : NULL;
 				const char *p;
 				if (fp == NULL) {
 					CantLoad(disk_filename);
@@ -926,7 +928,7 @@ static void DiskManagement(void)
 				case 0x1f:
 					fclose(fp);
 					if (UI_driver->fGetSaveFilename(uncompr_filename, UI_atari_files_dir, UI_n_atari_files_dir)) {
-						FILE *fp2 = fopen(uncompr_filename, "wb");
+						fp2 = f_open(fp2, uncompr_filename, FA_WRITE) == FR_OK ? fp2 : NULL;
 						int success;
 						if (fp2 == NULL) {
 							CantSave(uncompr_filename);
@@ -940,7 +942,7 @@ static void DiskManagement(void)
 				case 0xf9:
 				case 0xfa:
 					if (UI_driver->fGetSaveFilename(uncompr_filename, UI_atari_files_dir, UI_n_atari_files_dir)) {
-						FILE *fp2 = fopen(uncompr_filename, "wb");
+						fp2 = f_open(fp2, uncompr_filename, FA_WRITE) == FR_OK ? fp2 : NULL;
 						int success;
 						if (fp2 == NULL) {
 							fclose(fp);
@@ -4416,6 +4418,7 @@ static void HotKeyHelp(void)
 
 int UI_Initialise(int *argc, char *argv[])
 {
+	printf("UI_Initialise");
 	int i;
 	int j;
 
@@ -4426,18 +4429,18 @@ int UI_Initialise(int *argc, char *argv[])
 
 		if (strcmp(argv[i], "-atari_files") == 0) {
 			if (i_a) {
-				if (UI_n_atari_files_dir >= UI_MAX_DIRECTORIES)
+				if (UI_n_atari_files_dir >= UI_MAX_DIRECTORIES) {
 					Log_print("All ATARI_FILES_DIR slots used!");
-				else
+				} else
 					Util_strlcpy(UI_atari_files_dir[UI_n_atari_files_dir++], argv[++i], FILENAME_MAX);
 			}
 			else a_m = TRUE;
 		}
 		else if (strcmp(argv[i], "-saved_files") == 0) {
 			if (i_a) {
-				if (UI_n_saved_files_dir >= UI_MAX_DIRECTORIES)
+				if (UI_n_saved_files_dir >= UI_MAX_DIRECTORIES) {
 					Log_print("All SAVED_FILES_DIR slots used!");
-				else
+				} else
 					Util_strlcpy(UI_saved_files_dir[UI_n_saved_files_dir++], argv[++i], FILENAME_MAX);
 			}
 			else a_m = TRUE;

@@ -97,8 +97,9 @@ void MEMORY_ROM_PutByte(UWORD addr, UBYTE byte);
 #include <pico/platform.h>
 
 extern const unsigned char __in_flash() __aligned(4096) MEMORY_basic[8192];
-extern const unsigned char __in_flash() __aligned(4096) MEMORY_os[16384];
-extern const unsigned char __in_flash() __aligned(4096) MEMORY_xegame[8192];
+extern const unsigned char __in_flash() __aligned(4096) MEMORY_os[16384]; // OS_B
+extern const unsigned char __in_flash() __aligned(4096) ATARIXL_ROM[8192];
+extern const unsigned char __in_flash() __aligned(4096) MEMORY_xegame[8192]; // TBA
 ///extern UBYTE MEMORY_basic[8192];
 ///extern UBYTE MEMORY_os[16384];
 ///extern UBYTE MEMORY_xegame[8192];

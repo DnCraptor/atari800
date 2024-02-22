@@ -25,7 +25,6 @@
 #define _POSIX_C_SOURCE 200112L /* for snprintf */
 
 #include "config.h"
-#include <stdio.h>
 #include <string.h>
 #include <stdlib.h> /* free() */
 /* XXX: <sys/dir.h>, <ndir.h>, <sys/ndir.h> */

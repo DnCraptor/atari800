@@ -27,7 +27,6 @@
              User's Manual - CA016555 Rev. A - 1982 Atari, Inc.
  */
 #include "config.h"
-///#include <stdio.h>
 #include "ff.h"
 
 #include <stdlib.h>
@@ -2737,6 +2736,10 @@ vim:ts=4:sw=4:
 
 /// TODO:
 #include <pico/time.h>
+
+void PLATFORM_Sleep(double s) {
+	sleep_ms((uint32_t)s * 1e3);
+}
 
 double PLATFORM_Time(void) {
 	absolute_time_t at = get_absolute_time();

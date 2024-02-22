@@ -10,6 +10,8 @@
 #include "devices.h"
 #include "pokeysnd.h"
 
+int CFG_save_on_exit = FALSE;
+
 int CFG_MatchTextParameter(char const *param, char const * const cfg_strings[], int cfg_strings_size)
 {
 	int i;
@@ -214,7 +216,7 @@ int CFG_LoadConfig(const char *alternate_config_filename) {
 			else if (strcmp(string, "1200XL_JUMPER") == 0)
 				Atari800_jumper = Util_sscanbool(ptr);
 			else if (strcmp(string, "CFG_SAVE_ON_EXIT") == 0) {
-		///		CFG_save_on_exit = Util_sscanbool(ptr);
+				CFG_save_on_exit = Util_sscanbool(ptr);
 			}
 			/* Add module-specific configurations here */
 			else if (PBI_ReadConfig(string,ptr)) {

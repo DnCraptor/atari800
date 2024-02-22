@@ -25,7 +25,6 @@
 #define _POSIX_C_SOURCE 200112L /* for snprintf */
 
 #include "config.h"
-///#include <stdio.h>
 #include "ff.h"
 
 #include <string.h>

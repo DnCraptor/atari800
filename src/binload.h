@@ -1,7 +1,6 @@
 #ifndef BINLOAD_H_
 #define BINLOAD_H_
 
-///#include <stdio.h> /* FILE */
 #include "atari.h" /* UBYTE */
 #include "ff.h"
 

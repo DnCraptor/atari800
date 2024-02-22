@@ -15,6 +15,7 @@
         "util.h": "c",
         "log.h": "c",
         "crc32.h": "c",
-        "cfg.h": "c"
+        "cfg.h": "c",
+        "ui.h": "c"
     }
 }

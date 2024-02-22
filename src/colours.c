@@ -24,7 +24,6 @@
  */
 
 #include "config.h"
-///#include <stdio.h>
 #include "ff.h"
 
 #include <string.h>	/* for strcmp() */

@@ -29,7 +29,6 @@
 
 #define __STRICT_ANSI__ 1
 #else
-///#include <stdio.h>
 #include "ff.h"
 
 #endif /* __STRICT_ANSI__ */

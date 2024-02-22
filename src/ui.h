@@ -25,7 +25,6 @@
 #define UI_H_
 
 #include "config.h"
-#include <stdio.h> /* FILENAME_MAX */
 #include "atari.h"
 
 /* Three legitimate entries to UI module. */

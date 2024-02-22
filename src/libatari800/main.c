@@ -153,26 +153,16 @@ void LIBATARI800_Frame(void)
 
 /* Stub routines to replace text-based UI */
 
-int UI_SelectCartType(int k) {
+int UI_SelectCartTypeM(int k) {
 	libatari800_error_code = LIBATARI800_UNIDENTIFIED_CART_TYPE;
 	return CARTRIDGE_NONE;
 }
 
-int UI_Initialise(int *argc, char *argv[]) {
+int UI_InitialiseM(int *argc, char *argv[]) {
 	return TRUE;
 }
 
-void UI_Run(void) {
+void UI_RunM(void) {
 	;
 }
 
-int UI_is_active;
-int UI_alt_function;
-int UI_current_function;
-#ifdef UI
-char UI_atari_files_dir[UI_MAX_DIRECTORIES][FILENAME_MAX];
-char UI_saved_files_dir[UI_MAX_DIRECTORIES][FILENAME_MAX];
-#endif
-int UI_n_atari_files_dir;
-int UI_n_saved_files_dir;
-int UI_show_hidden_files = FALSE;

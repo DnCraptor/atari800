@@ -28,7 +28,6 @@
 #include "log.h"
 #include "util.h"
 #include <string.h>
-///#include <stdio.h>
 #include "ff.h"
 #define fprintf(F, ...) { char b[256]; snprintf(b, 256, __VA_ARGS__); UINT bw; f_write(&F, b, strlen(b), &bw); }
 #define fputc(c, F) { char _c = c; UINT wr; f_write(&F, &_c, 1, &wr); }

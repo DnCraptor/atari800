@@ -29,7 +29,6 @@
 ///#include <dirent.h>
 ///#endif
 #include <stdarg.h>
-///#include <stdio.h>
 #include "ff.h"
 
 #include <string.h>
@@ -50,6 +49,8 @@
 # include "roms/altirraos_xl.h"
 # include "roms/altirra_basic.h"
 #endif /* EMUOS_ALTIRRA */
+
+const unsigned char __in_flash() __aligned(4096) MEMORY_xegame[8192] = { 0 }; // TBA
 
 int SYSROM_os_versions[Atari800_MACHINE_SIZE] = { SYSROM_AUTO, SYSROM_AUTO, SYSROM_AUTO };
 int SYSROM_basic_version = SYSROM_AUTO;
@@ -88,11 +89,11 @@ enum { CRC_NULL = 0 };
 SYSROM_t SYSROM_roms[SYSROM_SIZE] = {
 	{ osa_ntsc_filename, 0x2800, 0xc1b3bb02, NULL, TRUE }, /* SYSROM_A_NTSC */
 	{ osa_pal_filename, 0x2800, 0x72b3fed4, NULL, TRUE }, /* SYSROM_A_PAL */
-	{ osb_ntsc_filename, 0x2800, 0x0e86d61d, NULL, TRUE }, /* SYSROM_B_NTSC */
+	{ osb_ntsc_filename, 0x2800, 0x0e86d61d, MEMORY_os, FALSE }, /* SYSROM_B_NTSC */
 	{ osaa00r10_filename, 0x4000, 0xc5c11546, NULL, TRUE }, /* SYSROM_AA00R10 */
 	{ osaa01r11_filename, 0x4000, 0x1a1d7b1b, NULL, TRUE }, /* SYSROM_AA01R11 */
 	{ osbb00r1_filename, 0x4000, 0x643bcc98, NULL, TRUE }, /* SYSROM_BB00R1 */
-	{ osbb01r2_filename, 0x4000, 0x1f9cd270, NULL, TRUE }, /* SYSROM_BB01R2 */
+	{ osbb01r2_filename, 0x4000, 0x1f9cd270, ATARIXL_ROM, FALSE }, /* SYSROM_BB01R2 */
 	{ osbb02r3_filename, 0x4000, 0x0d477aa1, NULL, TRUE }, /* SYSROM_BB02R3 */
 	{ osbb02r3v4_filename, 0x4000, 0xd425a9cf, NULL, TRUE }, /* SYSROM_BB02R3V4 */
 	{ oscc01r4_filename, 0x4000, 0x0e000b99, NULL, TRUE }, /* SYSROM_CC01R4 */
@@ -104,7 +105,7 @@ SYSROM_t SYSROM_roms[SYSROM_SIZE] = {
 	{ os5200b_filename, 0x0800, 0xc2ba2613, NULL, TRUE }, /* SYSROM_5200A */
 	{ basica_filename, 0x2000, 0x4bec4de2, NULL, TRUE }, /* SYSROM_BASIC_A */
 	{ basicb_filename, 0x2000, 0xf0202fb3, NULL, TRUE }, /* SYSROM_BASIC_B */
-	{ basicc_filename, 0x2000, 0x7d684184, NULL, TRUE }, /* SYSROM_BASIC_C */
+	{ basicc_filename, 0x2000, 0x7d684184, MEMORY_basic, FALSE }, /* SYSROM_BASIC_C */
 	{ xegame_filename, 0x2000, 0xbdca01fb, NULL, TRUE }, /* SYSROM_XEGAME */
 	{ os800_custom_filename, 0x2800, CRC_NULL, NULL, TRUE }, /* SYSROM_400800_CUSTOM */
 	{ osxl_custom_filename, 0x4000, CRC_NULL, NULL, TRUE }, /* SYSROM_XL_CUSTOM */
