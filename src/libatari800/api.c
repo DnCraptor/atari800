@@ -222,7 +222,9 @@ int libatari800_next_frame(input_template_t *input)
 #endif /* HAVE_SETJMP */
 	{
 		/* normal operation */
-		LIBATARI800_Frame();
+		//LIBATARI800_Frame();
+        Atari800_Frame();
+
 		//printf("LIBATARI800_Frame PASSED");
 		if (CPU_cim_encountered) {
 			libatari800_error_code = LIBATARI800_CPU_CRASH;

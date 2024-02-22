@@ -103,7 +103,7 @@ int PLATFORM_Initialise(int *argc, char *argv[])
 	return TRUE;
 }
 
-
+#ifdef LIB_UI
 void LIBATARI800_Frame(void)
 {
 	switch (INPUT_key_code) {
@@ -149,7 +149,7 @@ void LIBATARI800_Frame(void)
 	//printf("Atari800_nframes: %d", Atari800_nframes);
 	Atari800_nframes++;
 }
-
+#endif
 
 /* Stub routines to replace text-based UI */
 

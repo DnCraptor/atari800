@@ -328,9 +328,10 @@ int run_machine(machine_config_t *machine, char *pathname, int num_frames, int c
    a cart type identified by the cart header.
 */
 int guess_cart_kb(char *pathname, int verbose) {
+	FIL f;
 	char buf[CHUNK_SIZE];
 	char header[16];
-	FIL *fp = fopen(pathname, "rb");
+	FIL *fp = fopen(&f, pathname, FA_READ);
 	size_t current_len, total_len = 0;
 	int kb, cart_type;
 	cart_types_t *cart_desc;

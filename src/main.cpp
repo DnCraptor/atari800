@@ -122,10 +122,11 @@ bool __time_critical_func(handleScancode)(const uint32_t ps2scancode) {
             case 0x2a: sp |= 2; input_map.shift = sp; break; // lshift
             case 0x01: input_map.keychar = 27; break; // Esc
             case 0x0e: input_map.keychar = '\b'; break; // Backspace
-            case 0x3b: input_map.keychar = 255; break; // F1 Help
+            case 0x3b: input_map.keychar = 255; break; // F1 UI
             case 0x3c: input_map.option = 1; break; // F2 Option
             case 0x3d: input_map.select = 1; break; // F3 Select
             case 0x3e: input_map.start = 1; break; // F4 Start
+            case 0x3f: input_map.keychar = 250; break; // F5 Help
             case 0x48: input_map.keychar = 254; break; // Up
             case 0x4b: input_map.keychar = 253; break; // Left
             case 0x50: input_map.keychar = 252; break; // Down

@@ -55,6 +55,8 @@ static char mio_rom_filename[FILENAME_MAX];
 static char mio_scsi_disk_filename[FILENAME_MAX] = Util_FILENAME_NOT_SET;
 static int mio_scsi_enabled = FALSE;
 
+static FIL scsi_disk;
+
 static void init_mio(void)
 {
 	free(mio_rom);
@@ -68,7 +70,7 @@ static void init_mio(void)
 	PBI_MIO_enabled = TRUE;
 	if (PBI_SCSI_disk != NULL) fclose(PBI_SCSI_disk);
 	if (!Util_filenamenotset(mio_scsi_disk_filename)) {
-		PBI_SCSI_disk = fopen(mio_scsi_disk_filename, "rb+");
+		PBI_SCSI_disk = fopen(&scsi_disk, mio_scsi_disk_filename, FA_READ | FA_WRITE);
 		if (PBI_SCSI_disk == NULL) {
 			Log_print("Error opening SCSI disk image:%s", mio_scsi_disk_filename);
 		}

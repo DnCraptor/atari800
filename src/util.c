@@ -441,12 +441,12 @@ int Util_findnextfilename(const char *format, int *no_last, int no_max, char *bu
 
 int Util_fileexists(const char *filename)
 {
-	FIL *fp;
-	fp = fopen(filename, "rb");
+	FIL f;
+	FIL *fp = &f;
+	fp = fopen(fp, filename, "rb");
 	if (fp == NULL)
 		return FALSE;
 	fclose(fp);
-	free(fp);
 	return TRUE;
 }
 
@@ -522,8 +522,10 @@ FIL *Util_uniqopen(char *filename, const char *mode)
 	int no;
 	for (no = 0; no < 1000000; no++) {
 		snprintf(filename, FILENAME_MAX, "a8%06d", no);
-		if (!Util_fileexists(filename))
-			return fopen(filename, mode);
+		if (!Util_fileexists(filename)) {
+			FIL * fp = Util_malloc(sizeof(FIL), filename);
+			return fopen(fp, filename, FA_READ);
+		}
 	}
 	return NULL;
 #endif

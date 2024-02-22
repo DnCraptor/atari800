@@ -453,17 +453,15 @@ inline static void fclose(FIL * f) {
     f_close(f);
 }
 
-inline static FIL * fopen(const char* f, const char* mode) { // TODO: free
-    FIL * res = (FIL *)malloc(sizeof(FIL));
-	if (res == NULL) {
+inline static FIL * fopen(FIL * f, const char* fn, const int mode) { // TODO: free
+	if (f == NULL) {
 		return NULL;
 	}
-	FRESULT r = f_open(res, f, FA_READ); // TODO:
+	FRESULT r = f_open(f, fn, mode); // TODO:
 	if (r != FR_OK) {
-       free(res);
 	   return NULL;
 	}
-	return res;
+	return f;
 }
 #include "debug.h"
 inline static int fgets(char* string, const size_t sz, FIL* fp) {

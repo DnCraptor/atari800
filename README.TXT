@@ -16,10 +16,11 @@ released under the GPL (see COPYING).
 
 Optimised for ZX Murmulator by me ;)
 PS2 Keyboard mapping:
-F1 - Help
+F1 - UI
 F2 - Option
 F3 - Select
 F4 - Start
+F5 - Help
 
 TBA:
 Please read DOC/README, DOC/INSTALL and DOC/USAGE and eventual platform

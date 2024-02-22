@@ -62,10 +62,13 @@ static UBYTE bb_PCR = 0; /* VIA Peripheral control register*/
 static int bb_scsi_enabled = FALSE;
 static char bb_scsi_disk_filename[FILENAME_MAX] = Util_FILENAME_NOT_SET;
 
+static FIL bb_disk;
+static FIL bb_scsi_disk;
+
 static void init_bb(void)
 {
 	FIL *bbfp;
-	bbfp = fopen(bb_rom_filename,"rb");
+	bbfp = fopen(&bb_disk, bb_rom_filename, FA_READ);
 	bb_rom_size = Util_flen(bbfp);
 	fclose(bbfp);
 	if (bb_rom_size != 0x10000 && bb_rom_size != 0x4000) {
@@ -83,7 +86,7 @@ static void init_bb(void)
 	PBI_BB_enabled = TRUE;
 	if (PBI_SCSI_disk != NULL) fclose(PBI_SCSI_disk);
 	if (!Util_filenamenotset(bb_scsi_disk_filename)) {
-		PBI_SCSI_disk = fopen(bb_scsi_disk_filename, "rb+");
+		PBI_SCSI_disk = fopen(&bb_scsi_disk, bb_scsi_disk_filename, FA_READ | FA_WRITE);
 		if (PBI_SCSI_disk == NULL) {
 			Log_print("Error opening BB SCSI disk image:%s", bb_scsi_disk_filename);
 		}

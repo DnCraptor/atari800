@@ -1,3 +1,4 @@
+#include "ui.h"
 #include "cfg.h"
 #include "log.h"
 #include "esc.h"
@@ -280,3 +281,130 @@ int CFG_LoadConfig(const char *alternate_config_filename) {
 	f_close(&f);
 	return 1;
 }
+
+int CFG_WriteConfig(void)
+{
+	FIL f;
+	FIL *fp = &f;
+	int i;
+	static const char * const machine_type_string[Atari800_MACHINE_SIZE] = {
+		"400/800", "XL/XE", "5200"
+	};
+
+	fp = fopen(fp, rtconfig_filename, FA_WRITE | FA_CREATE_ALWAYS);
+	if (fp == NULL) {
+		perror(rtconfig_filename);
+		Log_print("Cannot write to config file: %s", rtconfig_filename);
+		return FALSE;
+	}
+	Log_print("Writing config file: %s", rtconfig_filename);
+
+	fprintf(fp, "%s\n", Atari800_TITLE);
+	SYSROM_WriteConfig(fp);
+#ifndef BASIC
+	for (i = 0; i < UI_n_atari_files_dir; i++)
+		fprintf(fp, "ATARI_FILES_DIR=%s\n", UI_atari_files_dir[i]);
+	for (i = 0; i < UI_n_saved_files_dir; i++)
+		fprintf(fp, "SAVED_FILES_DIR=%s\n", UI_saved_files_dir[i]);
+	fprintf(fp, "SHOW_HIDDEN_FILES=%d\n", UI_show_hidden_files);
+#endif
+	for (i = 0; i < 4; i++)
+		fprintf(fp, "H%c_DIR=%s\n", '1' + i, Devices_atari_h_dir[i]);
+	fprintf(fp, "HD_READ_ONLY=%d\n", Devices_h_read_only);
+	fprintf(fp, "HD_DEVICE_NAME=%c\n", Devices_h_device_name);
+
+#ifdef HAVE_SYSTEM
+	fprintf(fp, "PRINT_COMMAND=%s\n", Devices_print_command);
+#endif
+
+#ifndef BASIC
+	fprintf(fp, "SCREEN_REFRESH_RATIO=%d\n", Atari800_refresh_rate);
+	fprintf(fp, "ACCURATE_SKIPPED_FRAMES=%d\n", Atari800_collisions_in_skipped_frames);
+#endif
+
+	fprintf(fp, "MACHINE_TYPE=Atari %s\n", machine_type_string[Atari800_machine_type]);
+
+	fprintf(fp, "RAM_SIZE=");
+	switch (MEMORY_ram_size) {
+	case MEMORY_RAM_320_RAMBO:
+		fprintf(fp, "320 (RAMBO)\n");
+		break;
+	case MEMORY_RAM_320_COMPY_SHOP:
+		fprintf(fp, "320 (COMPY SHOP)\n");
+		break;
+	default:
+		fprintf(fp, "%d\n", MEMORY_ram_size);
+		break;
+	}
+
+	fprintf(fp, (Atari800_tv_mode == Atari800_TV_PAL) ? "DEFAULT_TV_MODE=PAL\n" : "DEFAULT_TV_MODE=NTSC\n");
+	fprintf(fp, "MOSAIC_RAM_NUM_BANKS=%d\n", MEMORY_mosaic_num_banks);
+	fprintf(fp, "AXLON_RAM_NUM_BANKS=%d\n", MEMORY_axlon_num_banks);
+	fprintf(fp, "ENABLE_MAPRAM=%d\n", MEMORY_enable_mapram);
+
+	fprintf(fp, "DISABLE_BASIC=%d\n", Atari800_disable_basic);
+	fprintf(fp, "ENABLE_SIO_PATCH=%d\n", ESC_enable_sio_patch);
+	fprintf(fp, "ENABLE_SLOW_XEX_LOADING=%d\n", BINLOAD_slow_xex_loading);
+	fprintf(fp, "ENABLE_H_PATCH=%d\n", Devices_enable_h_patch);
+	fprintf(fp, "ENABLE_P_PATCH=%d\n", Devices_enable_p_patch);
+#ifdef R_IO_DEVICE
+	fprintf(fp, "ENABLE_R_PATCH=%d\n", Devices_enable_r_patch);
+#endif
+
+#ifdef SOUND
+	fprintf(fp, "ENABLE_NEW_POKEY=%d\n", POKEYSND_enable_new_pokey);
+#ifdef STEREO_SOUND
+	fprintf(fp, "STEREO_POKEY=%d\n", POKEYSND_stereo_enabled);
+#endif
+#ifdef CONSOLE_SOUND
+	fprintf(fp, "SPEAKER_SOUND=%d\n", POKEYSND_console_sound_enabled);
+#endif
+#ifdef SERIO_SOUND
+	fprintf(fp, "SERIO_SOUND=%d\n", POKEYSND_serio_sound_enabled);
+#endif
+#endif /* SOUND */
+	fprintf(fp, "BUILTIN_BASIC=%d\n", Atari800_builtin_basic);
+	fprintf(fp, "KEYBOARD_LEDS=%d\n", Atari800_keyboard_leds);
+	fprintf(fp, "F_KEYS=%d\n", Atari800_f_keys);
+	fprintf(fp, "BUILTIN_GAME=%d\n", Atari800_builtin_game);
+	fprintf(fp, "KEYBOARD_DETACHED=%d\n", Atari800_keyboard_detached);
+	fprintf(fp, "1200XL_JUMPER=%d\n", Atari800_jumper);
+	fprintf(fp, "CFG_SAVE_ON_EXIT=%d\n", CFG_save_on_exit);
+	/* Add module-specific configurations here */
+	PBI_WriteConfig(fp);
+	CARTRIDGE_WriteConfig(fp);
+	CASSETTE_WriteConfig(fp);
+	RTIME_WriteConfig(fp);
+#ifdef XEP80_EMULATION
+	XEP80_WriteConfig(fp);
+#endif
+#ifdef AF80
+	AF80_WriteConfig(fp);
+#endif
+#ifdef BIT3
+	BIT3_WriteConfig(fp);
+#endif
+#if !defined(BASIC) && !defined(CURSES_BASIC)
+	Colours_WriteConfig(fp);
+	ARTIFACT_WriteConfig(fp);
+	Screen_WriteConfig(fp);
+#endif
+#ifdef NTSC_FILTER
+	FILTER_NTSC_WriteConfig(fp);
+#endif
+#if SUPPORTS_CHANGE_VIDEOMODE
+	VIDEOMODE_WriteConfig(fp);
+#endif
+#if defined(SOUND) && defined(SOUND_THIN_API)
+	Sound_WriteConfig(fp);
+#endif /* defined(SOUND) && defined(SOUND_THIN_API) */
+#if defined(HAVE_LIBPNG) || defined(HAVE_LIBZ) || defined(AUDIO_RECORDING) || defined(VIDEO_RECORDING)
+	File_Export_WriteConfig(fp);
+#endif
+#ifdef SUPPORTS_PLATFORM_CONFIGSAVE
+	PLATFORM_ConfigSave(fp);
+#endif
+	fclose(fp);
+	return TRUE;
+}
+

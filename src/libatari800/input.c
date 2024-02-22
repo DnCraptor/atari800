@@ -78,7 +78,8 @@ int PLATFORM_Keyboard(void)
 		INPUT_key_consol &= ~INPUT_CONSOL_SELECT;
 	if (input->start)
 		INPUT_key_consol &= ~INPUT_CONSOL_START;
-	if (input->keychar == 255) return AKEY_HELP;
+	if (input->keychar == 255) return AKEY_UI;
+	if (input->keychar == 250) return AKEY_HELP;
 	if (input->keychar == 254) return AKEY_UP;
 	if (input->keychar == 253) return AKEY_LEFT;
 	if (input->keychar == 252) return AKEY_DOWN;

@@ -892,7 +892,8 @@ int SIO_FormatDisk(int unit, UBYTE *buffer, int sectsize, int sectcount)
 	int save_boot_sectors_type;
 	int bootsectsize;
 	int bootsectcount;
-	FIL *f;
+	FIL fil;
+	FIL *f = &fil;
 	int i;
 	io_success[unit] = -1;
 	if (SIO_drive_status[unit] == SIO_OFF)
@@ -915,7 +916,7 @@ int SIO_FormatDisk(int unit, UBYTE *buffer, int sectsize, int sectcount)
 	bootsectcount = sectcount < 3 ? sectcount : 3;
 	/* Umount the file and open it in "wb" mode (it will truncate the file) */
 	SIO_Dismount(unit + 1);
-	f = fopen(fname, "wb");
+	f = fopen(&fil, fname, FA_WRITE | FA_CREATE_ALWAYS);
 	if (f == NULL) {
 		Log_print("SIO_FormatDisk: failed to open %s for writing", fname);
 		return 'E';

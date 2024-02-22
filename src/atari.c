@@ -1316,6 +1316,7 @@ void Atari800_Frame(void)
 #ifdef SOUND
 		Sound_Pause();
 #endif
+        printf("UI_Run");
 		UI_Run();
 #ifdef SOUND
 		Sound_Continue();
