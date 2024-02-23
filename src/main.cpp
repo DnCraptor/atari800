@@ -206,38 +206,40 @@ void __time_critical_func(render_core)() {
 
 #ifdef SOUND
 static repeating_timer_t timer;
+static int snd_channels = 2;
+static int snd_bits = 16;
 static bool __not_in_flash_func(AY_timer_callback)(repeating_timer_t *rt) {
     static uint16_t outL = 0;  
     static uint16_t outR = 0;
-    pwm_set_gpio_level(PWM_PIN0, outR); // Право
-    pwm_set_gpio_level(PWM_PIN1, outL); // Лево
-    outL = outR = 0;
-    if (!Sound_enabled || paused) {
-        return true;
-    }
     int len = libatari800_get_sound_buffer_len();
     int idx = libatari800_get_sound_buffer_idx();
     if (idx >= len) {
         // empty buffer
         return true;
     }
+    pwm_set_gpio_level(PWM_PIN0, outR); // Право
+    pwm_set_gpio_level(PWM_PIN1, outL); // Лево
+    outL = outR = 0;
+    if (!Sound_enabled || paused) {
+        return true;
+    }
     UBYTE* uba = libatari800_get_sound_buffer();
-    if (libatari800_get_num_sound_channels() == 2) {
-        if (libatari800_get_sound_sample_size() == 8) {
-            outL = ((uint16_t)uba[idx]) << (12 - 8);
-            outR = ((uint16_t)uba[idx + 1]) << (12 - 8);
+    if (snd_channels == 2) {
+        if (snd_bits == 8) {
+            outL = ((uint16_t)uba[idx]) << (11 - 8);
+            outR = ((uint16_t)uba[idx + 1]) << (11 - 8);
             libatari800_set_sound_buffer_idx(idx + 2);
         } else {
-            outL = ((uint16_t*)uba)[idx << 1] >> (16 - 12);
-            outR = ((uint16_t*)uba)[(idx << 1) + 2] >> (16 - 12);
+            outL = ((uint16_t*)uba)[idx << 1] >> (16 - 11);
+            outR = ((uint16_t*)uba)[(idx << 1) + 2] >> (16 - 11);
             libatari800_set_sound_buffer_idx(idx + 4);
         }
     } else {
-        if (libatari800_get_sound_sample_size() == 8) {
-            outL = outR = ((uint16_t)uba[idx]) << (12 - 8);
+        if (snd_bits == 8) {
+            outL = outR = ((uint16_t)uba[idx]) << (11 - 8);
             libatari800_set_sound_buffer_idx(idx + 1);
         } else {
-            outL = outR = ((uint16_t*)uba)[idx << 1] >> (16 - 12);
+            outL = outR = ((uint16_t*)uba)[idx << 1] >> (16 - 11);
             libatari800_set_sound_buffer_idx(idx + 2);
         }
     }
@@ -330,6 +332,8 @@ int main() {
 
 #ifdef SOUND
 	int hz = libatari800_get_sound_frequency(); ///44100;	//44000 //44100 //96000 //22050
+    snd_channels = libatari800_get_num_sound_channels();
+    snd_bits = libatari800_get_sound_sample_size();
 	// negative timeout means exact delay (rather than delay between callbacks)
 	if (!add_repeating_timer_us(-1000000 / hz, AY_timer_callback, NULL, &timer)) {
 		printf("Failed to add timer");
