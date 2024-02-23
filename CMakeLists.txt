@@ -74,6 +74,7 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
         pico_runtime
         pico_stdlib
         hardware_pio
+        hardware_pwm
 
         pico_multicore
         hardware_flash
@@ -149,6 +150,11 @@ target_compile_definitions(${PROJECT_NAME} PRIVATE
         PSRAM_PIN_SCK=19
         PSRAM_PIN_MOSI=20
         PSRAM_PIN_MISO=21
+
+        LOAD_WAV_PIO=22
+        PWM_PIN0=26
+        PWM_PIN1=27
+        BEEPER_PIN=28
 
         #MNGR_DEBUG=1
         #DEBUG2=1

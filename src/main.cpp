@@ -4,7 +4,9 @@
 #include <hardware/flash.h>
 #include <hardware/structs/vreg_and_chip_reset.h>
 #include <pico/bootrom.h>
+#include <pico/time.h>
 #include <pico/multicore.h>
+#include <hardware/pwm.h>
 #include <pico/stdlib.h>
 
 #include "graphics.h"
@@ -21,6 +23,7 @@ extern "C" {
 #include "ff.h"
 #include "debug.h"
 #include "screen.h"
+#include "sound.h"
 }
 
 #include "psram_spi.h"
@@ -32,6 +35,20 @@ semaphore vga_start_semaphore;
 #define DISP_HEIGHT (240)
 extern "C" UBYTE __aligned(4) __screen[Screen_HEIGHT * Screen_WIDTH];
 ///uint16_t SCREEN[TEXTMODE_ROWS][TEXTMODE_COLS];
+
+pwm_config config = pwm_get_default_config();
+void PWM_init_pin(uint8_t pinN, uint16_t max_lvl) {
+    gpio_set_function(pinN, GPIO_FUNC_PWM);
+    pwm_config_set_clkdiv(&config, 1.0);
+    pwm_config_set_wrap(&config, max_lvl); // MAX PWM value
+    pwm_init(pwm_gpio_to_slice_num(pinN), &config, true);
+}
+
+void inInit(uint gpio) {
+    gpio_init(gpio);
+    gpio_set_dir(gpio, GPIO_IN);
+    gpio_pull_up(gpio);
+}
 
 static input_template_t input_map;
 static unsigned int sp = 0;
@@ -186,6 +203,43 @@ void __time_critical_func(render_core)() {
     __unreachable();
 }
 
+
+#ifdef SOUND
+static repeating_timer_t timer;
+static bool __not_in_flash_func(AY_timer_callback)(repeating_timer_t *rt) {
+    static uint16_t outL = 0;  
+    static uint16_t outR = 0;
+    pwm_set_gpio_level(PWM_PIN0, outR); // Право
+    pwm_set_gpio_level(PWM_PIN1, outL); // Лево
+    outL = outR = 0;
+    if (!Sound_enabled || paused) {
+        return true;
+    }
+    if (libatari800_get_sound_buffer_len() == 0) {
+        // empty buffer
+        return true;
+    }
+    UBYTE* uba = libatari800_get_sound_buffer();
+    outL = uba[0]; ///(az_covox_L + (uint16_t)true_covox);
+    outR = uba[1]; ///(az_covox_R + (uint16_t)true_covox);
+    if (outR || outL) {
+        register uint8_t mult = 0; ///g_conf.snd_volume;
+        if (mult >= 0) {
+            if (mult > 5) mult = 5;
+            outL <<= mult;
+            outR <<= mult;
+        } else {
+            register int8_t div = -mult;
+            if (div > 16) div = 16;
+            outL >>= div;
+            outR >>= div;
+        }
+        pwm_set_gpio_level(BEEPER_PIN, 0);
+    }
+    return true;
+}
+#endif
+
 #include "f_util.h"
 static FATFS fatfs;
 bool SD_CARD_AVAILABLE = false;
@@ -232,6 +286,15 @@ int main() {
     init_fs(); // TODO: psram replacement (pagefile)
     init_psram();
 
+    PWM_init_pin(BEEPER_PIN, (1 << 12) - 1);
+#ifdef SOUND
+    PWM_init_pin(PWM_PIN0, (1 << 12) - 1);
+    PWM_init_pin(PWM_PIN1, (1 << 12) - 1);
+#endif
+#if LOAD_WAV_PIO
+    //пин ввода звука
+    inInit(LOAD_WAV_PIO);
+#endif
     printf("libatari800_init");
     libatari800_init(-1, test_args);
     printf("libatari800_clear_input_array");
@@ -246,9 +309,17 @@ int main() {
         gpio_put(PICO_DEFAULT_LED_PIN, false);
     }
 
+#ifdef SOUND
+	int hz = 44100;	//44000 //44100 //96000 //22050
+	// negative timeout means exact delay (rather than delay between callbacks)
+	if (!add_repeating_timer_us(-1000000 / hz, AY_timer_callback, NULL, &timer)) {
+		printf("Failed to add timer");
+	}
+#endif
+
     while(true) {
         libatari800_next_frame(&input_map);
-        sleep_us(1);
+        sleep_us(5);
     }
 
     __unreachable();

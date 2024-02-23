@@ -57,6 +57,7 @@ extern Sound_setup_t Sound_out;
 /* Indicates whether sound output is enabled. Don't change it directly - use
    Sound_Setup to enable sound, and Sound_Exit to disable it. */
 extern int Sound_enabled;
+extern int paused;
 
 /* Enables hardware audio output with parameters based on those stored in
    Sound_desired. Stores the parameters of the actual opened output in

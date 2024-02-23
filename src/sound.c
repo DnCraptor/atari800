@@ -35,6 +35,7 @@
 #define DEBUG 0
 
 int Sound_enabled = 1;
+int paused = TRUE;
 
 Sound_setup_t Sound_desired = {
 	44100,
@@ -44,8 +45,6 @@ Sound_setup_t Sound_desired = {
 };
 
 Sound_setup_t Sound_out;
-
-static int paused = TRUE;
 
 #ifndef SOUND_CALLBACK
 static UBYTE *process_buffer = NULL;
