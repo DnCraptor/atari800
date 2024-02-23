@@ -239,7 +239,7 @@ int SIO_Mount(int diskno, const char *filename, int b_open_readonly)
 		f_close(&f);
 		return FALSE;
 	}
-	printf("SIO_Mount(%d, %s, %d) magic: %02Xh", diskno, filename, b_open_readonly, header.magic1);
+	printf("SIO_Mount(%d, %s, %d) magic: %02Xh magic2: %02X", diskno, filename, b_open_readonly, header.magic1, header.magic2);
 
 	/* detect compressed image and uncompress */
 	switch (header.magic1) {

@@ -210,9 +210,6 @@ int main() {
     nespad_read();
     sleep_ms(50);
 
-    init_fs(); // TODO: psram replacement (pagefile)
-    init_psram();
-
     // F12 Boot to USB FIRMWARE UPDATE mode
     if (nespad_state & DPAD_START || input_map.keycode == 0x58) { // F12
         printf("reset_usb_boot");
@@ -232,6 +229,9 @@ int main() {
     multicore_launch_core1(render_core);
     sem_release(&vga_start_semaphore);
 
+    init_fs(); // TODO: psram replacement (pagefile)
+    init_psram();
+
     printf("libatari800_init");
     libatari800_init(-1, test_args);
     printf("libatari800_clear_input_array");
@@ -248,6 +248,7 @@ int main() {
 
     while(true) {
         libatari800_next_frame(&input_map);
+        sleep_us(1);
     }
 
     __unreachable();
