@@ -215,25 +215,44 @@ static bool __not_in_flash_func(AY_timer_callback)(repeating_timer_t *rt) {
     if (!Sound_enabled || paused) {
         return true;
     }
-    if (libatari800_get_sound_buffer_len() == 0) {
+    int len = libatari800_get_sound_buffer_len();
+    int idx = libatari800_get_sound_buffer_idx();
+    if (idx >= len) {
         // empty buffer
         return true;
     }
     UBYTE* uba = libatari800_get_sound_buffer();
-    outL = uba[0]; ///(az_covox_L + (uint16_t)true_covox);
-    outR = uba[1]; ///(az_covox_R + (uint16_t)true_covox);
-    if (outR || outL) {
-        register uint8_t mult = 0; ///g_conf.snd_volume;
-        if (mult >= 0) {
-            if (mult > 5) mult = 5;
-            outL <<= mult;
-            outR <<= mult;
+    if (libatari800_get_num_sound_channels() == 2) {
+        if (libatari800_get_sound_sample_size() == 8) {
+            outL = ((uint16_t)uba[idx]) << (12 - 8);
+            outR = ((uint16_t)uba[idx + 1]) << (12 - 8);
+            libatari800_set_sound_buffer_idx(idx + 2);
         } else {
-            register int8_t div = -mult;
-            if (div > 16) div = 16;
-            outL >>= div;
-            outR >>= div;
+            outL = ((uint16_t*)uba)[idx << 1] >> (16 - 12);
+            outR = ((uint16_t*)uba)[(idx << 1) + 2] >> (16 - 12);
+            libatari800_set_sound_buffer_idx(idx + 4);
         }
+    } else {
+        if (libatari800_get_sound_sample_size() == 8) {
+            outL = outR = ((uint16_t)uba[idx]) << (12 - 8);
+            libatari800_set_sound_buffer_idx(idx + 1);
+        } else {
+            outL = outR = ((uint16_t*)uba)[idx << 1] >> (16 - 12);
+            libatari800_set_sound_buffer_idx(idx + 2);
+        }
+    }
+    if (outR || outL) {
+     ///   register uint8_t mult = 0; ///g_conf.snd_volume;
+     ///   if (mult >= 0) {
+     ///       if (mult > 5) mult = 5;
+     //       outL <<= mult;
+     ///       outR <<= mult;
+     ///   } else {
+     ///       register int8_t div = -mult;
+     ///       if (div > 16) div = 16;
+     ///       outL >>= div;
+     ///       outR >>= div;
+     ///   }
         pwm_set_gpio_level(BEEPER_PIN, 0);
     }
     return true;
@@ -310,7 +329,7 @@ int main() {
     }
 
 #ifdef SOUND
-	int hz = 44100;	//44000 //44100 //96000 //22050
+	int hz = libatari800_get_sound_frequency(); ///44100;	//44000 //44100 //96000 //22050
 	// negative timeout means exact delay (rather than delay between callbacks)
 	if (!add_repeating_timer_us(-1000000 / hz, AY_timer_callback, NULL, &timer)) {
 		printf("Failed to add timer");
