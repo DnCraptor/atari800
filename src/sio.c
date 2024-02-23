@@ -204,32 +204,42 @@ void SIO_Exit(void)
 
 int SIO_Mount(int diskno, const char *filename, int b_open_readonly)
 {
+	printf("SIO_Mount(%d, %s, %d)", diskno, filename, b_open_readonly);
 	FIL f;
 	SIO_UnitStatus status = SIO_READ_WRITE;
 	struct AFILE_ATR_Header header;
 
 	/* avoid overruns in SIO_filename[] */
-	if (strlen(filename) >= FILENAME_MAX)
+	if (strlen(filename) >= FILENAME_MAX) {
+		printf("SIO_Mount(%d, %s, %d) too long filename", diskno, filename, b_open_readonly);
 		return FALSE;
+	}
 
 	/* release previous disk */
 	SIO_Dismount(diskno);
     FRESULT fr;
 	/* open file */
-	if (!b_open_readonly)
+	if (!b_open_readonly) {
 		fr = f_open(&f, filename, FA_READ | FA_WRITE);
+		printf("SIO_Mount(%d, %s, %d) open for RW", diskno, filename, b_open_readonly);
+	}
 	if (fr != FR_OK) {
 		fr = f_open(&f, filename, FA_READ);
-		if (fr != FR_OK)
+		if (fr != FR_OK) {
+			printf("SIO_Mount(%d, %s, %d) not found", diskno, filename, b_open_readonly);
 			return FALSE;
+		}
 		status = SIO_READ_ONLY;
+		printf("SIO_Mount(%d, %s, %d) open for RO", diskno, filename, b_open_readonly);
 	}
 	UINT rb;
 	/* read header */
 	if (f_read(&f, &header, sizeof(struct AFILE_ATR_Header), &rb) != FR_OK) {
+		printf("SIO_Mount(%d, %s, %d) read header failed", diskno, filename, b_open_readonly);
 		f_close(&f);
 		return FALSE;
 	}
+	printf("SIO_Mount(%d, %s, %d) magic: %02Xh", diskno, filename, b_open_readonly, header.magic1);
 
 	/* detect compressed image and uncompress */
 	switch (header.magic1) {
@@ -237,10 +247,13 @@ int SIO_Mount(int diskno, const char *filename, int b_open_readonly)
 	case 0xfa:
 		/* DCM */
 		{
+			printf("SIO_Mount(%d, %s, %d) magic: %02Xh DCM", diskno, filename, b_open_readonly, header.magic1);
 			FIL f2;
-			FRESULT fr = f_open(&f2, "atari.tmp", FA_CREATE_ALWAYS | FA_WRITE | FA_READ);
-			if (fr != FR_OK)
+			FRESULT fr = f_open(&f2, "\\atari.tmp", FA_CREATE_ALWAYS | FA_WRITE | FA_READ);
+			if (fr != FR_OK) {
+				printf("SIO_Mount(%d, %s, %d) DCM unable to open \\atari.tmp", diskno, filename, b_open_readonly);
 				return FALSE;
+			}
 			Util_rewind(&f);
 			if (!CompFile_DCMtoATR(&f, &f2)) {
 				f_close(&f2);
@@ -259,10 +272,11 @@ int SIO_Mount(int diskno, const char *filename, int b_open_readonly)
 		/* XXX: status = b_open_readonly ? SIO_READ_ONLY : SIO_READ_WRITE; */
 		break;
 	case 0x1f:
+		printf("SIO_Mount(%d, %s, %d) magic: %02Xh magic2: %02X", diskno, filename, b_open_readonly, header.magic1, header.magic2);
 		if (header.magic2 == 0x8b) {
 			/* ATZ/ATR.GZ, XFZ/XFD.GZ */
 			f_close(&f);
-			FRESULT fr = f_open(&f, "atari.tmp", FA_CREATE_ALWAYS | FA_WRITE | FA_READ);
+			FRESULT fr = f_open(&f, "\\atari.tmp", FA_CREATE_ALWAYS | FA_WRITE | FA_READ);
 			if (fr != FR_OK)
 				return FALSE;
 			if (!CompFile_ExtractGZ(filename, &f)) {

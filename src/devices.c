@@ -2734,7 +2734,7 @@ void Devices_UpdatePatches(void)
 
 void PLATFORM_Sleep(double s) {
 	uint32_t slp = s * 1e3;
-	printf("PLATFORM_Sleep(%f) sleep_ms(%d)", s, slp);
+	//printf("PLATFORM_Sleep(%f) sleep_ms(%d)", s, slp);
 	sleep_ms(slp);
 }
 
@@ -2742,7 +2742,7 @@ double PLATFORM_Time(void) {
 	absolute_time_t at = get_absolute_time();
 	uint32_t t = to_ms_since_boot(at);
 	double r = t * 1e-3;
-	printf("PLATFORM_Time %d -> %f", t, r)
+	//printf("PLATFORM_Time %d -> %f", t, r)
 	return r;
 }
 
