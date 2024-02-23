@@ -6,8 +6,10 @@
 
 #include "atari.h"
 
-#define MEMORY_dGetByte(x)				(MEMORY_mem[x])
-#define MEMORY_dPutByte(x, y)			(MEMORY_mem[x] = y)
+extern size_t MEMORY_mem_base; 
+
+#define MEMORY_dGetByte(x)				(read8psram(MEMORY_mem_base + x))
+#define MEMORY_dPutByte(x, y)			(write8psram(MEMORY_mem_base + x, y))
 
 #ifndef WORDS_BIGENDIAN
 #ifdef WORDS_UNALIGNED_OK
@@ -16,8 +18,8 @@
 #define MEMORY_dGetWordAligned(x)		UNALIGNED_GET_WORD(MEMORY_mem+(x), memory_read_aligned_word_stat)
 #define MEMORY_dPutWordAligned(x, y)	UNALIGNED_PUT_WORD(MEMORY_mem+(x), (y), memory_write_aligned_word_stat)
 #else	/* WORDS_UNALIGNED_OK */
-#define MEMORY_dGetWord(x)				(MEMORY_mem[x] + (MEMORY_mem[(x) + 1] << 8))
-#define MEMORY_dPutWord(x, y)			(MEMORY_mem[x] = (UBYTE) (y), MEMORY_mem[(x) + 1] = (UBYTE) ((y) >> 8))
+#define MEMORY_dGetWord(x)				(read16psram(MEMORY_mem_base + x))
+#define MEMORY_dPutWord(x, y)			(write16psram(MEMORY_mem_base + x, y))
 /* faster versions of MEMORY_jdGetWord and MEMORY_dPutWord for even addresses */
 /* TODO: guarantee that memory is UWORD-aligned and use UWORD access */
 #define MEMORY_dGetWordAligned(x)		MEMORY_dGetWord(x)
@@ -31,11 +33,19 @@
 #define MEMORY_dPutWordAligned(x, y)	MEMORY_dPutWord(x, y)
 #endif	/* WORDS_BIGENDIAN */
 
-#define MEMORY_dCopyFromMem(from, to, size)	memcpy(to, MEMORY_mem + (from), size)
-#define MEMORY_dCopyToMem(from, to, size)		memcpy(MEMORY_mem + (to), from, size)
-#define MEMORY_dFillMem(addr1, value, length)	memset(MEMORY_mem + (addr1), value, length)
+#define MEMORY_dCopyFromMem(from, to, size)		for(size_t __i = 0; __i < size; ++__i) \
+ ((uint8_t*)to)[__i] = read8psram(MEMORY_mem_base + from + __i)
+#define MEMORY_dCopyToMem(from, to, size)		for(size_t __i = 0; __i < size; ++__i) \
+ write8psram(MEMORY_mem_base + to + __i, ((uint8_t*)from)[__i])
+#define MEMORY_dFillMem(addr1, value, length)	for(size_t __i = 0; __i < length; ++__i) \
+ write8psram(MEMORY_mem_base + addr1 + __i, value)
 
-extern UBYTE MEMORY_mem[65536 + 2];
+#define MEMORY_CopyToMem16(to, from, size) for(size_t __i = 0; __i < size; __i += 2) \
+ write16psram(MEMORY_mem_base + to + __i, (uint16_t*)(from + __i))
+#define MEMORY_CopyFromMem16(to, from, size) for(size_t __i = 0; __i < size; __i += 2) \
+ *(uint8_t*)(to + __i) = read16psram(MEMORY_mem_base + from + __i)
+
+///extern UBYTE MEMORY_mem[65536 + 2];
 
 /* RAM size in kilobytes.
    Valid values for Atari800_MACHINE_800 are: 16, 48, 52.
@@ -73,10 +83,10 @@ extern MEMORY_wrfunc MEMORY_writemap[256];
 void MEMORY_ROM_PutByte(UWORD addr, UBYTE byte);
 /* Reads a byte from ADDR. Can potentially have side effects, when reading
    from hardware area. */
-#define MEMORY_GetByte(addr)		(MEMORY_readmap[(addr) >> 8] ? (*MEMORY_readmap[(addr) >> 8])(addr, FALSE) : MEMORY_mem[addr])
+#define MEMORY_GetByte(addr) (MEMORY_readmap[(addr) >> 8] ? (*MEMORY_readmap[(addr) >> 8])(addr, FALSE) : read8psram(MEMORY_mem_base + addr))
 /* Reads a byte from ADDR, but without any side effects. */
-#define MEMORY_SafeGetByte(addr)		(MEMORY_readmap[(addr) >> 8] ? (*MEMORY_readmap[(addr) >> 8])(addr, TRUE) : MEMORY_mem[addr])
-#define MEMORY_PutByte(addr,byte)	(MEMORY_writemap[(addr) >> 8] ? ((*MEMORY_writemap[(addr) >> 8])(addr, byte), 0) : (MEMORY_mem[addr] = byte))
+#define MEMORY_SafeGetByte(addr) (MEMORY_readmap[(addr) >> 8] ? (*MEMORY_readmap[(addr) >> 8])(addr, TRUE) : read8psram(MEMORY_mem_base + addr))
+#define MEMORY_PutByte(addr,byte)	(MEMORY_writemap[(addr) >> 8] ? ((*MEMORY_writemap[(addr) >> 8])(addr, byte), 0) : write8psram(MEMORY_mem_base + addr, byte))
 #define MEMORY_SetRAM(addr1, addr2) do { \
 		int i; \
 		for (i = (addr1) >> 8; i <= (addr2) >> 8; i++) { \
@@ -122,8 +132,10 @@ void MEMORY_Cart809fDisable(void);
 void MEMORY_Cart809fEnable(void);
 void MEMORY_CartA0bfDisable(void);
 void MEMORY_CartA0bfEnable(void);
-#define MEMORY_CopyFromCart(addr1, addr2, src) memcpy(MEMORY_mem + (addr1), src, (addr2) - (addr1) + 1)
-#define MEMORY_CopyToCart(addr1, addr2, dst) memcpy(dst, MEMORY_mem + (addr1), (addr2) - (addr1) + 1)
+#define MEMORY_CopyFromCart(addr1, addr2, src) for(size_t __i = 0; __i < (addr2) - (addr1) + 1; ++__i) \
+ write8psram(MEMORY_mem_base + (addr1) + __i, ((uint8_t*)src)[__i])
+#define MEMORY_CopyToCart(addr1, addr2, dst) for(size_t __i = 0; __i < (addr2) - (addr1) + 1; ++__i) \
+ ((uint8_t*)dst)[__i] = read8psram(MEMORY_mem_base + (addr1) + __i)
 void MEMORY_GetCharset(UBYTE *cs);
 
 /* Mosaic and Axlon 400/800 RAM extensions */

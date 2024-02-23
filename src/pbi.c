@@ -243,7 +243,7 @@ void PBI_D1PutByte(UWORD addr, UBYTE byte)
 		    /* add more devices here... */
 			/* reactivate the floating point rom */
 			if (!fp_active) {
-				memcpy(MEMORY_mem + 0xd800, MEMORY_os + 0x1800, 0x800);
+				MEMORY_dCopyToMem(MEMORY_os + 0x1800, 0xd800, 0x800);
 				D(printf("Floating point rom activated\n"));
 				fp_active = TRUE;
 			}
@@ -267,7 +267,7 @@ UBYTE PBI_D6GetByte(UWORD addr, int no_side_effects)
 	if(PBI_BB_enabled) return PBI_BB_D6GetByte(addr, no_side_effects);
 #endif
 	/* XLD/1090 has ram here */
-	if (PBI_D6D7ram) return MEMORY_mem[addr];
+	if (PBI_D6D7ram) return MEMORY_dGetByte(addr);
 	else return 0xff;
 }
 
@@ -299,7 +299,7 @@ void PBI_D6PutByte(UWORD addr, UBYTE byte)
 	}
 #endif
 	/* XLD/1090 has ram here */
-	if (PBI_D6D7ram) MEMORY_mem[addr]=byte;
+	if (PBI_D6D7ram) MEMORY_dPutByte(addr, byte);
 }
 
 /* read page $D7xx */
@@ -307,7 +307,7 @@ void PBI_D6PutByte(UWORD addr, UBYTE byte)
 UBYTE PBI_D7GetByte(UWORD addr, int no_side_effects)
 {
 	D(printf("PBI_D7GetByte:%4x\n",addr));
-	if (PBI_D6D7ram) return MEMORY_mem[addr];
+	if (PBI_D6D7ram) return MEMORY_dGetByte(addr);
 	else return 0xff;
 }
 
@@ -316,7 +316,7 @@ UBYTE PBI_D7GetByte(UWORD addr, int no_side_effects)
 void PBI_D7PutByte(UWORD addr, UBYTE byte)
 {
 	D(printf("PBI_D7PutByte:%4x <- %2x\n",addr,byte));
-	if (PBI_D6D7ram) MEMORY_mem[addr]=byte;
+	if (PBI_D6D7ram) MEMORY_dPutByte(addr, byte);
 }
 
 #ifndef BASIC

@@ -117,7 +117,7 @@ int PBI_PROTO80_D1ffPutByte(UBYTE byte)
 {
 	int result = 0; /* handled */
 	if (PBI_PROTO80_enabled && byte == PROTO80_MASK) {
-		memcpy(MEMORY_mem + 0xd800, proto80rom, 0x800);
+		MEMORY_dCopyToMem(proto80rom, 0xd800, 0x800);
 		D(printf("PROTO80 rom activated\n"));
 	}
 	else result = PBI_NOT_HANDLED;
@@ -136,13 +136,13 @@ UBYTE PBI_PROTO80_GetPixels(int scanline, int column)
 	if (row  >= PROTO80_ROWS) {
 		return 0;
 	}
-	character = MEMORY_mem[0x9800 + row*80 + column];
+	character = MEMORY_dGetByte(0x9800 + row*80 + column);
 	invert = 0x00;
 	if (character & 0x80) {
 		invert = 0xff;
 		character &= 0x7f;
 	}
-	font_data = MEMORY_mem[0xe000 + character*8 + line];
+	font_data = MEMORY_dGetByte(0xe000 + character*8 + line);
 	font_data ^= invert;
 	return font_data;
 }

@@ -192,14 +192,13 @@ void PBI_MIO_D1PutByte(UWORD addr, UBYTE byte)
 			else if (byte == 0x10) offset = 0x3000;
 			else if (byte == 0x20) offset = 0x3800;
 			if (offset != -1) {
-				memcpy(MEMORY_mem + 0xd800, mio_rom+offset, 0x800);
+				MEMORY_dCopyToMem(mio_rom + offset, 0xd800, 0x800);
 				D(printf("mio bank:%2x activated\n", byte));
-			}else{
-				memcpy(MEMORY_mem + 0xd800, MEMORY_os + 0x1800, 0x800);
+			} else {
+				MEMORY_dCopyToMem(MEMORY_os + 0x1800, 0xd800, 0x800);
 				D(printf("Floating point rom activated\n"));
-
 			}
-			mio_rom_bank = byte;	
+			mio_rom_bank = byte;
 		}
 		
 	}
@@ -207,15 +206,15 @@ void PBI_MIO_D1PutByte(UWORD addr, UBYTE byte)
 	ram_enabled_changed = (old_mio_ram_enabled != mio_ram_enabled);
 	if (mio_ram_enabled && ram_enabled_changed) {
 		/* Copy new page from buffer, overwrite ff page */
-		memcpy(MEMORY_mem + 0xd600, mio_ram + mio_ram_bank_offset, 0x100);
+		MEMORY_dCopyToMem(mio_ram + mio_ram_bank_offset, 0xd600, 0x100);
 	} else if (mio_ram_enabled && offset_changed) {
 		/* Copy old page to buffer, copy new page from buffer */
-		memcpy(mio_ram + old_mio_ram_bank_offset,MEMORY_mem + 0xd600, 0x100);
-		memcpy(MEMORY_mem + 0xd600, mio_ram + mio_ram_bank_offset, 0x100);
+		MEMORY_CopyFromMem16(mio_ram + old_mio_ram_bank_offset, 0xd600, 0x100);
+		MEMORY_CopyToMem16(0xd600, mio_ram + mio_ram_bank_offset, 0x100);
 	} else if (!mio_ram_enabled && ram_enabled_changed) {
 		/* Copy old page to buffer, set new page to ff */
-		memcpy(mio_ram + old_mio_ram_bank_offset, MEMORY_mem + 0xd600, 0x100);
-		memset(MEMORY_mem + 0xd600, 0xff, 0x100);
+		MEMORY_CopyFromMem16(mio_ram + old_mio_ram_bank_offset, 0xd600, 0x100);
+		MEMORY_CopyToMem16(0xd600, 0xff, 0x100);
 	}
 	D(printf("MIO Write addr:%4x byte:%2x, cpu:%4x\n", addr, byte,CPU_remember_PC[(CPU_remember_PC_curpos-1)%CPU_REMEMBER_PC_STEPS]));
 }
@@ -226,14 +225,14 @@ void PBI_MIO_D1PutByte(UWORD addr, UBYTE byte)
 UBYTE PBI_MIO_D6GetByte(UWORD addr, int no_side_effects)
 {
 	if (!mio_ram_enabled) return 0xff;
-	return MEMORY_mem[addr];
+	return MEMORY_dGetByte(addr);
 }
 
 /* $D6xx */
 void PBI_MIO_D6PutByte(UWORD addr, UBYTE byte)
 {
 	if (!mio_ram_enabled) return;
-	MEMORY_mem[addr]=byte;
+	MEMORY_dPutByte(addr, byte);
 }
 
 #ifndef BASIC

@@ -79,25 +79,25 @@ int AF80_palette[16];
 static void update_d6(void)
 {
 	if (!not_enable_2k_character_ram) {
-		memcpy(MEMORY_mem + 0xd600, af80_screen + (video_bank_select<<7), 0x80);
-		memcpy(MEMORY_mem + 0xd680, af80_screen + (video_bank_select<<7), 0x80);
+		MEMORY_dCopyToMem(af80_screen + (video_bank_select<<7), 0xd600, 0x80);
+		MEMORY_dCopyToMem(af80_screen + (video_bank_select<<7), 0xd680, 0x80);
 	}
 	else if (!not_enable_2k_attribute_ram) {
-		memcpy(MEMORY_mem + 0xd600, af80_attrib + (video_bank_select<<7), 0x80);
-		memcpy(MEMORY_mem + 0xd680, af80_attrib + (video_bank_select<<7), 0x80);
+		MEMORY_dCopyToMem(af80_attrib + (video_bank_select<<7), 0xd600, 0x80);
+		MEMORY_dCopyToMem(af80_attrib + (video_bank_select<<7), 0xd680, 0x80);
 	}
 	else if (not_enable_crtc_registers) {
-		memset(MEMORY_mem + 0xd600, 0xff, 0x100);
+		MEMORY_dFillMem(0xd600, 0xff, 0x100);
 	}
 }
 
 static void update_d5(void)
 {
 	if (not_rom_output_enable) {
-		memset(MEMORY_mem + 0xd500, 0xff, 0x100);
+		MEMORY_dFillMem(0xd500, 0xff, 0x100);
 	}
 	else {
-		memcpy(MEMORY_mem + 0xd500, af80_rom + (rom_bank_select<<8), 0x100);
+		MEMORY_dCopyToMem(af80_rom + (rom_bank_select<<8), 0xd500, 0x100);
 	}
 }
 
@@ -105,12 +105,12 @@ static void update_8000_9fff(void)
 {
 	if (not_right_cartridge_rd4_control) return;
 	if (not_rom_output_enable) {
-		memset(MEMORY_mem + 0x8000, 0xff, 0x2000);
+		MEMORY_dFillMem(0x8000, 0xff, 0x2000);
 	}
 	else {
 		int i;
 		for (i=0; i<32; i++) {
-		memcpy(MEMORY_mem + 0x8000 + (i<<8), af80_rom + (rom_bank_select<<8), 0x100);
+			MEMORY_dCopyToMem(af80_rom + (rom_bank_select<<8), 0x8000 + (i<<8), 0x100);
 		}
 	}
 }

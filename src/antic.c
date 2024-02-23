@@ -261,7 +261,7 @@ static UWORD *scrn_ptr;
 /* Pointer to 16 KB seen by ANTIC in 0x4000-0x7fff.
    If it's the same what the CPU sees (and what's in MEMORY_mem[0x4000..0x7fff],
    then NULL. */
-const UBYTE *ANTIC_xe_ptr = NULL;
+///const UBYTE *ANTIC_xe_ptr = NULL;
 
 /* ANTIC Timing --------------------------------------------------------------
 
@@ -815,49 +815,43 @@ static void pmg_dma(void)
 	/* VDELAY bit set == GTIA ignores PMG DMA in even lines */
 	if (ANTIC_player_dma_enabled) {
 		if (ANTIC_player_gra_enabled) {
-			const UBYTE *base;
+			size_t base;
 			if (singleline) {
-				if (ANTIC_xe_ptr != NULL && pmbase_s < 0x8000 && pmbase_s >= 0x4000)
-					base = ANTIC_xe_ptr + pmbase_s - 0x4000 + ANTIC_ypos;
-				else
-					base = MEMORY_mem + pmbase_s + ANTIC_ypos;
+				base = pmbase_s + ANTIC_ypos;
 				if (ANTIC_ypos & 1) {
-					GTIA_GRAFP0 = base[0x400];
-					GTIA_GRAFP1 = base[0x500];
-					GTIA_GRAFP2 = base[0x600];
-					GTIA_GRAFP3 = base[0x700];
+					GTIA_GRAFP0 = MEMORY_dGetByte(base + 0x400);
+					GTIA_GRAFP1 = MEMORY_dGetByte(base + 0x500);
+					GTIA_GRAFP2 = MEMORY_dGetByte(base + 0x600);
+					GTIA_GRAFP3 = MEMORY_dGetByte(base + 0x700);
 				}
 				else {
 					if ((GTIA_VDELAY & 0x10) == 0)
-						GTIA_GRAFP0 = base[0x400];
+						GTIA_GRAFP0 = MEMORY_dGetByte(base + 0x400);
 					if ((GTIA_VDELAY & 0x20) == 0)
-						GTIA_GRAFP1 = base[0x500];
+						GTIA_GRAFP1 = MEMORY_dGetByte(base + 0x500);
 					if ((GTIA_VDELAY & 0x40) == 0)
-						GTIA_GRAFP2 = base[0x600];
+						GTIA_GRAFP2 = MEMORY_dGetByte(base + 0x600);
 					if ((GTIA_VDELAY & 0x80) == 0)
-						GTIA_GRAFP3 = base[0x700];
+						GTIA_GRAFP3 = MEMORY_dGetByte(base + 0x700);
 				}
 			}
 			else {
-				if (ANTIC_xe_ptr != NULL && pmbase_d < 0x8000 && pmbase_d >= 0x4000)
-					base = ANTIC_xe_ptr + (pmbase_d - 0x4000) + (ANTIC_ypos >> 1);
-				else
-					base = MEMORY_mem + pmbase_d + (ANTIC_ypos >> 1);
+				base = pmbase_d + (ANTIC_ypos >> 1);
 				if (ANTIC_ypos & 1) {
-					GTIA_GRAFP0 = base[0x200];
-					GTIA_GRAFP1 = base[0x280];
-					GTIA_GRAFP2 = base[0x300];
-					GTIA_GRAFP3 = base[0x380];
+					GTIA_GRAFP0 = MEMORY_dGetByte(base + 0x200);
+					GTIA_GRAFP1 = MEMORY_dGetByte(base + 0x280);
+					GTIA_GRAFP2 = MEMORY_dGetByte(base + 0x300);
+					GTIA_GRAFP3 = MEMORY_dGetByte(base + 0x380);
 				}
 				else {
 					if ((GTIA_VDELAY & 0x10) == 0)
-						GTIA_GRAFP0 = base[0x200];
+						GTIA_GRAFP0 = MEMORY_dGetByte(base + 0x200);
 					if ((GTIA_VDELAY & 0x20) == 0)
-						GTIA_GRAFP1 = base[0x280];
+						GTIA_GRAFP1 = MEMORY_dGetByte(base + 0x280);
 					if ((GTIA_VDELAY & 0x40) == 0)
-						GTIA_GRAFP2 = base[0x300];
+						GTIA_GRAFP2 = MEMORY_dGetByte(base + 0x300);
 					if ((GTIA_VDELAY & 0x80) == 0)
-						GTIA_GRAFP3 = base[0x380];
+						GTIA_GRAFP3 = MEMORY_dGetByte(base + 0x380);
 				}
 			}
 		}
@@ -865,11 +859,7 @@ static void pmg_dma(void)
 	}
 	if (ANTIC_missile_dma_enabled) {
 		if (ANTIC_missile_gra_enabled) {
-			UBYTE data;
-			if (ANTIC_xe_ptr != NULL && pmbase_s < 0x8000 && pmbase_s >= 0x4000)
-				data = ANTIC_xe_ptr[singleline ? pmbase_s + ANTIC_ypos + 0x300 - 0x4000 : pmbase_d + (ANTIC_ypos >> 1) + 0x180 - 0x4000];
-			else
-				data = MEMORY_dGetByte(singleline ? pmbase_s + ANTIC_ypos + 0x300 : pmbase_d + (ANTIC_ypos >> 1) + 0x180);
+			UBYTE data = MEMORY_dGetByte(singleline ? pmbase_s + ANTIC_ypos + 0x300 : pmbase_d + (ANTIC_ypos >> 1) + 0x180);
 			/* in odd lines load all missiles, in even only those, for which VDELAY bit is zero */
 			GTIA_GRAFM = ANTIC_ypos & 1 ? data : ((GTIA_GRAFM ^ data) & hold_missiles_tab[GTIA_VDELAY & 0xf]) ^ data;
 		}
@@ -1462,18 +1452,14 @@ static void draw_an_gtia_bug(const ULONG *t_pm_scanline_ptr)
 
 #else /* PAGED_MEM */
 
-#define INIT_ANTIC_2	const UBYTE *chptr;\
-	if (ANTIC_xe_ptr != NULL && chbase_20 < 0x8000 && chbase_20 >= 0x4000)\
-		chptr = ANTIC_xe_ptr + ((dctr ^ chbase_20) & 0x3c07);\
-	else\
-		chptr = MEMORY_mem + ((dctr ^ chbase_20) & 0xfc07);\
+#define INIT_ANTIC_2	const size_t chptr = ((dctr ^ chbase_20) & 0xfc07);\
 	ADD_FONT_CYCLES;\
 	blank_lookup[0x60] = (anticmode == 2 || dctr & 0xe) ? 0xff : 0;\
 	blank_lookup[0x00] = blank_lookup[0x20] = blank_lookup[0x40] = (dctr & 0xe) == 8 ? 0 : 0xff;
 
 #define GET_CHDATA_ANTIC_2	chdata = (screendata & invert_mask) ? 0xff : 0;\
 	if (blank_lookup[screendata & blank_mask])\
-		chdata ^= chptr[(screendata & 0x7f) << 3];
+		chdata ^= MEMORY_dGetByte((screendata & 0x7f) << 3);
 
 #endif /* PAGED_MEM */
 
@@ -1617,11 +1603,7 @@ static void prepare_an_antic_2(int nchars, const UBYTE *antic_memptr, const ULON
 #ifdef PAGED_MEM
 	int t_chbase = (dctr ^ chbase_20) & 0xfc07;
 #else
-	const UBYTE *chptr;
-	if (ANTIC_xe_ptr != NULL && chbase_20 < 0x8000 && chbase_20 >= 0x4000)
-		chptr = ANTIC_xe_ptr + ((dctr ^ chbase_20) & 0x3c07);
-	else
-		chptr = MEMORY_mem + ((dctr ^ chbase_20) & 0xfc07);
+	const size_t chptr = ((dctr ^ chbase_20) & 0xfc07);
 #endif
 
 	CHAR_LOOP_BEGIN
@@ -1806,11 +1788,7 @@ static void draw_antic_4(int nchars, const UBYTE *antic_memptr, UWORD *ptr, cons
 #ifdef PAGED_MEM
 	UWORD t_chbase = ((anticmode == 4 ? dctr : dctr >> 1) ^ chbase_20) & 0xfc07;
 #else
-	const UBYTE *chptr;
-	if (ANTIC_xe_ptr != NULL && chbase_20 < 0x8000 && chbase_20 >= 0x4000)
-		chptr = ANTIC_xe_ptr + (((anticmode == 4 ? dctr : dctr >> 1) ^ chbase_20) & 0x3c07);
-	else
-		chptr = MEMORY_mem + (((anticmode == 4 ? dctr : dctr >> 1) ^ chbase_20) & 0xfc07);
+	const size_t chptr = (((anticmode == 4 ? dctr : dctr >> 1) ^ chbase_20) & 0xfc07);
 #endif
 
 	ADD_FONT_CYCLES;
@@ -1833,7 +1811,7 @@ static void draw_antic_4(int nchars, const UBYTE *antic_memptr, UWORD *ptr, cons
 #ifdef PAGED_MEM
 		chdata = MEMORY_dGetByte(t_chbase + ((UWORD) (screendata & 0x7f) << 3));
 #else
-		chdata = chptr[(screendata & 0x7f) << 3];
+		chdata = MEMORY_dGetByte(chptr + ((screendata & 0x7f) << 3));
 #endif
 		if (IS_ZERO_ULONG(t_pm_scanline_ptr)) {
 			if (chdata) {
@@ -1869,11 +1847,7 @@ static void prepare_an_antic_4(int nchars, const UBYTE *antic_memptr, const ULON
 #ifdef PAGED_MEM
 	UWORD t_chbase = ((anticmode == 4 ? dctr : dctr >> 1) ^ chbase_20) & 0xfc07;
 #else
-	const UBYTE *chptr;
-	if (ANTIC_xe_ptr != NULL && chbase_20 < 0x8000 && chbase_20 >= 0x4000)
-		chptr = ANTIC_xe_ptr + (((anticmode == 4 ? dctr : dctr >> 1) ^ chbase_20) & 0x3c07);
-	else
-		chptr = MEMORY_mem + (((anticmode == 4 ? dctr : dctr >> 1) ^ chbase_20) & 0xfc07);
+	const size_t chptr = (((anticmode == 4 ? dctr : dctr >> 1) ^ chbase_20) & 0xfc07);
 #endif
 
 	ADD_FONT_CYCLES;
@@ -1884,7 +1858,7 @@ static void prepare_an_antic_4(int nchars, const UBYTE *antic_memptr, const ULON
 #ifdef PAGED_MEM
 		chdata = MEMORY_dGetByte(t_chbase + ((UWORD) (screendata & 0x7f) << 3));
 #else
-		chdata = chptr[(screendata & 0x7f) << 3];
+		chdata = MEMORY_dGetByte(chptr + ((screendata & 0x7f) << 3));
 #endif
 		an = mode_e_an_lookup[chdata & 0xc0];
 		*an_ptr++ = (an == 2 && screendata & 0x80) ? 3 : an;
@@ -1904,11 +1878,7 @@ static void draw_antic_6(int nchars, const UBYTE *antic_memptr, UWORD *ptr, cons
 #ifdef PAGED_MEM
 	UWORD t_chbase = (anticmode == 6 ? dctr & 7 : dctr >> 1) ^ chbase_20;
 #else
-	const UBYTE *chptr;
-	if (ANTIC_xe_ptr != NULL && chbase_20 < 0x8000 && chbase_20 >= 0x4000)
-		chptr = ANTIC_xe_ptr + (((anticmode == 6 ? dctr & 7 : dctr >> 1) ^ chbase_20) - 0x4000);
-	else
-		chptr = MEMORY_mem + ((anticmode == 6 ? dctr & 7 : dctr >> 1) ^ chbase_20);
+	const size_t chptr = ((anticmode == 6 ? dctr & 7 : dctr >> 1) ^ chbase_20);
 #endif
 
 	ADD_FONT_CYCLES;
@@ -1921,7 +1891,7 @@ static void draw_antic_6(int nchars, const UBYTE *antic_memptr, UWORD *ptr, cons
 #ifdef PAGED_MEM
 		chdata = MEMORY_dGetByte(t_chbase + ((UWORD) (screendata & 0x3f) << 3));
 #else
-		chdata = chptr[(screendata & 0x3f) << 3];
+		chdata = MEMORY_dGetByte(chptr + ((screendata & 0x3f) << 3));
 #endif
 		do {
 			if (IS_ZERO_ULONG(t_pm_scanline_ptr)) {
@@ -1984,11 +1954,7 @@ static void prepare_an_antic_6(int nchars, const UBYTE *antic_memptr, const ULON
 #ifdef PAGED_MEM
 	UWORD t_chbase = (anticmode == 6 ? dctr & 7 : dctr >> 1) ^ chbase_20;
 #else
-	const UBYTE *chptr;
-	if (ANTIC_xe_ptr != NULL && chbase_20 < 0x8000 && chbase_20 >= 0x4000)
-		chptr = ANTIC_xe_ptr + (((anticmode == 6 ? dctr & 7 : dctr >> 1) ^ chbase_20) - 0x4000);
-	else
-		chptr = MEMORY_mem + ((anticmode == 6 ? dctr & 7 : dctr >> 1) ^ chbase_20);
+	const size_t chptr = ((anticmode == 6 ? dctr & 7 : dctr >> 1) ^ chbase_20);
 #endif
 
 	ADD_FONT_CYCLES;
@@ -1999,7 +1965,7 @@ static void prepare_an_antic_6(int nchars, const UBYTE *antic_memptr, const ULON
 #ifdef PAGED_MEM
 		chdata = MEMORY_dGetByte(t_chbase + ((UWORD) (screendata & 0x3f) << 3));
 #else
-		chdata = chptr[(screendata & 0x3f) << 3];
+		chdata = MEMORY_dGetByte(chptr + ((screendata & 0x3f) << 3));
 #endif
 		*an_ptr++ = chdata & 0x80 ? an : 0;
 		*an_ptr++ = chdata & 0x40 ? an : 0;
@@ -2766,11 +2732,7 @@ void ANTIC_UpdateArtifacting(void)
 UBYTE ANTIC_GetDLByte(UWORD *paddr)
 {
 	int addr = *paddr;
-	UBYTE result;
-	if (ANTIC_xe_ptr != NULL && addr < 0x8000 && addr >= 0x4000)
-		result = ANTIC_xe_ptr[addr - 0x4000];
-	else
-		result = MEMORY_GetByte((UWORD) addr);
+	UBYTE result = MEMORY_GetByte((UWORD) addr);
 	addr++;
 	if ((addr & 0x3FF) == 0)
 		addr -= 0x400;
@@ -2810,12 +2772,7 @@ static void antic_load(void)
 	UWORD new_screenaddr = screenaddr + chars_read[md];
 	if ((screenaddr ^ new_screenaddr) & 0xf000) {
 		int bytes = (-screenaddr) & 0xfff;
-		if (ANTIC_xe_ptr != NULL && screenaddr < 0x8000 && screenaddr >= 0x4000) {
-			memcpy(antic_memory + ANTIC_margin, ANTIC_xe_ptr + (screenaddr - 0x4000), bytes);
-			if (new_screenaddr & 0xfff)
-				memcpy(antic_memory + ANTIC_margin + bytes, ANTIC_xe_ptr + (screenaddr + bytes - 0x5000), new_screenaddr & 0xfff);
-		}
-		else if ((screenaddr & 0xf000) == 0xd000) {
+		if ((screenaddr & 0xf000) == 0xd000) {
 			MEMORY_CopyFromMem(screenaddr, antic_memory + ANTIC_margin, bytes);
 			if (new_screenaddr & 0xfff)
 				MEMORY_CopyFromMem((UWORD) (screenaddr + bytes - 0x1000), antic_memory + ANTIC_margin + bytes, new_screenaddr & 0xfff);
@@ -2828,9 +2785,7 @@ static void antic_load(void)
 		screenaddr = new_screenaddr - 0x1000;
 	}
 	else {
-		if (ANTIC_xe_ptr != NULL && screenaddr < 0x8000 && screenaddr >= 0x4000)
-			memcpy(antic_memory + ANTIC_margin, ANTIC_xe_ptr + (screenaddr - 0x4000), chars_read[md]);
-		else if ((screenaddr & 0xf000) == 0xd000)
+		if ((screenaddr & 0xf000) == 0xd000)
 			MEMORY_CopyFromMem(screenaddr, antic_memory + ANTIC_margin, chars_read[md]);
 		else
 			MEMORY_dCopyFromMem(screenaddr, antic_memory + ANTIC_margin, chars_read[md]);

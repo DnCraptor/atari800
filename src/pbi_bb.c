@@ -209,9 +209,9 @@ void PBI_BB_D1PutByte(UWORD addr, UBYTE byte)
 	else if (addr == 0xd1bc) {
 		/* RAMPAGE */
 		/* Copy old page to buffer, Copy new page from buffer */
-		memcpy(bb_ram+bb_ram_bank_offset,MEMORY_mem + 0xd600,0x100);
+		MEMORY_CopyFromMem16(bb_ram + bb_ram_bank_offset, 0xd600, 0x100);
 		bb_ram_bank_offset = (byte << 8);
-		memcpy(MEMORY_mem + 0xd600, bb_ram+bb_ram_bank_offset, 0x100);
+		MEMORY_CopyToMem16(0xd600, bb_ram+bb_ram_bank_offset, 0x100);
 	} 
 	else if (addr  == 0xd1be) {
 		/* high rom bit */
@@ -219,7 +219,7 @@ void PBI_BB_D1PutByte(UWORD addr, UBYTE byte)
 			/* high bit has changed */
 			bb_rom_high_bit = ((byte & 0x04) << 2);
 			if (bb_rom_bank > 0 && bb_rom_bank < 8) {
-					memcpy(MEMORY_mem + 0xd800, bb_rom + (bb_rom_bank + bb_rom_high_bit)*0x800, 0x800);
+					MEMORY_CopyToMem16(0xd800, bb_rom + (bb_rom_bank + bb_rom_high_bit)*0x800, 0x800);
 					D(printf("black box bank:%2x activated\n", bb_rom_bank+bb_rom_high_bit));
 			}
 		}
@@ -238,11 +238,11 @@ void PBI_BB_D1PutByte(UWORD addr, UBYTE byte)
 			}
 
 			if (offset != -1) {
-					memcpy(MEMORY_mem + 0xd800, bb_rom + offset, 0x800);
+					MEMORY_CopyToMem16(0xd800, bb_rom + offset, 0x800);
 					D(printf("black box bank:%2x activated\n", byte + bb_rom_high_bit));
 			}
 			else {
-					memcpy(MEMORY_mem + 0xd800, MEMORY_os + 0x1800, 0x800);
+					MEMORY_CopyToMem16(0xd800, MEMORY_os + 0x1800, 0x800);
 					if (byte != 0) D(printf("d1ff ERROR: byte=%2x\n", byte));
 					D(printf("Floating point rom activated\n"));
 			}
@@ -256,13 +256,13 @@ void PBI_BB_D1PutByte(UWORD addr, UBYTE byte)
  * because opcode fetch doesn't call this function*/
 UBYTE PBI_BB_D6GetByte(UWORD addr, int no_side_effects)
 {
-	return MEMORY_mem[addr];
+	return MEMORY_dGetByte(addr);
 }
 
 /* $D6xx */
 void PBI_BB_D6PutByte(UWORD addr, UBYTE byte)
 {
-	MEMORY_mem[addr]=byte;
+	MEMORY_dPutByte(addr, byte);
 }
 
 static int buttondown;

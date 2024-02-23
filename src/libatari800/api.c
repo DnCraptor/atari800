@@ -296,10 +296,10 @@ int libatari800_reboot_with_file(const char *filename)
  *
  * @returns pointer to the beginning of the 64k block of main memory
  */
-UBYTE *libatari800_get_main_memory_ptr()
-{
-	return MEMORY_mem;
-}
+///UBYTE *libatari800_get_main_memory_ptr()
+///{
+///	return MEMORY_mem;
+///}
 
 
 /** Return pointer to screen data
@@ -361,7 +361,8 @@ int libatari800_get_sound_buffer_idx() {
 }
 
 void libatari800_set_sound_buffer_idx(int i) {
-	sound_array_idx = i;
+	if (sound_array_idx > 0) // already reset by snddrv
+		sound_array_idx = i;
 }
 
 /** Return the maximum size of the sound buffer.

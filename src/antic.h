@@ -97,7 +97,7 @@ void ANTIC_StateRead(void);
 /* Pointer to 16 KB seen by ANTIC in 0x4000-0x7fff.
    If it's the same what the CPU sees (and what's in memory[0x4000..0x7fff],
    then NULL. */
-extern const UBYTE *ANTIC_xe_ptr;
+///extern const UBYTE *ANTIC_xe_ptr;
 
 /* PM graphics for GTIA */
 extern int ANTIC_player_dma_enabled;

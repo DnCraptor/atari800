@@ -281,7 +281,7 @@ int libatari800_mount_disk_image(int diskno, const char *filename, int readonly)
 
 int libatari800_reboot_with_file(const char *filename);
 
-UBYTE *libatari800_get_main_memory_ptr();
+///UBYTE *libatari800_get_main_memory_ptr();
 
 UBYTE *libatari800_get_screen_ptr();
 

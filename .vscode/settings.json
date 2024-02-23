@@ -16,6 +16,7 @@
         "log.h": "c",
         "crc32.h": "c",
         "cfg.h": "c",
-        "ui.h": "c"
+        "ui.h": "c",
+        "type_traits": "c"
     }
 }

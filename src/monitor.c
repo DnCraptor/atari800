@@ -2217,17 +2217,24 @@ static void monitor_read_from_file(UWORD *addr)
 					if (byte==EOF) { printf("Bad xex file\n"); break; }
 					toaddr|=((byte&0xff)<<8);
 
-					*addr=fromaddr; /* sets to last load addr */
-					if ((int)toaddr-(int)fromaddr<0) { printf("Bad xex file\n"); break; }
-					nbytes=toaddr-fromaddr+1;
+					*addr = fromaddr; /* sets to last load addr */
+					if ((int)toaddr - (int)fromaddr < 0) { printf("Bad xex file\n"); break; }
+					nbytes = toaddr - fromaddr + 1;
 					UINT rb;
 					/* if not full block, error */
-					if (f_read(&f, &MEMORY_mem[*addr], nbytes, &rb) != FR_OK) {
-						printf("Bad xex file\n");
-						break;
+					char tmp[512];
+					int i = 0;
+					for(int tr = nbytes; tr > 0; tr -= 512, i += 512) {
+						int sz = tr > 512 ? 512 : tr;
+						if (f_read(&f, tmp, sz, &rb) != FR_OK) {
+							printf("Bad xex file\n");
+							goto ferr;
+						}
+						MEMORY_CopyToMem16(*addr + i, tmp, sz);
 					}
 					printf("Read dos block: %04X-%04X, %04X bytes. \n",fromaddr,toaddr, nbytes);
 				}
+ferr:
 				f_close(&f);
 			}
 			return;
@@ -2248,8 +2255,16 @@ static void monitor_read_from_file(UWORD *addr)
 					else {
 						UINT rb;
 						/* read as many bytes as given or available */
-						if (f_read(&f, &MEMORY_mem[*addr], nbytes, &rb) != FR_OK)
-							printf("Could not read bytes\n");
+						char tmp[512];
+						int i = 0;
+						for(int tr = nbytes; tr > 0; tr -= 512, i += 512) {
+							int sz = tr > 512 ? 512 : tr;
+							if (f_read(&f, tmp, sz, &rb) != FR_OK) {
+								printf("Could not read bytes\n");
+								break;
+							}
+							MEMORY_CopyToMem16(*addr + i, tmp, sz);
+						}
 						f_close(&f);
 					}
 					printf("Read %d bytes at %04X-%04X\n",nbytes,*addr,*addr+nbytes-1);
@@ -2333,9 +2348,16 @@ static void monitor_write_to_file(void)
 				wbytes += 6;
 			}
 			UINT wb;
-			if (f_write(&f, &MEMORY_mem[addr1], addr2 - addr1 + 1, &wb) != FR_OK)
-				perror(filename);
-
+			char tmp[512];
+			int i = 0;
+			for(int tr = addr2 - addr1 + 1; tr > 0; tr -= 512, i += 512) {
+				int sz = tr > 512 ? 512 : tr;
+				MEMORY_CopyFromMem16(tmp, addr1 + i, sz);
+				if (f_write(&f, tmp, sz, &wb) != FR_OK) {
+					perror(filename);
+					break;
+				}
+			}
 			wbytes += nbytes;
 
 			if(xex && have_runaddr) {
@@ -3373,7 +3395,7 @@ static void mem_to_fp(void)
 
 	if(!get_hex(&addr)) addr = 0xd4; /* FR0 */
 
-	print_fp_dbl(&MEMORY_mem[addr]);
+///	print_fp_dbl(&MEMORY_mem[addr]);
 }
 
 /* Read 2 to 6 hex bytes from command line, interpret
