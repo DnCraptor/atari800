@@ -179,10 +179,10 @@ UWORD UI_crash_afterCIM;
 int CrashMenu(void);
 #endif
 
-char UI_atari_files_dir[UI_MAX_DIRECTORIES][FILENAME_MAX];
-char UI_saved_files_dir[UI_MAX_DIRECTORIES][FILENAME_MAX];
-int UI_n_atari_files_dir = 0;
-int UI_n_saved_files_dir = 0;
+char UI_atari_files_dir[UI_MAX_DIRECTORIES][FILENAME_MAX] = { { "\\atari800" } };
+char UI_saved_files_dir[UI_MAX_DIRECTORIES][FILENAME_MAX] = { { "\\atari800" } };
+int UI_n_atari_files_dir = 1;
+int UI_n_saved_files_dir = 1;
 
 static UI_tMenuItem *FindMenuItem(UI_tMenuItem *mip, int option)
 {

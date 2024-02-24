@@ -341,7 +341,7 @@ int POKEYSND_Init(ULONG freq17, int playback_freq, UBYTE num_pokeys,
 		double ticks_per_sample = (double)ticks_per_frame / samples_per_frame;
 		POKEYSND_process_buffer_length = POKEYSND_num_pokeys * (unsigned int)ceil((double)max_ticks_per_frame / ticks_per_sample) * ((POKEYSND_snd_flags & POKEYSND_BIT16) ? 2:1);
 		free(POKEYSND_process_buffer);
-		POKEYSND_process_buffer = (UBYTE *)Util_malloc(POKEYSND_process_buffer_length);
+		POKEYSND_process_buffer = (UBYTE *)Util_malloc(POKEYSND_process_buffer_length, "POKEYSND_Init");
 		POKEYSND_process_buffer_fill = 0;
 	    prev_update_tick = ANTIC_CPU_CLOCK;
 	}

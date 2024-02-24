@@ -198,7 +198,7 @@ int Util_unlink(const char *filename);
 #include "ff.h"
 
 /* Creates a file that does not exist and fills in filename with its name. */
-FIL *Util_uniqopen(char *filename, const char *mode);
+FIL *Util_uniqopen(char *filename, int mode);
 
 /* Support for temporary files.
 
@@ -231,7 +231,7 @@ FIL *Util_uniqopen(char *filename, const char *mode);
 /* if we can't delete the created file, leave it to the user */
 #define Util_tmpbufdef(modifier, def)
 ///#define Util_fopen(filename, mode, tmpbuf)  fopen(filename, mode)
-///#define Util_tmpopen(tmpbuf)                Util_uniqopen(NULL, "wb+")
+#define Util_tmpopen(tmpbuf)                Util_uniqopen(NULL, FA_READ | FA_WRITE | FA_CREATE_ALWAYS)
 #define Util_fclose(fp, tmpbuf)             f_close(fp)
 #endif
 

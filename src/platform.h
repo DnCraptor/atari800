@@ -165,8 +165,8 @@ unsigned int PLATFORM_SoundAvailable(void);
 void PLATFORM_SoundWrite(UBYTE const *buffer, unsigned int size);
 
 /* Dummy functions, not needed with no SOUND_CALLBACK. */
-#define PLATFORM_SoundLock() {}
-#define PLATFORM_SoundUnlock() {}
+///#define PLATFORM_SoundLock() {}
+//#define PLATFORM_SoundUnlock() {}
 
 #endif /* !SOUND_CALLBACK */
 #endif /* defined(SOUND) && defined(SOUND_THIN_API) */

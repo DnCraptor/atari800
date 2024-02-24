@@ -506,7 +506,7 @@ void Sound_SetLatency(unsigned int latency)
 		sync_read_pos = 0;
 		sync_write_pos = sync_min_fill;
 		free(sync_buffer);
-		sync_buffer = Util_malloc(sync_buffer_size);
+		sync_buffer = Util_malloc(sync_buffer_size, "Sound_SetLatency");
 		memset(sync_buffer, 0, sync_buffer_size);
 		PLATFORM_SoundUnlock();
 	}

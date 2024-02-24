@@ -342,10 +342,10 @@ uint8_t *libatari800_get_screen_ptr()
  *
  * @returns pointer to the beginning of the sound sample buffer
  */
-UBYTE *libatari800_get_sound_buffer()
-{
-	return (UBYTE *)LIBATARI800_Sound_array;
-}
+///UBYTE *libatari800_get_sound_buffer()
+///{
+///	return (UBYTE *)LIBATARI800_Sound_array;
+///}
 
 
 /** Return the usable size of the sound buffer.
@@ -354,14 +354,6 @@ UBYTE *libatari800_get_sound_buffer()
  */
 int libatari800_get_sound_buffer_len() {
 	return (int)sound_array_fill;
-}
-
-int libatari800_get_sound_buffer_idx() {
-	return (int)sound_array_idx;
-}
-
-void libatari800_set_sound_buffer_idx(int i) {
-	sound_array_idx = i;
 }
 
 /** Return the maximum size of the sound buffer.

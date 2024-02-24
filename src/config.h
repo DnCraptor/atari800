@@ -16,6 +16,7 @@
 #define EMUOS_ALTIRRA 1
 #define SUPPORTS_PLATFORM_SLEEP 1
 #define DIR_SEP_BACKSLASH 1
+#define HAVE_OPENDIR 1
 
 #include "debug.h"
 

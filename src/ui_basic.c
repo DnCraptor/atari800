@@ -480,6 +480,174 @@ static int Select(int default_item, int nitems, const char *item[],
 	}
 }
 
+static int SelectFile(int default_item, int nitems, const char * dir_name,
+                  const char *prefix[], const char *suffix[],
+                  const char *tip[], const int nonselectable[],
+                  int nrows, int ncolumns, int xoffset, int yoffset,
+                  int itemwidth, int drag, const char *global_tip,
+                  int *seltype, char* selected_filename)
+{
+	printf("SelectFile(%d, %d, '%s', ..)", default_item, nitems, dir_name);
+	int offset = 0;
+	int index = default_item;
+	int localseltype;
+	if (seltype == NULL) {
+		seltype = &localseltype;
+	}
+	DIR dir;
+    FILINFO fileInfo;
+	for (;;) {
+		if (f_opendir(&dir, dir_name) != FR_OK) {
+			printf("SelectFile(\"%s\") FAILED", dir_name);
+			return 0;
+		}
+		int col;
+		int row;
+		const char *message = global_tip;
+		while (index < offset) {
+			offset -= nrows;
+		}
+		while (index >= offset + nrows * ncolumns) {
+			offset += nrows;
+		}
+		ClearRectangle(0x94, xoffset, yoffset, xoffset + ncolumns * (itemwidth + 1) - 2, yoffset + nrows - 1);
+		col = 0;
+		row = 0;
+		int i = 0;
+		while (f_readdir(&dir, &fileInfo) == FR_OK && fileInfo.fname[0] != '\0') {
+		    if (i < offset || i >= nitems) {
+				continue;
+			}
+			char szbuf[40 + FILENAME_MAX]; /* allow for prefix and suffix */
+			char *p = szbuf;
+			if (prefix != NULL && prefix[i] != NULL)
+				p = Util_stpcpy(szbuf, prefix[i]);
+			p = Util_stpcpy(p, fileInfo.fname);
+			if (suffix != NULL && suffix[i] != NULL) {
+				char *q = szbuf + itemwidth - strlen(suffix[i]);
+				while (p < q) {
+					*p++ = ' ';
+				}
+				strcpy(p, suffix[i]);
+			}
+			else {
+				while (p < szbuf + itemwidth)
+					*p++ = ' ';
+				*p = '\0';
+			}
+			if (i == index) {
+				Print(0x94, 0x9a, szbuf, xoffset + col * (itemwidth + 1), yoffset + row, itemwidth);
+				
+				if (fileInfo.fattrib & AM_DIR) {
+					/* add directories as [dir] */
+					size_t len = strlen(fileInfo.fname);
+					memcpy(selected_filename + 1, fileInfo.fname, len);
+					selected_filename[0] = '[';
+					selected_filename[len + 1] = ']';
+					selected_filename[len + 2] = '\0';
+				} else {
+					strncpy(selected_filename, fileInfo.fname, FILENAME_MAX + 2);
+				}
+			}
+			else {
+				Print(0x9a, 0x94, szbuf, xoffset + col * (itemwidth + 1), yoffset + row, itemwidth);
+			}
+			if (++row >= nrows) {
+				if (++col >= ncolumns)
+					break;
+				row = 0;
+			}
+		}
+		if (tip != NULL && tip[index] != NULL)
+			message = tip[index];
+		else if (itemwidth < 38 && (int) strlen(selected_filename) > itemwidth)
+			/* the selected item was shortened */
+			message = selected_filename;
+		if (message != NULL)
+			CenterPrint(0x94, 0x9a, message, 22);
+
+		for (;;) {
+			int ascii;
+			int tmp_index;
+			ascii = GetKeyPress();
+			switch (ascii) {
+			case 0x1c:				/* Up */
+				if (drag) {
+					*seltype = UI_USER_DRAG_UP;
+					f_close(&dir);
+					return index;
+				}
+				tmp_index = index;
+				do
+					tmp_index--;
+				while (tmp_index >= 0 && nonselectable != NULL && nonselectable[tmp_index]);
+				if (tmp_index >= 0) {
+					index = tmp_index;
+					break;
+				}
+				continue;
+			case 0x1d:				/* Down */
+				if (drag) {
+					*seltype = UI_USER_DRAG_DOWN;
+					f_close(&dir);
+					return index;
+				}
+				tmp_index = index;
+				do
+					tmp_index++;
+				while (tmp_index < nitems && nonselectable != NULL && nonselectable[tmp_index]);
+				if (tmp_index < nitems) {
+					index = tmp_index;
+					break;
+				}
+				continue;
+			case 0x1e:				/* Left */
+				if (drag)
+					continue;		/* cannot drag left */
+				index = (index > nrows) ? index - nrows : 0;
+				break;
+			case 0x1f:				/* Right */
+				if (drag)
+					continue;		/* cannot drag right */
+				index = (index + nrows < nitems) ? index + nrows : nitems - 1;
+				break;
+			case 0x7f:				/* Tab (for exchanging disk directories) */
+			    f_close(&dir);
+				return -2;			/* GOLDA CHANGED */
+			case 0x20:				/* Space */
+				*seltype = UI_USER_TOGGLE;
+				f_close(&dir);
+				return index;
+			case 0x7e:				/* Backspace */
+				*seltype = UI_USER_DELETE;
+				f_close(&dir);
+				return index;
+			case 0x9b:				/* Return=Select */
+				*seltype = UI_USER_SELECT;
+				f_close(&dir);
+				return index;
+			case 0x1b:				/* Esc=Cancel */
+			    f_close(&dir);
+				return -1;
+			default:
+				if (drag || ascii <= 0x20 || ascii >= 0x7f)
+					continue;
+				tmp_index = index; /* old index */
+				do {
+					if (++index >= nitems)
+						index = 0;
+				} while (index != tmp_index && !Util_chrieq((char) ascii, selected_filename[0]));
+				break;
+			}
+			break;
+		}
+		if (message != NULL)
+			ClearRectangle(0x94, 1, 22, 38, 22);
+		f_close(&dir);
+	}
+	return -1;
+}
+
 static int BasicUISelect(const char *title, int flags, int default_item, const UI_tMenuItem *menu, int *seltype)
 {
 	int nitems;
@@ -520,9 +688,9 @@ static int BasicUISelect(const char *title, int flags, int default_item, const U
 			nitems++;
 		}
 	}
-	if (nitems == 0)
+	if (nitems == 0) {
 		return -1; /* cancel immediately */
-
+	}
 	if (flags & UI_SELECT_POPUP) {
 		int i;
 		w = 0;
@@ -562,12 +730,14 @@ static int BasicUISelect(const char *title, int flags, int default_item, const U
 	index = Select(index, nitems, item, prefix, suffix, tip, nonselectable,
 	                y2 - y1 - 1, 1, x1 + 1, y1 + 1, w,
 	                (flags & UI_SELECT_DRAG) ? TRUE : FALSE, NULL, seltype);
-	if (index < 0)
+	if (index < 0) {
 		return index;
+	}
 	for (pmenu = menu; pmenu->flags != UI_ITEM_END; pmenu++) {
 		if (pmenu->flags != UI_ITEM_HIDDEN) {
-			if (index == 0)
+			if (index == 0) {
 				return pmenu->retval;
+			}
 			index--;
 		}
 	}
@@ -765,31 +935,27 @@ static int BasicUIReadDir(char *filename, int *isdir, int *ishidden)
 #elif defined(HAVE_OPENDIR)
 
 static char dir_path[FILENAME_MAX];
-static DIR *dp = NULL;
+static DIR dir;
 
 static int BasicUIOpenDir(const char *dirname)
 {
 	Util_strlcpy(dir_path, dirname, FILENAME_MAX);
-	dp = opendir(dir_path);
-	return dp != NULL;
+	return f_opendir(&dir, dir_path) == FR_OK;
 }
 
 static int BasicUIReadDir(char *filename, int *isdir, int *ishidden)
 {
-	struct dirent *entry;
+	FILINFO fileInfo;
 	char fullfilename[FILENAME_MAX];
-	struct stat st;
-	entry = readdir(dp);
-	if (entry == NULL) {
-		closedir(dp);
-		dp = NULL;
+	if (f_readdir(&dir, &fileInfo) == FR_OK && fileInfo.fname[0] != '\0') {
+		strcpy(filename, fileInfo.fname);
+		Util_catpath(fullfilename, dir_path, fileInfo.fname);
+		*isdir = fileInfo.fattrib & AM_DIR;
+		*ishidden = fileInfo.fattrib & AM_HID;
+	} else {
+		f_closedir(&dir);
 		return FALSE;
 	}
-	strcpy(filename, entry->d_name);
-	Util_catpath(fullfilename, dir_path, entry->d_name);
-	stat(fullfilename, &st);
-	*isdir = S_ISDIR(st.st_mode);
-	*ishidden = strlen(entry->d_name) > 1 && entry->d_name[0] == '.' && entry->d_name[1] != '.';
 	return TRUE;
 }
 
@@ -815,19 +981,18 @@ int Atari_ReadDir(char *fullpath, char *filename, int *isdir, int *ishidden,
 
 #endif /* defined(PS2) */
 
-
-#ifdef DO_DIR
+static int n_filenames;
+#ifdef DO_DIR2
 
 static const char **filenames;
 #define FILENAMES_INITIAL_SIZE 256 /* preallocate 1 KB */
-static int n_filenames;
 
 /* filename must be malloc'ed or strdup'ed */
 static void FilenamesAdd(const char *filename)
 {
 	if (n_filenames >= FILENAMES_INITIAL_SIZE && (n_filenames & (n_filenames - 1)) == 0) {
 		/* n_filenames is a power of two: allocate twice as much */
-		filenames = (const char **) Util_realloc((void *) filenames, 2 * n_filenames * sizeof(const char *));
+		filenames = (const char **) Util_realloc((void *) filenames, 2 * n_filenames * sizeof(const char *), "FilenamesAdd");
 	}
 	filenames[n_filenames++] = filename;
 }
@@ -885,6 +1050,7 @@ static void FilenamesFree(void)
 	free((void *) filenames);
 }
 
+
 static void GetDirectory(const char *directory)
 {
 #ifdef __DJGPP__
@@ -894,36 +1060,31 @@ static void GetDirectory(const char *directory)
 	/* we do not need any of those 'hard-to-get' informations */
 #endif	/* DJGPP */
 
-	filenames = (const char **) Util_malloc(FILENAMES_INITIAL_SIZE * sizeof(const char *));
+	filenames = (const char **) Util_malloc(FILENAMES_INITIAL_SIZE * sizeof(const char *), "GetDirectory #1");
 	n_filenames = 0;
 
 	if (BasicUIOpenDir(directory)) {
 		char filename[FILENAME_MAX];
 		int isdir, ishidden;
-
 		while (BasicUIReadDir(filename, &isdir, &ishidden)) {
 			char *filename2;
-
-			if (filename[0] == '\0' ||
-				(filename[0] == '.' && filename[1] == '\0') ||
-				(ishidden && !UI_show_hidden_files))
+			if (filename[0] == '\0' || (filename[0] == '.' && filename[1] == '\0') || (ishidden && !UI_show_hidden_files)) {
 				continue;
-
+			}
 			if (isdir) {
 				/* add directories as [dir] */
 				size_t len = strlen(filename);
-				filename2 = (char *) Util_malloc(len + 3);
+				filename2 = (char *) Util_malloc(len + 3, "GetDirectory #2");
 				memcpy(filename2 + 1, filename, len);
 				filename2[0] = '[';
 				filename2[len + 1] = ']';
 				filename2[len + 2] = '\0';
 			}
-			else
-				filename2 = Util_strdup(filename);
-
+			else {
+				filename2 = Util_strdup(filename, "GetDirectory #3");
+			}
 			FilenamesAdd(filename2);
 		}
-
 		FilenamesSort(filenames, filenames + n_filenames);
 	}
 	else {
@@ -968,6 +1129,9 @@ static void GetDirectory(const char *directory)
 	_djstat_flags = s_backup;	/* restore the original state */
 #endif
 }
+#endif
+
+#ifdef DO_DIR
 
 static void strcatchr(char *s, char c)
 {
@@ -977,55 +1141,61 @@ static void strcatchr(char *s, char c)
 	s[1] = '\0';
 }
 
+static char current_dir[FILENAME_MAX] = { 0 };
+static char highlighted_file[FILENAME_MAX + 2] = { 0 }; /* +2 for square brackets */
+
 /* Select file or directory.
    The result is returned in path and path is where selection begins (i.e. it must be initialized).
    pDirectories are "favourite" directories (there are nDirectories of them). */
 static int FileSelector(char *path, int select_dir, char pDirectories[][FILENAME_MAX], int nDirectories)
 {
-	char current_dir[FILENAME_MAX];
-	char highlighted_file[FILENAME_MAX + 2]; /* +2 for square brackets */
+	printf("FileSelector('%s', '%s', %d)", path, select_dir, nDirectories);
 	highlighted_file[0] = '\0';
-	if (path[0] == '\0' && nDirectories > 0)
-		strcpy(current_dir, pDirectories[0]);
-	else if (select_dir)
-		strcpy(current_dir, path);
-	else
+	if (path[0] == '\0' && nDirectories > 0) {
+		strncpy(current_dir, pDirectories[0], FILENAME_MAX);
+		printf("1 '%s'", current_dir);
+	} else if (select_dir) {
+		strncpy(current_dir, path, FILENAME_MAX);
+		printf("2 '%s'", current_dir);
+	} else {
 		Util_splitpath(path, current_dir, highlighted_file);
-#ifdef __DJGPP__
-	{
-		char help_dir[FILENAME_MAX];
-		_fixpath(current_dir, help_dir);
-		strcpy(current_dir, help_dir);
+		printf("3 '%s'", current_dir);
 	}
-#elif defined(HAVE_GETCWD)
-	if (current_dir[0] == '\0' || (current_dir[0] == '.' && current_dir[1] == '\0'))
-#else
-	if (current_dir[0] == '\0')
-#endif
-	Util_getcwd(current_dir, FILENAME_MAX);
+	if (current_dir[0] == '\0') {
+    	Util_getcwd(current_dir, FILENAME_MAX);
+		printf("4 '%s'", current_dir);
+	}
 	for (;;) {
 		int index = 0;
 		int i;
-
+		printf("idx: %d", index);
 #define NROWS 20
 #define NCOLUMNS 2
 #define MAX_FILES (NROWS * NCOLUMNS)
-
 		/* The WinCE version may spend several seconds when there are many
 		   files in the directory. */
 		/* The extra spaces are needed to clear the previous window title. */
 		TitleScreen("            Please wait...            ");
 		PLATFORM_DisplayScreen();
-
+		DIR dir;
+		FILINFO fileInfo;
 		for (;;) {
-			GetDirectory(current_dir);
-
+			n_filenames = 0;
+			if (f_opendir(&dir, current_dir) == FR_OK) {
+				while (f_readdir(&dir, &fileInfo) == FR_OK && fileInfo.fname[0] != '\0') {
+					n_filenames++;
+					if (highlighted_file[0] != '\0' && strcmp(fileInfo.fname, highlighted_file) == 0) {
+						index = i;
+					}
+				}
+				f_closedir(&dir);
+			}
+			printf("n_filenames: %d", n_filenames);
 			if (n_filenames > 0)
 				break;
 
 			/* Can't read directory - maybe it doesn't exist?
 			   Split the last part from the path and try again. */
-			FilenamesFree();
 			{
 				char temp[FILENAME_MAX];
 				strcpy(temp, current_dir);
@@ -1035,38 +1205,32 @@ static int FileSelector(char *path, int select_dir, char pDirectories[][FILENAME
 				/* Path couldn't be split further.
 				   Try the working directory as a last resort. */
 				Util_getcwd(current_dir, FILENAME_MAX);
-				GetDirectory(current_dir);
+				if (f_opendir(&dir, current_dir) == FR_OK) {
+					while (f_readdir(&dir, &fileInfo) == FR_OK && fileInfo.fname[0] != '\0') {
+						n_filenames++;
+						if (highlighted_file[0] != '\0' && strcmp(fileInfo.fname, highlighted_file) == 0) {
+							index = i;
+						}
+					}
+					f_closedir(&dir);
+				}
 				if (n_filenames >= 0)
 					break;
-
-				FilenamesFree();
 				BasicUIMessage("No files inside directory", 1);
 				return FALSE;
 			}
 		}
-
-		if (highlighted_file[0] != '\0') {
-			for (i = 0; i < n_filenames; i++) {
-				if (strcmp(filenames[i], highlighted_file) == 0) {
-					index = i;
-					break;
-				}
-			}
-		}
-
+	    char selected_filename[FILENAME_MAX + 2] = { 0 };
 		for (;;) {
 			int seltype;
-			const char *selected_filename;
-
 			ClearScreen();
 			TitleScreen(current_dir);
 			Box(0x9a, 0x94, 0, 1, 39, 23);
-
-			index = Select(index, n_filenames, filenames, NULL, NULL, NULL, NULL,
+			index = SelectFile(index, n_filenames, current_dir, NULL, NULL, NULL, NULL,
 			               NROWS, NCOLUMNS, 1, 2, 37 / NCOLUMNS, FALSE,
 			               select_dir ? "Space: select current directory" : NULL,
-			               &seltype);
-
+			               &seltype, selected_filename);
+			printf("selected_filename: %s", selected_filename);
 			if (index == -2) {
 				/* Tab = next favourite directory */
 				if (nDirectories > 0) {
@@ -1093,7 +1257,6 @@ static int FileSelector(char *path, int select_dir, char pDirectories[][FILENAME
 			}
 			if (index < 0) {
 				/* Esc = cancel */
-				FilenamesFree();
 				return FALSE;
 			}
 			if (seltype == UI_USER_DELETE) {
@@ -1112,10 +1275,8 @@ static int FileSelector(char *path, int select_dir, char pDirectories[][FILENAME
 			if (seltype == UI_USER_TOGGLE && select_dir) {
 				/* Space = select current directory */
 				strcpy(path, current_dir);
-				FilenamesFree();
 				return TRUE;
 			}
-			selected_filename = filenames[index];
 			if (selected_filename[0] == '[') {
 				/* Change directory */
 				char new_dir[FILENAME_MAX];
@@ -1160,12 +1321,9 @@ static int FileSelector(char *path, int select_dir, char pDirectories[][FILENAME
 			if (!select_dir) {
 				/* normal filename selected */
 				Util_catpath(path, current_dir, selected_filename);
-				FilenamesFree();
 				return TRUE;
 			}
 		}
-
-		FilenamesFree();
 	}
 }
 

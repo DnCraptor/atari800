@@ -332,6 +332,7 @@ char *Util_strdup(const char *s, const char* from)
 
 void Util_splitpath(const char *path, char *dir_part, char *file_part)
 {
+	printf("Util_splitpath(%s, %s, ..)", path, dir_part);
 	const char *p;
 	/* find the last Util_DIR_SEP_CHAR except the last character */
 	for (p = path + strlen(path) - 2; p >= path; p--) {
@@ -349,16 +350,20 @@ void Util_splitpath(const char *path, char *dir_part, char *file_part)
 				memcpy(dir_part, path, len);
 				dir_part[len] = '\0';
 			}
-			if (file_part != NULL)
+			if (file_part != NULL) {
 				strcpy(file_part, p + 1);
+				printf("Util_splitpath(%s, %s, ..) %s", path, dir_part, file_part);
+			}
 			return;
 		}
 	}
 	/* no Util_DIR_SEP_CHAR: current dir */
 	if (dir_part != NULL)
 		dir_part[0] = '\0';
-	if (file_part != NULL)
+	if (file_part != NULL) {
 		strcpy(file_part, path);
+		printf("Util_splitpath(%s, %s, ..) %s", path, dir_part, file_part);
+	}
 }
 
 void Util_catpath(char *result, const char *path1, const char *path2)
@@ -499,7 +504,7 @@ int Util_flen(FIL *fp)
 /* Creates a file that does not exist and fills in filename with its name.
    filename must point to FILENAME_MAX characters buffer which doesn't need
    to be initialized. */
-FIL *Util_uniqopen(char *filename, const char *mode)
+FIL *Util_uniqopen(char *filename, int mode)
 {
 	/* We cannot simply call tmpfile(), because we don't want the file
 	   to be deleted when we close it, and we need the filename. */
@@ -524,7 +529,7 @@ FIL *Util_uniqopen(char *filename, const char *mode)
 		snprintf(filename, FILENAME_MAX, "a8%06d", no);
 		if (!Util_fileexists(filename)) {
 			FIL * fp = Util_malloc(sizeof(FIL), filename);
-			return fopen(fp, filename, FA_READ);
+			return fopen(fp, filename, mode);
 		}
 	}
 	return NULL;
@@ -624,7 +629,6 @@ void Util_sleep(double s)
 
 char *Util_getcwd(char *buf, size_t size)
 {
-	printf("Util_getcwd");
 #ifdef HAVE_GETCWD
 	if (getcwd(buf, size) == NULL) {
 		buf[0] = '.';
@@ -633,5 +637,6 @@ char *Util_getcwd(char *buf, size_t size)
 #else
     strncpy(buf, "\\atari800", size);
 #endif
+    printf("Util_getcwd '%s'", buf);
 	return buf;
 }

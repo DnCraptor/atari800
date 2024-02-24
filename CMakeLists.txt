@@ -155,8 +155,10 @@ target_compile_definitions(${PROJECT_NAME} PRIVATE
         PWM_PIN0=26
         PWM_PIN1=27
         BEEPER_PIN=28
-
-        #MNGR_DEBUG=1
+        #SYNCHRONIZED_SOUND=1
+        #SOUND_CALLBACK=1
+        
+        MNGR_DEBUG=1
         #DEBUG2=1
 )
 

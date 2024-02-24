@@ -31,10 +31,35 @@ extern "C" {
 
 static FATFS fs;
 semaphore vga_start_semaphore;
+
 #define DISP_WIDTH (320)
 #define DISP_HEIGHT (240)
 extern "C" UBYTE __aligned(4) __screen[Screen_HEIGHT * Screen_WIDTH];
 ///uint16_t SCREEN[TEXTMODE_ROWS][TEXTMODE_COLS];
+
+extern "C" void PLATFORM_SoundLock(void) {
+
+}
+
+static UBYTE* sound_array = 0;
+static unsigned int sound_array_idx = 0;
+static unsigned int sound_array_len = 0;
+extern "C" void PLATFORM_SoundUnlock(void) {
+   /// uba = libatari800_get_sound_buffer();
+   /// sound_array_len = libatari800_get_sound_buffer_len();
+   /// sound_array_idx = 0;
+}
+
+extern "C" void PLATFORM_SoundWrite(UBYTE const *buffer, unsigned int size)
+{
+  ///  if (sound_array) free(sound_array);
+ //   sound_array = (UBYTE*)malloc(size);
+///	memcpy(sound_array, buffer, size);
+
+    sound_array = (UBYTE*)buffer;
+	sound_array_len = size;
+    sound_array_idx = 0;
+}
 
 pwm_config config = pwm_get_default_config();
 void PWM_init_pin(uint8_t pinN, uint16_t max_lvl) {
@@ -211,8 +236,8 @@ static int snd_bits = 16;
 static bool __not_in_flash_func(AY_timer_callback)(repeating_timer_t *rt) {
     static uint16_t outL = 0;  
     static uint16_t outR = 0;
-    int len = libatari800_get_sound_buffer_len();
-    int idx = libatari800_get_sound_buffer_idx();
+    int len = sound_array_len;
+    int idx = sound_array_idx;
     if (idx >= len) {
         // empty buffer
         return true;
@@ -223,27 +248,26 @@ static bool __not_in_flash_func(AY_timer_callback)(repeating_timer_t *rt) {
     if (!Sound_enabled || paused) {
         return true;
     }
-    UBYTE* uba = libatari800_get_sound_buffer();
     if (snd_channels == 2) {
         if (snd_bits == 8) {
-            outL = ((uint16_t)uba[idx]) << (11 - 8);
-            outR = ((uint16_t)uba[idx + 1]) << (11 - 8);
-            libatari800_set_sound_buffer_idx(idx + 2);
+            outL = ((uint16_t)sound_array[idx]) << (11 - 8);
+            outR = ((uint16_t)sound_array[idx + 1]) << (11 - 8);
+            sound_array_idx += 2;
         } else {
-            outL = ((uint16_t*)uba)[idx << 1] >> (16 - 11);
-            outR = ((uint16_t*)uba)[(idx << 1) + 2] >> (16 - 11);
-            libatari800_set_sound_buffer_idx(idx + 4);
+            outL = ((uint16_t*)sound_array)[idx << 1] >> (16 - 11);
+            outR = ((uint16_t*)sound_array)[(idx << 1) + 2] >> (16 - 11);
+            sound_array_idx += 4;
         }
     } else {
         if (snd_bits == 8) {
-            outL = outR = ((uint16_t)uba[idx]) << (11 - 8);
-            libatari800_set_sound_buffer_idx(idx + 1);
+            outL = outR = ((uint16_t)sound_array[idx]) << (11 - 8);
+            sound_array_idx++;
         } else {
-            outL = outR = ((uint16_t*)uba)[idx << 1] >> (16 - 11);
-            libatari800_set_sound_buffer_idx(idx + 2);
+            outL = outR = ((uint16_t*)sound_array)[idx << 1] >> (16 - 11);
+            sound_array_idx += 2;
         }
     }
-    if (outR || outL) {
+ ///   if (outR || outL) {
      ///   register uint8_t mult = 0; ///g_conf.snd_volume;
      ///   if (mult >= 0) {
      ///       if (mult > 5) mult = 5;
@@ -255,8 +279,8 @@ static bool __not_in_flash_func(AY_timer_callback)(repeating_timer_t *rt) {
      ///       outL >>= div;
      ///       outR >>= div;
      ///   }
-        pwm_set_gpio_level(BEEPER_PIN, 0);
-    }
+ ///       pwm_set_gpio_level(BEEPER_PIN, 0);
+ ///   }
     return true;
 }
 #endif
@@ -342,7 +366,7 @@ int main() {
 
     while(true) {
         libatari800_next_frame(&input_map);
-        sleep_us(5);
+        sleep_us(1);
     }
 
     __unreachable();

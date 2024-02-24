@@ -4534,15 +4534,12 @@ FRESULT f_lseek (
 FRESULT f_opendir (
 	DIR* dp,			/* Pointer to directory object to create */
 	const TCHAR* path	/* Pointer to the directory path */
-)
-{
+) {
 	FRESULT res;
 	FATFS *fs;
 	DEF_NAMBUF
-
-
+	printf("f_opendir(%s)", path)
 	if (!dp) return FR_INVALID_OBJECT;
-
 	/* Get logical drive */
 	res = mount_volume(&path, &fs, 0);
 	if (res == FR_OK) {

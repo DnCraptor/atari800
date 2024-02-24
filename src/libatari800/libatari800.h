@@ -291,8 +291,6 @@ int libatari800_get_sound_buffer_len();
 
 int libatari800_get_sound_buffer_idx();
 
-void libatari800_set_sound_buffer_idx(int i);
-
 int libatari800_get_sound_buffer_allocated_size();
 
 int libatari800_get_sound_frequency();
