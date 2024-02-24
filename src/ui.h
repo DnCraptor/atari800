@@ -43,7 +43,7 @@ extern UWORD UI_crash_address;
 extern UWORD UI_crash_afterCIM;
 #endif
 
-#define UI_MAX_DIRECTORIES 8
+#define UI_MAX_DIRECTORIES 1
 
 extern char UI_atari_files_dir[UI_MAX_DIRECTORIES][FILENAME_MAX];
 extern char UI_saved_files_dir[UI_MAX_DIRECTORIES][FILENAME_MAX];

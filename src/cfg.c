@@ -74,19 +74,19 @@ int CFG_LoadConfig(const char *alternate_config_filename) {
 				// ??
 			}
 			else if (strcmp(string, "ATARI_FILES_DIR") == 0) {
-		///		if (UI_n_atari_files_dir >= UI_MAX_DIRECTORIES)
-		///			Log_print("All ATARI_FILES_DIR slots used!");
-		///		else
-		///			Util_strlcpy(UI_atari_files_dir[UI_n_atari_files_dir++], ptr, FILENAME_MAX);
+				if (UI_n_atari_files_dir >= UI_MAX_DIRECTORIES) {
+					Log_print("All ATARI_FILES_DIR slots used!");
+				} else
+					Util_strlcpy(UI_atari_files_dir[UI_n_atari_files_dir++], ptr, FILENAME_MAX);
 			}
 			else if (strcmp(string, "SAVED_FILES_DIR") == 0) {
-		///		if (UI_n_saved_files_dir >= UI_MAX_DIRECTORIES)
-		///			Log_print("All SAVED_FILES_DIR slots used!");
-		///		else
-		///			Util_strlcpy(UI_saved_files_dir[UI_n_saved_files_dir++], ptr, FILENAME_MAX);
+				if (UI_n_saved_files_dir >= UI_MAX_DIRECTORIES) {
+					Log_print("All SAVED_FILES_DIR slots used!");
+				} else
+					Util_strlcpy(UI_saved_files_dir[UI_n_saved_files_dir++], ptr, FILENAME_MAX);
 			}
 			else if (strcmp(string, "SHOW_HIDDEN_FILES") == 0) {
-		///		UI_show_hidden_files = Util_sscanbool(ptr);
+				UI_show_hidden_files = Util_sscanbool(ptr);
 			} else if (strcmp(string, "DISK_DIR") == 0 || strcmp(string, "ROM_DIR") == 0
 				  || strcmp(string, "EXE_DIR") == 0 || strcmp(string, "STATE_DIR") == 0) {
 				/* ignore blank and "." values */
