@@ -16,6 +16,8 @@
         "log.h": "c",
         "crc32.h": "c",
         "cfg.h": "c",
-        "ui.h": "c"
+        "ui.h": "c",
+        "build_poly17.h": "c",
+        "pokey_poly17_lookup.h": "c"
     }
 }

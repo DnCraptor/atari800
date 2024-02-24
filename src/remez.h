@@ -29,6 +29,6 @@
  * called from external code */
 void REMEZ_CreateFilter(double h[], int numtaps,
            int numband, double bands[], const double des[], const double weight[],
-           int type);
+           int type, double* tmp);
 
 #endif /* REMEZ_H_ */
