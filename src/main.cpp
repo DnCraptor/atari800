@@ -49,6 +49,22 @@ void inInit(uint gpio) {
 
 static input_template_t input_map;
 static unsigned int sp = 0;
+static bool qPressed = false;
+static bool wPressed = false;
+static bool ePressed = false;
+static bool aPressed = false;
+static bool dPressed = false;
+static bool zPressed = false;
+static bool xPressed = false;
+static bool cPressed = false;
+static bool _7Pressed = false;
+static bool _8Pressed = false;
+static bool _9Pressed = false;
+static bool _4Pressed = false;
+static bool _6Pressed = false;
+static bool _1Pressed = false;
+static bool _2Pressed = false;
+static bool _3Pressed = false;
 extern "C" {
 bool __time_critical_func(handleScancode)(const uint32_t ps2scancode) {
     if (!ps2scancode) {
@@ -60,12 +76,12 @@ bool __time_critical_func(handleScancode)(const uint32_t ps2scancode) {
         if (ps2scancode == 0xE053) { input_map.keychar = 127; return true; } // Del
         if (ps2scancode == 0xE01D) {
             input_map.control |= 2;
-            input_map.trig0 = 1;
+            input_map.trig1 = 1;
             return true;
         } // rCnt
         if (ps2scancode == 0xE09D) {
             input_map.control &= ~2;
-            input_map.trig0 = 0;
+            input_map.trig1 = 0;
             return true;
         } // rCnt
         if (ps2scancode == 0xE038) { input_map.alt |= 2; return true; } // rAlt
@@ -79,7 +95,7 @@ bool __time_critical_func(handleScancode)(const uint32_t ps2scancode) {
                 case 0xaa: sp &= ~2; input_map.shift = sp; break; // lshift // CapsLock TODO: reverse shift
                 case 0x9d: {
                     input_map.control &= ~1;
-                    input_map.trig2 = 0; 
+                    input_map.trig0 = 0; 
                     break;
                 } // lctrl
                 case 0xb8: input_map.alt &= ~1; break; // lalt
@@ -88,82 +104,98 @@ bool __time_critical_func(handleScancode)(const uint32_t ps2scancode) {
                 case 0xbe: input_map.start = 0; break; // F4 Start
                 case 0xc8: { // Up
                     input_map.keychar = 0;
-                    input_map.joy0 &= INPUT_STICK_FORWARD;
+                    input_map.joy1 &= INPUT_STICK_FORWARD;
+                    _8Pressed = false;
                     break;
                 }
                 case 0xcb: { // Left
                     input_map.keychar = 0;
-                    input_map.joy0 &= INPUT_STICK_LEFT;
+                    input_map.joy1 &= INPUT_STICK_LEFT;
+                    _4Pressed = false;
                     break;
                 }
                 case 0xd0: { // Down
                     input_map.keychar = 0;
-                    input_map.joy0 &= INPUT_STICK_BACK;
+                    input_map.joy1 &= INPUT_STICK_BACK;
+                    _2Pressed = false;
                     break;
                 }
                 case 0xcd: { // Right
                     input_map.keychar = 0;
-                    input_map.joy0 &= INPUT_STICK_RIGHT;
+                    input_map.joy1 &= INPUT_STICK_RIGHT;
+                    _6Pressed = false;
                     break;
                 }
                 case 0xc7: { // 7 UpLeft
                     input_map.keychar = 0;
-                    input_map.joy0 &= INPUT_STICK_UL;
+                    input_map.joy1 &= INPUT_STICK_UL;
+                    _7Pressed = false;
                     break;
                 }
                 case 0xc9: { // 9 UpRight
                     input_map.keychar = 0;
-                    input_map.joy0 &= INPUT_STICK_UR;
+                    input_map.joy1 &= INPUT_STICK_UR;
+                    _9Pressed = false;
                     break;
                 }
                 case 0xcf: { // 1 LowLeft
                     input_map.keychar = 0;
-                    input_map.joy0 &= INPUT_STICK_LL;
+                    input_map.joy1 &= INPUT_STICK_LL;
+                    _1Pressed = false;
                     break;
                 }
                 case 0xd1: { // 3 LowRight
                     input_map.keychar = 0;
-                    input_map.joy0 &= INPUT_STICK_LR;
+                    input_map.joy1 &= INPUT_STICK_LR;
+                    _3Pressed = false;
                     break;
                 }
                 case 0x90: { // Q
                     input_map.keychar = 0;
-                    input_map.joy2 &= INPUT_STICK_UL;
+                    input_map.joy0 &= INPUT_STICK_UL;
+                    qPressed = false;
                     break;
                 }
                 case 0x91: { // W
                     input_map.keychar = 0;
-                    input_map.joy2 &= INPUT_STICK_FORWARD;
+                    input_map.joy0 &= INPUT_STICK_FORWARD;
+                    wPressed = false;
                     break;
                 }
                 case 0x92: { // E
                     input_map.keychar = 0;
-                    input_map.joy2 &= INPUT_STICK_UR;
+                    input_map.joy0 &= INPUT_STICK_UR;
+                    ePressed = false;
                     break;
                 }
                 case 0x9e: { // A
                     input_map.keychar = 0;
-                    input_map.joy2 &= INPUT_STICK_LEFT;
+                    input_map.joy0 &= INPUT_STICK_LEFT;
+                    aPressed = false;
                     break;
                 }
                 case 0xa0: { // D
                     input_map.keychar = 0;
-                    input_map.joy2 &= INPUT_STICK_RIGHT;
+                    input_map.joy0 &= INPUT_STICK_RIGHT;
+                    dPressed = false;
                     break;
                 }
                 case 0xac: { // Z
                     input_map.keychar = 0;
-                    input_map.joy2 &= INPUT_STICK_LL;
+                    input_map.joy0 &= INPUT_STICK_LL;
+                    zPressed = false;
                     break;
                 }
                 case 0xad: { // X
                     input_map.keychar = 0;
-                    input_map.joy2 &= INPUT_STICK_BACK;
+                    input_map.joy0 &= INPUT_STICK_BACK;
+                    xPressed = false;
                     break;
                 }
                 case 0xae: { // C
                     input_map.keychar = 0;
-                    input_map.joy2 &= INPUT_STICK_LR;
+                    input_map.joy0 &= INPUT_STICK_LR;
+                    cPressed = false;
                     break;
                 }
                 default: input_map.keychar = 0; break;
@@ -198,29 +230,33 @@ bool __time_critical_func(handleScancode)(const uint32_t ps2scancode) {
             case 0x3a: if(sp & 4) sp &= ~4; else sp |= 4; input_map.shift = sp; break; // CapsLock
             case 0x1d: {
                 input_map.control |= 1;
-                input_map.trig2 = 1; 
+                input_map.trig0 = 1; 
                 break;
             } // lctl
             case 0x38: input_map.alt |= 1; break; // lalt
             case 0x1e: {
                 input_map.keychar = sp ? 'A' : 'a';
-                 input_map.joy2 |= ~INPUT_STICK_LEFT;
+                input_map.joy0 |= ~INPUT_STICK_LEFT;
+                aPressed = true;
                 break;
             }
             case 0x30: input_map.keychar = sp ? 'B' : 'b'; break;
             case 0x2e: {
                 input_map.keychar = sp ? 'C' : 'c';
-                input_map.joy2 |= ~INPUT_STICK_LR;
+                input_map.joy0 |= ~INPUT_STICK_LR;
+                cPressed = true;
                 break;
             }
             case 0x20: {
                 input_map.keychar = sp ? 'D' : 'd';
-                input_map.joy2 |= ~INPUT_STICK_RIGHT; 
+                input_map.joy0 |= ~INPUT_STICK_RIGHT;
+                dPressed = true;
                 break;
             }
             case 0x12: {
                 input_map.keychar = sp ? 'E' : 'e';
-                input_map.joy2 |= ~INPUT_STICK_UR; 
+                input_map.joy0 |= ~INPUT_STICK_UR;
+                ePressed = true;
                 break;
             }
             case 0x21: input_map.keychar = sp ? 'F' : 'f'; break;
@@ -236,7 +272,8 @@ bool __time_critical_func(handleScancode)(const uint32_t ps2scancode) {
             case 0x19: input_map.keychar = sp ? 'P' : 'p'; break;
             case 0x10: {
                 input_map.keychar = sp ? 'Q' : 'q';
-                input_map.joy2 |= ~INPUT_STICK_UL;
+                input_map.joy0 |= ~INPUT_STICK_UL;
+                qPressed = true;
                 break;
             }
             case 0x13: input_map.keychar = sp ? 'R' : 'r'; break;
@@ -246,18 +283,21 @@ bool __time_critical_func(handleScancode)(const uint32_t ps2scancode) {
             case 0x2f: input_map.keychar = sp ? 'V' : 'v'; break;
             case 0x11: {
                 input_map.keychar = sp ? 'W' : 'w';
-                input_map.joy2 |= ~INPUT_STICK_FORWARD; 
+                input_map.joy0 |= ~INPUT_STICK_FORWARD;
+                wPressed = true;
                 break;
             }
             case 0x2d: {
                 input_map.keychar = sp ? 'X' : 'x';
-                input_map.joy2 |= ~INPUT_STICK_BACK;
+                input_map.joy0 |= ~INPUT_STICK_BACK;
+                xPressed = true;
                 break;
             }
             case 0x15: input_map.keychar = sp ? 'Y' : 'y'; break;
             case 0x2c: {
                 input_map.keychar = sp ? 'Z' : 'z';
-                input_map.joy2 |= ~INPUT_STICK_LL;
+                input_map.joy0 |= ~INPUT_STICK_LL;
+                zPressed = true;
                 break;
             }
             case 0x36: sp |= 1; input_map.shift = sp; break; // rshift
@@ -271,42 +311,50 @@ bool __time_critical_func(handleScancode)(const uint32_t ps2scancode) {
             case 0x3f: input_map.keychar = 250; break; // F5 Help
             case 0x48: { // Up
                 input_map.keychar = 254;
-                input_map.joy0 |= ~INPUT_STICK_FORWARD;
+                input_map.joy1 |= ~INPUT_STICK_FORWARD;
+                _8Pressed = true;
                 break;
             }
             case 0x4b: { // Left
                 input_map.keychar = 253;
-                input_map.joy0 |= ~INPUT_STICK_LEFT;
+                input_map.joy1 |= ~INPUT_STICK_LEFT;
+                _4Pressed = true;
                 break;
             }
             case 0x50: { // Down
                 input_map.keychar = 252;
-                input_map.joy0 |= ~INPUT_STICK_BACK;
+                input_map.joy1 |= ~INPUT_STICK_BACK;
+                _2Pressed = true;
                 break;
             }
             case 0x4d: { // Right
                 input_map.keychar = 251;
-                input_map.joy0 |= ~INPUT_STICK_RIGHT;
+                input_map.joy1 |= ~INPUT_STICK_RIGHT;
+                _6Pressed = true;
                 break;
             }
             case 0x47: { // 7 - Up Left
                 input_map.keychar = '7'; // TODO: NumLock
-                input_map.joy0 |= ~INPUT_STICK_UL;
+                input_map.joy1 |= ~INPUT_STICK_UL;
+                _7Pressed = true;
                 break;
             }
             case 0x49: { // 9 - Up Right
                 input_map.keychar = '9'; // TODO: NumLock
-                input_map.joy0 |= ~INPUT_STICK_UR;
+                input_map.joy1 |= ~INPUT_STICK_UR;
+                _9Pressed = true;
                 break;
             }
             case 0x4f: { // 1 - Low Left
                 input_map.keychar = '1'; // TODO: NumLock
-                input_map.joy0 |= ~INPUT_STICK_LL;
+                input_map.joy1 |= ~INPUT_STICK_LL;
+                _1Pressed = true;
                 break;
             }
             case 0x51: { // 3 - Low Right
                 input_map.keychar = '3'; // TODO: NumLock
-                input_map.joy0 |= ~INPUT_STICK_LR;
+                input_map.joy1 |= ~INPUT_STICK_LR;
+                _3Pressed = true;
                 break;
             }
             default:
@@ -321,6 +369,63 @@ bool __time_critical_func(handleScancode)(const uint32_t ps2scancode) {
     }
     return true;
 }
+}
+
+
+void nespad_update() {
+    if (!aPressed && !qPressed && !zPressed)
+        if (nespad_state & DPAD_LEFT) {
+            input_map.joy0 |= ~INPUT_STICK_LEFT;
+        } else {
+            input_map.joy0 &= INPUT_STICK_LEFT;
+        }
+    if (!ePressed && !dPressed && !cPressed)
+        if (nespad_state & DPAD_RIGHT) {
+            input_map.joy0 |= ~INPUT_STICK_RIGHT;
+        } else {
+            input_map.joy0 &= INPUT_STICK_RIGHT;
+        }
+    if (!qPressed && !wPressed && !ePressed)
+        if (nespad_state & DPAD_UP) {
+            input_map.joy0 |= ~INPUT_STICK_FORWARD;
+        } else {
+            input_map.joy0 &= INPUT_STICK_FORWARD;
+        }
+    if (!zPressed && !xPressed && !cPressed)
+        if (nespad_state & DPAD_DOWN) {
+            input_map.joy0 |= ~INPUT_STICK_BACK;
+        } else {
+            input_map.joy0 &= INPUT_STICK_BACK;
+        }
+    if(!(input_map.control & 1))
+        input_map.trig0 = nespad_state & DPAD_START;
+
+    if (!_7Pressed && !_4Pressed && !_1Pressed)
+        if (nespad_state2 & DPAD_LEFT) {
+            input_map.joy1 |= ~INPUT_STICK_LEFT;
+        } else {
+            input_map.joy1 &= INPUT_STICK_LEFT;
+        }
+    if (!_9Pressed && !_6Pressed && !_3Pressed)
+        if (nespad_state2 & DPAD_RIGHT) {
+            input_map.joy1 |= ~INPUT_STICK_RIGHT;
+        } else {
+            input_map.joy1 &= INPUT_STICK_RIGHT;
+        }
+    if (!_7Pressed && !_8Pressed && !_9Pressed)
+        if (nespad_state2 & DPAD_UP) {
+            input_map.joy1 |= ~INPUT_STICK_FORWARD;
+        } else {
+            input_map.joy1 &= INPUT_STICK_FORWARD;
+        }
+    if (!_1Pressed && !_2Pressed && !_3Pressed)
+        if (nespad_state2 & DPAD_DOWN) {
+            input_map.joy1 |= ~INPUT_STICK_BACK;
+        } else {
+            input_map.joy1 &= INPUT_STICK_BACK;
+        }
+    if(!(input_map.control & 2))
+        input_map.trig1 = nespad_state2 & DPAD_START;
 }
 
 void __time_critical_func(render_core)() {
@@ -355,6 +460,7 @@ void __time_critical_func(render_core)() {
         if (tick >= last_input_tick + frame_tick * 5) {
             nespad_read();
             last_input_tick = tick;
+            nespad_update();
         }
         tick = time_us_64();
 
