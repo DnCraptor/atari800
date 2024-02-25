@@ -54,8 +54,12 @@
 	#include "win32/main.h"
 #endif
 
+#ifdef charset.h_regenerate
 static int initialised = FALSE;
 static UBYTE charset[1024];
+#else
+#include "charset.h"
+#endif
 
 #ifdef DIRECTX
 	POINT UI_mouse_click = {-1, -1};
@@ -892,14 +896,15 @@ static void GetDirectory(const char *directory)
 		_STAT_ROOT_TIME | _STAT_WRITEBIT;
 	/* we do not need any of those 'hard-to-get' informations */
 #endif	/* DJGPP */
-
 	filenames = (const char **) Util_malloc(FILENAMES_INITIAL_SIZE * sizeof(const char *), "GetDirectory 1");
 	n_filenames = 0;
 
 	if (BasicUIOpenDir(directory)) {
 		char filename[FILENAME_MAX];
 		int isdir, ishidden;
-
+    ///	if (strlen(directory) > 1) { // TODO
+	///		FilenamesAdd("[..]");
+	///	}
 		while (BasicUIReadDir(filename, &isdir, &ishidden)) {
 			char *filename2;
 
@@ -1352,10 +1357,12 @@ static void BasicUIInfoScreen(const char *title, const char *message)
 
 static void BasicUIInit(void)
 {
+#ifdef charset.h_regenerate
 	if (!initialised) {
 		MEMORY_GetCharset(charset);
 		initialised = TRUE;
 	}
+#endif
 }
 
 UI_tDriver UI_BASIC_driver = {

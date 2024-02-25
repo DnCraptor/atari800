@@ -1119,15 +1119,39 @@ void MEMORY_CartA0bfEnable(void)
 			GTIA_TRIG[3] = 1;
 	}
 }
-
+#ifdef charset.h_regenerate
 void MEMORY_GetCharset(UBYTE *cs)
 {
 	/* copy font, but change screencode order to ATASCII order */
 	memcpy(cs, ROM_altirra_5200_os + 0x200, 0x100); /* control chars */
 	memcpy(cs + 0x100, ROM_altirra_5200_os, 0x200); /* !"#$..., uppercase letters */
 	memcpy(cs + 0x300, ROM_altirra_5200_os + 0x300, 0x100); /* lowercase letters */
-}
 
+	FIL f;
+	UINT bw;
+	char tmp[64];
+	const char * str = "const UBYTE __in_flash() __aligned(1024) charset[1024] = {\n";
+	f_open(&f, "\\charset.h", FA_CREATE_ALWAYS | FA_WRITE);
+	f_write(&f, str, strlen(str), &bw);
+	for(int i = 0; i < 1024; i++) {
+		if (i && !(i % 16)) {
+			sprintf(tmp, " // 0x%08X\n", i - 16);
+			f_write(&f, tmp, strlen(tmp), &bw);
+		}
+		if (i == 0) {
+			str = "  ";
+		} else {
+			str = ", ";
+		}
+		f_write(&f, str, strlen(str), &bw);
+		sprintf(tmp, "0x%02X", (unsigned char)cs[i] & 0xFF);
+		f_write(&f, tmp, strlen(tmp), &bw);
+	}
+	str = "};\n";
+	f_write(&f, str, strlen(str), &bw);
+	f_close(&f);
+}
+#endif
 #ifndef PAGED_MEM
 UBYTE MEMORY_HwGetByte(UWORD addr, int no_side_effects)
 {
