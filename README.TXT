@@ -21,6 +21,26 @@ F2 - Option
 F3 - Select
 F4 - Start
 F5 - Help
+Ctrl + Alt + Del - Cold Restart
+
+Joystick 0 emulation:
+Q / W / E - up left   / up   / up right
+A /   / D - left      /      / right
+Z / X / C - down left / down / down right
+Left Ctrl - fire
+
+Joystick 1 emulation (numpad):
+7 / 8 / 9 - up left   / up   / up right
+4 /   / 6 - left      /      / right
+1 /  / 3 - down left / down / down right
+RightCtrl - fire
+
+Dendy-8 joysticks:
+Start + Select - UI
+Start  - Start
+Select - Select
+A - Fire
+TBA
 
 TBA:
 Please read DOC/README, DOC/INSTALL and DOC/USAGE and eventual platform
