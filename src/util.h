@@ -231,7 +231,7 @@ FIL *Util_uniqopen(char *filename, const char *mode);
 /* if we can't delete the created file, leave it to the user */
 #define Util_tmpbufdef(modifier, def)
 ///#define Util_fopen(filename, mode, tmpbuf)  fopen(filename, mode)
-///#define Util_tmpopen(tmpbuf)                Util_uniqopen(NULL, "wb+")
+#define Util_tmpopen(tmpbuf)                Util_uniqopen(NULL, FA_CREATE_ALWAYS | FA_WRITE)
 #define Util_fclose(fp, tmpbuf)             f_close(fp)
 #endif
 

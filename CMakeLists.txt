@@ -159,6 +159,8 @@ target_compile_definitions(${PROJECT_NAME} PRIVATE
 
         #MNGR_DEBUG=1
         #DEBUG2=1
+
+        HAVE_OPENDIR=1
 )
 
 

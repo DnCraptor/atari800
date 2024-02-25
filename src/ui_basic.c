@@ -776,20 +776,19 @@ static int BasicUIOpenDir(const char *dirname)
 
 static int BasicUIReadDir(char *filename, int *isdir, int *ishidden)
 {
-	struct dirent *entry;
+	if (dp == NULL) return FALSE;
+	FILINFO fileInfo;
 	char fullfilename[FILENAME_MAX];
-	struct stat st;
-	entry = readdir(dp);
-	if (entry == NULL) {
+	int r = f_readdir(dp, &fileInfo) == FR_OK && fileInfo.fname[0] != '\0';
+	if (!r) {
 		closedir(dp);
 		dp = NULL;
 		return FALSE;
 	}
-	strcpy(filename, entry->d_name);
-	Util_catpath(fullfilename, dir_path, entry->d_name);
-	stat(fullfilename, &st);
-	*isdir = S_ISDIR(st.st_mode);
-	*ishidden = strlen(entry->d_name) > 1 && entry->d_name[0] == '.' && entry->d_name[1] != '.';
+	strcpy(filename, fileInfo.fname);
+	Util_catpath(fullfilename, dir_path, fileInfo.fname);
+	*isdir = fileInfo.fattrib & AM_DIR;
+	*ishidden = strlen(fileInfo.fname) > 1 && fileInfo.fname == '.' && fileInfo.fname[1] != '.';
 	return TRUE;
 }
 
@@ -827,7 +826,7 @@ static void FilenamesAdd(const char *filename)
 {
 	if (n_filenames >= FILENAMES_INITIAL_SIZE && (n_filenames & (n_filenames - 1)) == 0) {
 		/* n_filenames is a power of two: allocate twice as much */
-		filenames = (const char **) Util_realloc((void *) filenames, 2 * n_filenames * sizeof(const char *));
+		filenames = (const char **) Util_realloc((void *) filenames, 2 * n_filenames * sizeof(const char *), "FilenamesAdd");
 	}
 	filenames[n_filenames++] = filename;
 }
@@ -894,7 +893,7 @@ static void GetDirectory(const char *directory)
 	/* we do not need any of those 'hard-to-get' informations */
 #endif	/* DJGPP */
 
-	filenames = (const char **) Util_malloc(FILENAMES_INITIAL_SIZE * sizeof(const char *));
+	filenames = (const char **) Util_malloc(FILENAMES_INITIAL_SIZE * sizeof(const char *), "GetDirectory 1");
 	n_filenames = 0;
 
 	if (BasicUIOpenDir(directory)) {
@@ -912,14 +911,14 @@ static void GetDirectory(const char *directory)
 			if (isdir) {
 				/* add directories as [dir] */
 				size_t len = strlen(filename);
-				filename2 = (char *) Util_malloc(len + 3);
+				filename2 = (char *) Util_malloc(len + 3, "GetDirectory 2");
 				memcpy(filename2 + 1, filename, len);
 				filename2[0] = '[';
 				filename2[len + 1] = ']';
 				filename2[len + 2] = '\0';
 			}
 			else
-				filename2 = Util_strdup(filename);
+				filename2 = Util_strdup(filename, "GetDirectory 3");
 
 			FilenamesAdd(filename2);
 		}

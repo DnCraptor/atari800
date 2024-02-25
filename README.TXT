@@ -32,7 +32,7 @@ Left Ctrl - fire
 Joystick 1 emulation (numpad):
 7 / 8 / 9 - up left   / up   / up right
 4 /   / 6 - left      /      / right
-1 /  / 3 - down left / down / down right
+1 / 2 / 3 - down left / down / down right
 RightCtrl - fire
 
 Dendy-8 joysticks:

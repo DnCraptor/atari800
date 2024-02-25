@@ -249,35 +249,35 @@ static int Devices_OpenDir(const char *filename)
 static int Devices_ReadDir(char *fullpath, char *filename, int *isdir,
                           int *readonly, int *size, char *timetext)
 {
-	struct dirent *entry;
+	FILINFO fileInfo;
 	char temppath[FILENAME_MAX];
 #ifdef HAVE_STAT
 	struct stat status;
 #endif
 	for (;;) {
-		entry = readdir(dp);
-		if (entry == NULL) {
+		int r = f_readdir(dp, &fileInfo) == FR_OK && fileInfo.fname[0] != '\0';
+		if (!r) {
 			closedir(dp);
 			dp = NULL;
 			return FALSE;
 		}
-		if (entry->d_name[0] == '.') {
+		if (fileInfo.fname[0] == '.') {
 			/* don't match Unix hidden files unless specifically requested */
 			if (filename_pattern[0] != '.')
 				continue;
 			/* never match "." */
-			if (entry->d_name[1] == '\0')
+			if (fileInfo.fname[1] == '\0')
 				continue;
 			/* never match ".." */
-			if (entry->d_name[1] == '.' && entry->d_name[2] == '\0')
+			if (fileInfo.fname[1] == '.' && fileInfo.fname[2] == '\0')
 				continue;
 		}
-		if (match(filename_pattern, entry->d_name))
+		if (match(filename_pattern, fileInfo.fname))
 			break;
 	}
 	if (filename != NULL)
-		strcpy(filename, entry->d_name);
-	Util_catpath(temppath, dir_path, entry->d_name);
+		strcpy(filename, fileInfo.fname);
+	Util_catpath(temppath, dir_path, fileInfo.fname);
 	if (fullpath != NULL)
 		strcpy(fullpath, temppath);
 #ifdef HAVE_STAT
@@ -316,11 +316,11 @@ static int Devices_ReadDir(char *fullpath, char *filename, int *isdir,
 #endif /* HAVE_STAT */
 	{
 		if (isdir != NULL)
-			*isdir = FALSE;
+			*isdir = fileInfo.fattrib & AM_DIR;
 		if (readonly != NULL)
-			*readonly = FALSE;
+			*readonly = fileInfo.fattrib & AM_RDO;
 		if (size != NULL)
-			*size = 0;
+			*size = fileInfo.fsize;
 		if (timetext != NULL)
 			strcpy(timetext, " 1-01-01 12:00p");
 	}
@@ -818,6 +818,7 @@ static UWORD Devices_GetHostPath(int set_textmode)
 static void Devices_H_Open(void)
 {
 	UBYTE aux1;
+	FIL * fp;
 #ifdef DO_DIR
 	UBYTE aux2;
 	char entryname[FILENAME_MAX];
@@ -880,9 +881,9 @@ static void Devices_H_Open(void)
 		if (aux2 >= 128) {
 			fprintf(fp, "\nVolume:    HDISK%c\nDirectory: ", '1' + h_devnum);
 			/* if (strcmp(dir_path, Devices_atari_h_dir[h_devnum]) == 0) */
-			if (strchr(atari_path, Util_DIR_SEP_CHAR) == NULL)
+			if (strchr(atari_path, Util_DIR_SEP_CHAR) == NULL) {
 				fprintf(fp, "MAIN\n\n");
-			else {
+			} else {
 				char end_dir_str[FILENAME_MAX];
 				Util_splitpath(dir_path, NULL, end_dir_str);
 				fprintf(fp, "%s\n\n", /* Util_strupper */(end_dir_str));
@@ -910,9 +911,9 @@ static void Devices_H_Open(void)
 				entryname[8] = '\0';
 			}
 			if (aux2 >= 128) {
-				if (isdir)
+				if (isdir) {
 					fprintf(fp, "%-13s<DIR>  %s\n", entryname, timetext);
-				else {
+				} else {
 					if (size > 999999)
 						size = 999999;
 					fprintf(fp, "%-9s%-3s %6d %s\n", entryname, ext, size, timetext);
@@ -934,11 +935,11 @@ static void Devices_H_Open(void)
 			}
 		}
 
-		if (aux2 >= 128)
+		if (aux2 >= 128) {
 			fprintf(fp, "   999 FREE SECTORS\n");
-		else
+		} else {
 			fprintf(fp, "999 FREE SECTORS\n");
-
+		}
 		Util_rewind(fp);
 		h_textmode[h_iocb] = TRUE;
 		CPU_regY = 1;

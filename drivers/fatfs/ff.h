@@ -480,4 +480,13 @@ inline static int fgets(char* string, const size_t sz, FIL* fp) {
 	return 1;
 }
 
+static DIR dir;
+static inline DIR* opendir(const char* d) {
+    return f_opendir(&dir, d) == FR_OK ? &dir : NULL;
+}
+
+static inline void closedir(DIR * d) {
+	f_closedir(d);
+}
+
 #endif /* FF_DEFINED */
