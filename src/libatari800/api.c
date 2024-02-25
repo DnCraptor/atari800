@@ -356,14 +356,6 @@ int libatari800_get_sound_buffer_len() {
 	return (int)sound_array_fill;
 }
 
-int libatari800_get_sound_buffer_idx() {
-	return (int)sound_array_idx;
-}
-
-void libatari800_set_sound_buffer_idx(int i) {
-	sound_array_idx = i;
-}
-
 /** Return the maximum size of the sound buffer.
  *
  * @returns number of bytes allocated in sound buffer

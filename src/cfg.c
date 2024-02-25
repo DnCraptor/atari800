@@ -7,6 +7,7 @@
 #include "debug.h"
 #include "memory.h"
 #include "sysrom.h"
+#include "sound.h"
 #include "binload.h"
 #include "devices.h"
 #include "pokeysnd.h"

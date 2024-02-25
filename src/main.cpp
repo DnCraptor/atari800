@@ -24,6 +24,7 @@ extern "C" {
 #include "debug.h"
 #include "screen.h"
 #include "sound.h"
+#include "util.h"
 }
 
 #include "psram_spi.h"
@@ -203,6 +204,17 @@ void __time_critical_func(render_core)() {
     __unreachable();
 }
 
+static UINT sound_array_idx = 0;
+static UINT sound_array_fill = 0;
+extern "C" UBYTE *LIBATARI800_Sound_array = 0;
+extern "C" void PLATFORM_SoundWrite(UBYTE const *buffer, unsigned int size)
+{
+    if (LIBATARI800_Sound_array) free(LIBATARI800_Sound_array);
+    LIBATARI800_Sound_array = (UBYTE *) Util_malloc(size, "PLATFORM_SoundWrite");
+	memcpy(LIBATARI800_Sound_array, buffer, size);
+	sound_array_idx = 0;
+	sound_array_fill = size;
+}
 
 #ifdef SOUND
 static repeating_timer_t timer;
@@ -211,10 +223,8 @@ static int snd_bits = 16;
 static bool __not_in_flash_func(AY_timer_callback)(repeating_timer_t *rt) {
     static uint16_t outL = 0;  
     static uint16_t outR = 0;
-    int len = libatari800_get_sound_buffer_len();
-    int idx = libatari800_get_sound_buffer_idx();
-    if (idx >= len) {
-        // empty buffer
+    register uint16_t idx = sound_array_idx;
+    if (idx >= sound_array_fill) {
         return true;
     }
     pwm_set_gpio_level(PWM_PIN0, outR); // Право
@@ -228,22 +238,22 @@ static bool __not_in_flash_func(AY_timer_callback)(repeating_timer_t *rt) {
         if (snd_bits == 8) {
             outL = ((uint16_t)uba[idx]) << (11 - 8);
             outR = ((uint16_t)uba[idx + 1]) << (11 - 8);
-            libatari800_set_sound_buffer_idx(idx + 2);
+            sound_array_idx += 2;
         } else {
             outL = ((uint16_t*)uba)[idx << 1] >> (16 - 11);
             outR = ((uint16_t*)uba)[(idx << 1) + 2] >> (16 - 11);
-            libatari800_set_sound_buffer_idx(idx + 4);
+            sound_array_idx += 4;
         }
     } else {
         if (snd_bits == 8) {
             outL = outR = ((uint16_t)uba[idx]) << (11 - 8);
-            libatari800_set_sound_buffer_idx(idx + 1);
+            sound_array_idx++;
         } else {
             outL = outR = ((uint16_t*)uba)[idx << 1] >> (16 - 11);
-            libatari800_set_sound_buffer_idx(idx + 2);
+            sound_array_idx += 2;
         }
     }
-    if (outR || outL) {
+  //  if (outR || outL) {
      ///   register uint8_t mult = 0; ///g_conf.snd_volume;
      ///   if (mult >= 0) {
      ///       if (mult > 5) mult = 5;
@@ -255,8 +265,8 @@ static bool __not_in_flash_func(AY_timer_callback)(repeating_timer_t *rt) {
      ///       outL >>= div;
      ///       outR >>= div;
      ///   }
-        pwm_set_gpio_level(BEEPER_PIN, 0);
-    }
+ //       pwm_set_gpio_level(BEEPER_PIN, 0);
+ //   }
     return true;
 }
 #endif
