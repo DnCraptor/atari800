@@ -7,7 +7,7 @@
 /* Note: INPUT_key_consol should be INPUT_CONSOL_NONE if no consol key is pressed.
    When a consol key is pressed, corresponding bit should be cleared.
  */
-#define INPUT_CONSOL_NONE		0x07
+#define INPUT_CONSOL_NONE	0x07
 #define INPUT_CONSOL_START	0x01
 #define INPUT_CONSOL_SELECT	0x02
 #define INPUT_CONSOL_OPTION	0x04
@@ -20,11 +20,11 @@ extern int INPUT_key_consol;	/* Start, Select and Option keys */
 
 /* joystick position */
 #define	INPUT_STICK_LL		0x09
-#define	INPUT_STICK_BACK		0x0d
+#define	INPUT_STICK_BACK	0x0d
 #define	INPUT_STICK_LR		0x05
-#define	INPUT_STICK_LEFT		0x0b
+#define	INPUT_STICK_LEFT	0x0b
 #define	INPUT_STICK_CENTRE	0x0f
-#define	INPUT_STICK_RIGHT		0x07
+#define	INPUT_STICK_RIGHT	0x07
 #define	INPUT_STICK_UL		0x0a
 #define	INPUT_STICK_FORWARD	0x0e
 #define	INPUT_STICK_UR		0x06

@@ -8,14 +8,12 @@
 #include <pico/multicore.h>
 #include <hardware/pwm.h>
 #include <pico/stdlib.h>
-
 #include "graphics.h"
+#include "psram_spi.h"
+#include "nespad.h"
 
 extern "C" {
 #include "ps2.h"
-}
-
-extern "C" {
 #include "libatari800/libatari800.h"
 #include "sound.h"
 #include "akey.h"
@@ -25,10 +23,8 @@ extern "C" {
 #include "screen.h"
 #include "sound.h"
 #include "util.h"
+#include "input.h"
 }
-
-#include "psram_spi.h"
-#include "nespad.h"
 
 static FATFS fs;
 semaphore vga_start_semaphore;
@@ -62,8 +58,16 @@ bool __time_critical_func(handleScancode)(const uint32_t ps2scancode) {
         input_map.start = 0;
     } else {
         if (ps2scancode == 0xE053) { input_map.keychar = 127; return true; } // Del
-        if (ps2scancode == 0xE01D) { input_map.control |= 2; return true; } // rCnt
-        if (ps2scancode == 0xE09D) { input_map.control &= ~2; return true; } // rCnt
+        if (ps2scancode == 0xE01D) {
+            input_map.control |= 2;
+            input_map.trig0 = 1;
+            return true;
+        } // rCnt
+        if (ps2scancode == 0xE09D) {
+            input_map.control &= ~2;
+            input_map.trig0 = 0;
+            return true;
+        } // rCnt
         if (ps2scancode == 0xE038) { input_map.alt |= 2; return true; } // rAlt
         if (ps2scancode == 0xE0B8) { input_map.alt &= ~2; return true; } // rAlt
         //if (ps2scancode == 0xE05B) { ; return true; } // lWin
@@ -78,6 +82,26 @@ bool __time_critical_func(handleScancode)(const uint32_t ps2scancode) {
                 case 0xbc: input_map.option = 0; break; // F2 Option
                 case 0xbd: input_map.select = 0; break; // F3 Select
                 case 0xbe: input_map.start = 0; break; // F4 Start
+                case 0xc8: { // Up
+                    input_map.keychar = 0;
+                    input_map.joy0 |= ~INPUT_STICK_FORWARD;
+                    break;
+                }
+                case 0xcb: { // Left
+                    input_map.keychar = 0;
+                    input_map.joy0 |= ~INPUT_STICK_LEFT;
+                    break;
+                }
+                case 0xd0: { // Down
+                    input_map.keychar = 0;
+                    input_map.joy0 |= ~INPUT_STICK_BACK;
+                    break;
+                }
+                case 0xcd: { // Right
+                    input_map.keychar = 0;
+                    input_map.joy0 |= ~INPUT_STICK_RIGHT;
+                    break;
+                }
                 default: input_map.keychar = 0; break;
             }
             return true;
@@ -145,10 +169,26 @@ bool __time_critical_func(handleScancode)(const uint32_t ps2scancode) {
             case 0x3d: input_map.select = 1; break; // F3 Select
             case 0x3e: input_map.start = 1; break; // F4 Start
             case 0x3f: input_map.keychar = 250; break; // F5 Help
-            case 0x48: input_map.keychar = 254; break; // Up
-            case 0x4b: input_map.keychar = 253; break; // Left
-            case 0x50: input_map.keychar = 252; break; // Down
-            case 0x4d: input_map.keychar = 251; break; // Right
+            case 0x48: { // Up
+                input_map.keychar = 254;
+                input_map.joy0 &= INPUT_STICK_FORWARD;
+                break;
+            }
+            case 0x4b: { // Left
+                input_map.keychar = 253;
+                input_map.joy0 &= INPUT_STICK_LEFT;
+                break;
+            }
+            case 0x50: { // Down
+                input_map.keychar = 252;
+                input_map.joy0 &= INPUT_STICK_BACK;
+                break;
+            }
+            case 0x4d: { // Right
+                input_map.keychar = 251;
+                input_map.joy0 &= INPUT_STICK_RIGHT;
+                break;
+            }
             default:
                 return true;
         }
@@ -330,6 +370,7 @@ int main() {
     libatari800_init(-1, test_args);
     printf("libatari800_clear_input_array");
     libatari800_clear_input_array(&input_map);
+    input_map.joy0 = 0x0F;
 
     gpio_init(PICO_DEFAULT_LED_PIN);
     gpio_set_dir(PICO_DEFAULT_LED_PIN, GPIO_OUT);
