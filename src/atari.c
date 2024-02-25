@@ -1290,7 +1290,8 @@ void Atari800_Frame(void)
 {
 #ifndef BASIC
 	static int refresh_counter = 0;
-
+	static int frame_timer_start = 0;
+	if (!frame_timer_start) frame_timer_start = time_us_64();
 #ifdef CTRL_C_HANDLER
 	if (sigint_flag) {
 		sigint_flag = FALSE;
@@ -1396,6 +1397,14 @@ void Atari800_Frame(void)
 	Screen_DrawMultimediaStats();
 #endif
 	Atari800_nframes++;
+    if (!Atari800_turbo) { // Тормозилка
+		static frame_cnt = 0;
+        if (++frame_cnt == (Atari800_tv_mode == Atari800_TV_PAL ? 5 : 6)) {
+		    while (time_us_64() - frame_timer_start < (Atari800_tv_mode == Atari800_TV_PAL ? 20000*6 : 16666*6)); // 60 Hz
+            frame_timer_start = time_us_64();
+            frame_cnt = 0;
+        }
+    }
 #ifndef LIBATARI800
 #ifdef BENCHMARK
 	if (Atari800_nframes >= BENCHMARK) {
