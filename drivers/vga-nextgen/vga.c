@@ -42,7 +42,7 @@ static int visible_line_size = 320;
 static int dma_chan_ctrl;
 static int dma_chan;
 
-static uint8_t* graphics_buffer;
+static uint8_t* graphics_buffer = NULL;
 uint8_t* text_buffer = NULL;
 static uint graphics_buffer_width = 0;
 static uint graphics_buffer_height = 0;
@@ -249,6 +249,7 @@ void __time_critical_func() dma_handler_VGA() {
     uint16_t* current_palette = palette[(y & is_flash_line) + (frame_number & is_flash_frame) & 1];
 
     uint8_t* output_buffer_8bit;
+    if(graphics_buffer != NULL)
     switch (graphics_mode) {
         case CGA_640x200x2:
             output_buffer_8bit = (uint8_t *)output_buffer_16bit;
