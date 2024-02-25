@@ -605,6 +605,17 @@ int main() {
     sem_init(&vga_start_semaphore, 0, 1);
     multicore_launch_core1(render_core);
     sem_release(&vga_start_semaphore);
+    printf("libatari800_init");
+    libatari800_init(-1, test_args);
+
+    gpio_init(PICO_DEFAULT_LED_PIN);
+    gpio_set_dir(PICO_DEFAULT_LED_PIN, GPIO_OUT);
+    for (int i = 0; i < 6; i++) {
+        sleep_ms(33);
+        gpio_put(PICO_DEFAULT_LED_PIN, true);
+        sleep_ms(33);
+        gpio_put(PICO_DEFAULT_LED_PIN, false);
+    }
 
     init_fs(); // TODO: psram replacement (pagefile)
     init_psram();
@@ -618,19 +629,10 @@ int main() {
     //пин ввода звука
     inInit(LOAD_WAV_PIO);
 #endif
-    printf("libatari800_init");
-    libatari800_init(-1, test_args);
+
     printf("libatari800_clear_input_array");
     libatari800_clear_input_array(&input_map);
 
-    gpio_init(PICO_DEFAULT_LED_PIN);
-    gpio_set_dir(PICO_DEFAULT_LED_PIN, GPIO_OUT);
-    for (int i = 0; i < 6; i++) {
-        sleep_ms(33);
-        gpio_put(PICO_DEFAULT_LED_PIN, true);
-        sleep_ms(33);
-        gpio_put(PICO_DEFAULT_LED_PIN, false);
-    }
 
 #ifdef SOUND
 	int hz = libatari800_get_sound_frequency(); ///44100;	//44000 //44100 //96000 //22050
@@ -645,6 +647,8 @@ int main() {
     while(true) {
         libatari800_next_frame(&input_map);
         sleep_us(5);
+
+        tight_loop_contents();
     }
 
     __unreachable();
