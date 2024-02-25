@@ -63,12 +63,18 @@ void curses_putch(int x, int y, int ascii, UBYTE fg, UBYTE bg);
 void curses_display_line(int anticmode, const UBYTE *screendata);
 #endif
 
-#ifdef GUI_SDL
+///#ifdef GUI_SDL
 /* used in UI to show how the keyboard joystick is mapped */
 int PLATFORM_IsKbdJoystickEnabled(int num);
 void PLATFORM_ToggleKbdJoystickEnabled(int num);
 int PLATFORM_GetRawKey(void);
-#endif /* GUI_SDL */
+/*Configuration of a real SDL joystick*/
+typedef struct SDL_INPUT_RealJSConfig_t {
+	int use_hat;    
+} SDL_INPUT_RealJSConfig_t;
+/*Get pointer to a real joystick configuration (for UI)*/
+SDL_INPUT_RealJSConfig_t* SDL_INPUT_GetRealJSConfig(int joyIndex);
+///#endif /* GUI_SDL */
 
 #ifdef DIRECTX
 int PLATFORM_GetKeyName(void);

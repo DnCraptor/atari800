@@ -52,11 +52,11 @@ extern int UI_n_saved_files_dir;
 
 extern int UI_show_hidden_files;
 
-#ifdef GUI_SDL
+///#ifdef GUI_SDL
 void PLATFORM_SetJoystickKey(int joystick, int direction, int value);
 void PLATFORM_GetJoystickKeyName(int joystick, int direction, char *buffer, int bufsize);
 int GetRawKey(void);
-#endif
+///#endif
 
 #ifdef DIRECTX
 void PLATFORM_GetButtonAssignments(int stick, int button, char *buffer, int bufsize);

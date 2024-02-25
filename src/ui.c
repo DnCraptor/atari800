@@ -3756,7 +3756,7 @@ static void WindowsOptions(void)
 
 #ifndef USE_CURSES
 
-#ifdef GUI_SDL
+///#ifdef GUI_SDL
 static char joys[2][5][16];
 static const UI_tMenuItem joy0_menu_array[] = {
 	UI_MENU_LABEL("Select joy direction"),
@@ -3848,7 +3848,7 @@ static void RealJoystickConfiguration(void)
 		}
 	}
 }
-#endif
+///#endif
 
 #ifdef DIRECTX
 static char buttons[9][2][16];
@@ -3989,10 +3989,10 @@ static void ControllerConfiguration(void)
 		mouse_port_status[0] = (char) ('1' + INPUT_mouse_port);
 		mouse_speed_status[0] = (char) ('0' + INPUT_mouse_speed);
 #endif
-#ifdef GUI_SDL
+///#ifdef GUI_SDL
 		SetItemChecked(menu_array, 5, PLATFORM_IsKbdJoystickEnabled(0));
 		SetItemChecked(menu_array, 7, PLATFORM_IsKbdJoystickEnabled(1));
-#endif
+///#endif
 #ifdef DIRECTX
 		menu_array[5].suffix = keyboard_joystick_mode_array[keyboardJoystickMode].item;
 		menu_array[6].suffix = alternate_joystick_mode_array[alternateJoystickMode].item;
@@ -4044,7 +4044,7 @@ static void ControllerConfiguration(void)
 			INPUT_mouse_speed = UI_driver->fSelectInt(INPUT_mouse_speed, 1, 9);
 			break;
 #endif
-#ifdef GUI_SDL
+///#ifdef GUI_SDL
 		case 5:
 			PLATFORM_ToggleKbdJoystickEnabled(0);
 			break;
@@ -4059,7 +4059,7 @@ static void ControllerConfiguration(void)
 			break;
 		case 9: RealJoystickConfiguration();
 			break;
-#endif
+///#endif
 #ifdef DIRECTX
 		case 5:
 		    prev_option = keyboardJoystickMode;

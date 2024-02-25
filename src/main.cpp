@@ -10,12 +10,11 @@
 #include <pico/stdlib.h>
 
 #include "graphics.h"
+#include "psram_spi.h"
+#include "nespad.h"
 
 extern "C" {
 #include "ps2.h"
-}
-
-extern "C" {
 #include "libatari800/libatari800.h"
 #include "sound.h"
 #include "akey.h"
@@ -25,10 +24,139 @@ extern "C" {
 #include "screen.h"
 #include "sound.h"
 #include "util.h"
+
+#include "platform.h"
+
+/* a runtime switch for the kbd_joy_X_enabled vars is in the UI */
+static int kbd_joy_0_enabled = TRUE;	/* enabled by default, doesn't hurt */
+static int kbd_joy_1_enabled = FALSE;	/* disabled, would steal normal keys */
+
+int PLATFORM_IsKbdJoystickEnabled(int num) {
+	switch (num) {
+	case 0:
+		return kbd_joy_0_enabled;
+	case 1:
+		return kbd_joy_1_enabled;
+	default:
+		return FALSE;
+	}
 }
 
-#include "psram_spi.h"
-#include "nespad.h"
+/* Each emulated joystick can take its input from host keyboard, an
+   LPT joystick, an actual SDL joystick, or a combination thereof. */
+#define MAX_JOYSTICKS	4
+static struct stick_dev {
+	int *kbd;
+	int fd_lpt;
+///	SDL_Joystick *sdl_joy;
+	int nbuttons;
+	SDL_INPUT_RealJSConfig_t real_config;
+} stick_devs[MAX_JOYSTICKS];
+static int grab_mouse = FALSE;
+static int swap_joysticks = FALSE;
+static int joy_distinct = FALSE;
+
+#define SDLK_KP8 0x48
+#define SDLK_KP5 0x4c
+#define SDLK_KP4 0x4b
+#define SDLK_KP6 0x4d
+#define SDLK_RCTRL 0xe01d
+
+#define SDLK_w 0x11
+#define SDLK_s 0x1f
+#define SDLK_a 0x1e
+#define SDLK_d 0x20
+#define SDLK_LCTRL 0x1d
+
+/* joystick emulation (via stick_dev.kbd)
+   keys are loaded from config file
+   Here the defaults if there is no keymap in the config file,
+   in the order up, down, left, right, trigger */
+static int kbd_stick0[5] = {
+	SDLK_KP8, SDLK_KP5, SDLK_KP4, SDLK_KP6, SDLK_RCTRL
+};
+static int kbd_stick1[5] = {
+	SDLK_w, SDLK_s, SDLK_a, SDLK_d, SDLK_LCTRL
+};
+#define KBD_STICK_0_UP kbd_stick0[0]
+#define KBD_STICK_0_DOWN kbd_stick0[1]
+#define KBD_STICK_0_LEFT kbd_stick0[2]
+#define KBD_STICK_0_RIGHT kbd_stick0[3]
+#define KBD_TRIG_0 kbd_stick0[4]
+#define KBD_STICK_1_UP kbd_stick1[0]
+#define KBD_STICK_1_DOWN kbd_stick1[1]
+#define KBD_STICK_1_LEFT kbd_stick1[2]
+#define KBD_STICK_1_RIGHT kbd_stick1[3]
+#define KBD_TRIG_1 kbd_stick1[4]
+
+static void update_kbd_sticks(void) {
+	stick_devs[swap_joysticks].kbd = kbd_joy_0_enabled ? kbd_stick0 : NULL;
+	stick_devs[1 - swap_joysticks].kbd = kbd_joy_1_enabled ? kbd_stick1 : NULL;
+}
+
+void PLATFORM_ToggleKbdJoystickEnabled(int num) {
+	switch (num) {
+	case 0:
+		kbd_joy_0_enabled = !kbd_joy_0_enabled;
+	case 1:
+		kbd_joy_1_enabled = !kbd_joy_1_enabled;
+	}
+	update_kbd_sticks();
+}
+
+/*Get pointer to a real joystick configuration*/
+SDL_INPUT_RealJSConfig_t* SDL_INPUT_GetRealJSConfig(int joyIndex) {
+    return &stick_devs[joyIndex].real_config;
+}
+
+
+void PLATFORM_SetJoystickKey(int joystick, int direction, int value)
+{
+	if (joystick == 0) {
+		switch(direction) {
+			case 0: KBD_STICK_0_LEFT = value; break;
+			case 1: KBD_STICK_0_UP = value; break;
+			case 2: KBD_STICK_0_RIGHT = value; break;
+			case 3: KBD_STICK_0_DOWN = value; break;
+			case 4: KBD_TRIG_0 = value; break;
+		}
+	}
+	else {
+		switch(direction) {
+			case 0: KBD_STICK_1_LEFT = value; break;
+			case 1: KBD_STICK_1_UP = value; break;
+			case 2: KBD_STICK_1_RIGHT = value; break;
+			case 3: KBD_STICK_1_DOWN = value; break;
+			case 4: KBD_TRIG_1 = value; break;
+		}
+	}
+}
+
+void PLATFORM_GetJoystickKeyName(int joystick, int direction, char *buffer, int bufsize) {
+	char *key = "";
+	switch(direction) {
+		case 0: key = "LEFT"; /// SDL_GetKeyName((SDLKey)(joystick == 0 ? KBD_STICK_0_LEFT : KBD_STICK_1_LEFT));
+			break;
+		case 1: key = "UP"; /// SDL_GetKeyName((SDLKey)(joystick == 0 ? KBD_STICK_0_UP : KBD_STICK_1_UP));
+			break;
+		case 2: key = "RIGHT"; ///SDL_GetKeyName((SDLKey)(joystick == 0 ? KBD_STICK_0_RIGHT : KBD_STICK_1_RIGHT));
+			break;
+		case 3: key = "DOWN"; ///SDL_GetKeyName((SDLKey)(joystick == 0 ? KBD_STICK_0_DOWN : KBD_STICK_1_DOWN));
+			break;
+		case 4: key = "TRIG";///SDL_GetKeyName((SDLKey)(joystick == 0 ? KBD_TRIG_0 : KBD_TRIG_1));
+			break;
+	}
+	snprintf(buffer, bufsize, "%11s", key);
+}
+
+int PLATFORM_GetRawKey(void) {
+	while(TRUE) { 
+        /// TODO:
+        return 0x35;
+    }
+}
+
+}
 
 static FATFS fs;
 semaphore vga_start_semaphore;
