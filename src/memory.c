@@ -93,16 +93,17 @@ const size_t under_cart809F_size = 8192;
 ///static UBYTE under_cartA0BF[8192];
 const size_t under_cartA0BF_base = under_cart809F_base + under_cart809F_size;
 const size_t under_cartA0BF_size = 8192;
+/* RAM shadowed by Self-Test in the XE bank seen by ANTIC, when ANTIC/CPU
+   separate XE access is active. */
+///static UBYTE antic_bank_under_selftest[0x800];
+const size_t antic_bank_under_selftest_base = under_cartA0BF_base + under_cartA0BF_size;
+const size_t antic_bank_under_selftest_size = 0x800;
 
 static int cart809F_enabled = FALSE;
 int MEMORY_cartA0BF_enabled = FALSE;
 
 static UBYTE *atarixe_memory = NULL;
 static ULONG atarixe_memory_size = 0;
-
-/* RAM shadowed by Self-Test in the XE bank seen by ANTIC, when ANTIC/CPU
-   separate XE access is active. */
-static UBYTE antic_bank_under_selftest[0x800];
 
 int MEMORY_have_basic = FALSE; /* Atari BASIC image has been successfully read (Atari 800 only) */
 
@@ -432,8 +433,8 @@ void MEMORY_StateSave(UBYTE SaveVerbose)
 
 	if (MEMORY_ram_size > 64) {
 		StateSav_SaveUBYTE(&atarixe_memory[0], atarixe_memory_size);
-		if (ANTIC_xe_ptr != NULL && MEMORY_selftest_enabled)
-			StateSav_SaveUBYTE(antic_bank_under_selftest, 0x800);
+	///	if (ANTIC_xe_ptr != NULL && MEMORY_selftest_enabled)
+	///		StateSav_SaveUBYTE(antic_bank_under_selftest, 0x800);
 	}
 
 	/* Simius XL/XE MapRAM expansion */
@@ -673,11 +674,9 @@ void MEMORY_StateRead(UBYTE SaveVerbose, UBYTE StateVersion)
 				ANTIC_xe_ptr = NULL;
 				break;
 			}
-
-			if (ANTIC_xe_ptr != NULL && MEMORY_selftest_enabled)
+		///	if (ANTIC_xe_ptr != NULL && MEMORY_selftest_enabled)
 				/* Also read ANTIC-visible memory shadowed by Self Test. */
-				StateSav_ReadUBYTE(antic_bank_under_selftest, 0x800);
-
+		///		StateSav_ReadUBYTE(antic_bank_under_selftest, 0x800);
 		}
 	}
 
@@ -807,9 +806,14 @@ void MEMORY_HandlePORTB(UBYTE byte, UBYTE oldval)
 				MEMORY_mem[0x5000 + i] = read8psram(under_atarixl_os_base + 0x1000 + i);
 			}
 			///memcpy(MEMORY_mem + 0x5000, under_atarixl_os + 0x1000, 0x800);
-			if (ANTIC_xe_ptr != NULL)
+			if (ANTIC_xe_ptr != NULL) {
 				/* Also disable Self Test from XE bank accessed by ANTIC. */
-				memcpy(atarixe_memory + (antic_bank << 14) + 0x1000, antic_bank_under_selftest, 0x800);
+				UBYTE* to = atarixe_memory + (antic_bank << 14) + 0x1000;
+				for (size_t i = 0; i < 0x800; ++i) {
+					*to++ = read8psram(antic_bank_under_selftest_base + i);
+				}
+				///memcpy(to, antic_bank_under_selftest, 0x800);
+			}
 			MEMORY_SetRAM(0x5000, 0x57ff);
 			MEMORY_selftest_enabled = FALSE;
 		}
@@ -869,9 +873,14 @@ void MEMORY_HandlePORTB(UBYTE byte, UBYTE oldval)
 						MEMORY_mem[0x5000 + i] = read8psram(under_atarixl_os_base + 0x1000 + i);
 					}
 					///memcpy(MEMORY_mem + 0x5000, under_atarixl_os + 0x1000, 0x800);
-					if (ANTIC_xe_ptr != NULL)
+					if (ANTIC_xe_ptr != NULL) {
 						/* Also disable Self Test from XE bank accessed by ANTIC. */
-						memcpy(atarixe_memory + (antic_bank << 14) + 0x1000, antic_bank_under_selftest, 0x800);
+						UBYTE* to = atarixe_memory + (antic_bank << 14) + 0x1000;
+						for (size_t i = 0; i < 0x800; ++i) {
+							*to++ = read8psram(antic_bank_under_selftest_base + i);
+						}
+						///memcpy(to, antic_bank_under_selftest, 0x800);
+					}
 					MEMORY_SetRAM(0x5000, 0x57ff);
 				}
 				else
@@ -918,9 +927,14 @@ void MEMORY_HandlePORTB(UBYTE byte, UBYTE oldval)
 					MEMORY_mem[0x5000 + i] = read8psram(under_atarixl_os_base + 0x1000 + i);
 				}
 				///memcpy(MEMORY_mem + 0x5000, under_atarixl_os + 0x1000, 0x800);
-				if (ANTIC_xe_ptr != NULL)
+				if (ANTIC_xe_ptr != NULL) {
 					/* Also disable Self Test from XE bank accessed by ANTIC. */
-					memcpy(atarixe_memory + (antic_bank << 14) + 0x1000, antic_bank_under_selftest, 0x800);
+					UBYTE* to = atarixe_memory + (antic_bank << 14) + 0x1000;
+					for (size_t i = 0; i < 0x800; ++i) {
+						*to++ = read8psram(antic_bank_under_selftest_base + i);
+					}
+					///memcpy(to, antic_bank_under_selftest, 0x800);
+				}
 				MEMORY_SetRAM(0x5000, 0x57ff);
 			}
 			else
@@ -941,9 +955,14 @@ void MEMORY_HandlePORTB(UBYTE byte, UBYTE oldval)
 					write8psram(under_atarixl_os_base + 0x1000 + i, MEMORY_mem[0x5000 + i]);
 				}
 				///memcpy(under_atarixl_os + 0x1000, MEMORY_mem + 0x5000, 0x800);
-				if (ANTIC_xe_ptr != NULL)
+				if (ANTIC_xe_ptr != NULL) {
 					/* Also backup RAM under Self Test from XE bank accessed by ANTIC. */
-					memcpy(antic_bank_under_selftest, atarixe_memory + (antic_bank << 14) + 0x1000, 0x800);
+					UBYTE* from = atarixe_memory + (antic_bank << 14) + 0x1000;
+					for (size_t i = 0; i < 0x800; ++i) {
+						write8psram(antic_bank_under_selftest_base + i, *from++);
+					}
+					///memcpy(antic_bank_under_selftest, from, 0x800);
+				}
 				MEMORY_SetROM(0x5000, 0x57ff);
 			}
 			memcpy(MEMORY_mem + 0x5000, MEMORY_os + 0x1000, 0x800);
