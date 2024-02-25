@@ -421,7 +421,7 @@ static int pokeysnd_init_rf(ULONG freq17, int playback_freq,
 	POKEYSND_UpdateVolOnly = Update_vol_only_sound_rf;
 #endif
 
-	POKEYSND_Process_ptr = (flags & POKEYSND_BIT16) ? pokeysnd_process_16 : pokeysnd_process_8;
+	POKEYSND_Process_ptr = /** (flags & POKEYSND_BIT16) ? pokeysnd_process_16 : **/ pokeysnd_process_8;
 
 #ifdef VOL_ONLY_SOUND
 	POKEYSND_samp_freq = playback_freq;

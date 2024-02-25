@@ -233,25 +233,25 @@ static bool __not_in_flash_func(AY_timer_callback)(repeating_timer_t *rt) {
     if (!Sound_enabled || paused) {
         return true;
     }
-    UBYTE* uba = libatari800_get_sound_buffer();
+    register UBYTE* uba = LIBATARI800_Sound_array;
     if (snd_channels == 2) {
-        if (snd_bits == 8) {
+     //   if (snd_bits == 8) {
             outL = ((uint16_t)uba[idx]) << (11 - 8);
             outR = ((uint16_t)uba[idx + 1]) << (11 - 8);
             sound_array_idx += 2;
-        } else {
-            outL = ((uint16_t*)uba)[idx << 1] >> (16 - 11);
-            outR = ((uint16_t*)uba)[(idx << 1) + 2] >> (16 - 11);
-            sound_array_idx += 4;
-        }
+     //   } else {
+     //       outL = ((uint16_t*)uba)[idx << 1] >> (16 - 11);
+     //       outR = ((uint16_t*)uba)[(idx << 1) + 2] >> (16 - 11);
+     //       sound_array_idx += 4;
+     //   }
     } else {
-        if (snd_bits == 8) {
+     //   if (snd_bits == 8) {
             outL = outR = ((uint16_t)uba[idx]) << (11 - 8);
             sound_array_idx++;
-        } else {
-            outL = outR = ((uint16_t*)uba)[idx << 1] >> (16 - 11);
-            sound_array_idx += 2;
-        }
+      //  } else {
+      //      outL = outR = ((uint16_t*)uba)[idx << 1] >> (16 - 11);
+      //      sound_array_idx += 2;
+      //  }
     }
   //  if (outR || outL) {
      ///   register uint8_t mult = 0; ///g_conf.snd_volume;
