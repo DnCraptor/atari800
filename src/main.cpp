@@ -69,6 +69,7 @@ static bool f1Pressed = false;
 static bool f2Pressed = false;
 static bool f3Pressed = false;
 static bool f4Pressed = false;
+static bool delPressed = false;
 
 extern "C" {
 bool __time_critical_func(handleScancode)(const uint32_t ps2scancode) {
@@ -78,7 +79,6 @@ bool __time_critical_func(handleScancode)(const uint32_t ps2scancode) {
         input_map.option = 0;
         input_map.start = 0;
     } else {
-        if (ps2scancode == 0xE053) { input_map.keychar = 127; return true; } // Del
         if (ps2scancode == 0xE01D) {
             input_map.control |= 2;
             input_map.trig1 = 1;
@@ -98,6 +98,11 @@ bool __time_critical_func(handleScancode)(const uint32_t ps2scancode) {
             switch(ps2scancode & 0xFF) {
                 case 0xb6: sp &= ~1; input_map.shift = sp; break; // rshift
                 case 0xaa: sp &= ~2; input_map.shift = sp; break; // lshift // CapsLock TODO: reverse shift
+                case 0xd3: { // Del
+                    input_map.keychar = 0;
+                    delPressed = false;
+                    break;
+                }
                 case 0x9d: {
                     input_map.control &= ~1;
                     input_map.trig0 = 0; 
@@ -106,12 +111,12 @@ bool __time_critical_func(handleScancode)(const uint32_t ps2scancode) {
                 case 0xb8: input_map.alt &= ~1; break; // lalt
                 case 0xbc: {
                     input_map.option = 0;
-                    f2Pressed = 0;
+                    f2Pressed = false;
                     break;
                 } // F2 Option
                 case 0xbd: {
                     input_map.select = 0;
-                    f3Pressed = 0;
+                    f3Pressed = false;
                     break;
                 } // F3 Select
                 case 0xbe: {
@@ -220,6 +225,14 @@ bool __time_critical_func(handleScancode)(const uint32_t ps2scancode) {
             return true;
         }
         switch(ps2scancode & 0xFF) {
+            case 0x53: {
+                input_map.keychar = 127;
+                delPressed = true;
+                if (input_map.alt && input_map.control) {
+                    Atari800_Coldstart();
+                }
+                break;
+            }
             case 0x1c: input_map.keychar = '\n'; break;
             case 0x39: input_map.keychar = ' '; break;
             case 0x0b: input_map.keychar = sp ? ')' : '0'; break;
@@ -436,8 +449,8 @@ void nespad_update() {
         input_map.start = nespad_state & DPAD_START;
     if(!f3Pressed)
         input_map.select = nespad_state & DPAD_SELECT;
-    if(!f2Pressed)
-        input_map.option = nespad_state & DPAD_B;
+//    if(!f2Pressed)
+//        input_map.option = nespad_state & DPAD_B;
     if(!f1Pressed && (nespad_state & DPAD_START) && (nespad_state & DPAD_SELECT)) {
         input_map.keychar = 255; // UI
     }
