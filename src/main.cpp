@@ -149,10 +149,10 @@ void PLATFORM_GetJoystickKeyName(int joystick, int direction, char *buffer, int 
 	snprintf(buffer, bufsize, "%11s", key);
 }
 
+static int lastkey = 0;
 int PLATFORM_GetRawKey(void) {
 	while(TRUE) { 
-        /// TODO:
-        return 0x35;
+        return lastkey;
     }
 }
 
@@ -183,6 +183,11 @@ static input_template_t input_map;
 static unsigned int sp = 0;
 extern "C" {
 bool __time_critical_func(handleScancode)(const uint32_t ps2scancode) {
+    if ((ps2scancode & 0xFF) < 0x80) {
+        lastkey = ps2scancode;
+    } else {
+        lastkey = 0;
+    }
     if (!ps2scancode) {
         input_map.keychar = 0;
         input_map.select = 0;
