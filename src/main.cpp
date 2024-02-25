@@ -65,6 +65,11 @@ static bool _6Pressed = false;
 static bool _1Pressed = false;
 static bool _2Pressed = false;
 static bool _3Pressed = false;
+static bool f1Pressed = false;
+static bool f2Pressed = false;
+static bool f3Pressed = false;
+static bool f4Pressed = false;
+
 extern "C" {
 bool __time_critical_func(handleScancode)(const uint32_t ps2scancode) {
     if (!ps2scancode) {
@@ -99,9 +104,21 @@ bool __time_critical_func(handleScancode)(const uint32_t ps2scancode) {
                     break;
                 } // lctrl
                 case 0xb8: input_map.alt &= ~1; break; // lalt
-                case 0xbc: input_map.option = 0; break; // F2 Option
-                case 0xbd: input_map.select = 0; break; // F3 Select
-                case 0xbe: input_map.start = 0; break; // F4 Start
+                case 0xbc: {
+                    input_map.option = 0;
+                    f2Pressed = 0;
+                    break;
+                } // F2 Option
+                case 0xbd: {
+                    input_map.select = 0;
+                    f3Pressed = 0;
+                    break;
+                } // F3 Select
+                case 0xbe: {
+                    input_map.start = 0;
+                    f4Pressed = false;
+                    break;
+                } // F4 Start
                 case 0xc8: { // Up
                     input_map.keychar = 0;
                     input_map.joy1 &= INPUT_STICK_FORWARD;
@@ -304,10 +321,26 @@ bool __time_critical_func(handleScancode)(const uint32_t ps2scancode) {
             case 0x2a: sp |= 2; input_map.shift = sp; break; // lshift
             case 0x01: input_map.keychar = 27; break; // Esc
             case 0x0e: input_map.keychar = '\b'; break; // Backspace
-            case 0x3b: input_map.keychar = 255; break; // F1 UI
-            case 0x3c: input_map.option = 1; break; // F2 Option
-            case 0x3d: input_map.select = 1; break; // F3 Select
-            case 0x3e: input_map.start = 1; break; // F4 Start
+            case 0x3b: {
+                input_map.keychar = 255;
+                f1Pressed = true;
+                break;
+            } // F1 UI
+            case 0x3c: {
+                input_map.option = 1;
+                f2Pressed = true;
+                break;
+            } // F2 Option
+            case 0x3d: {
+                input_map.select = 1;
+                f3Pressed = true;
+                break;
+            } // F3 Select
+            case 0x3e: {
+                input_map.start = 1;
+                f4Pressed = true;
+                break;
+            } // F4 Start
             case 0x3f: input_map.keychar = 250; break; // F5 Help
             case 0x48: { // Up
                 input_map.keychar = 254;
@@ -398,7 +431,16 @@ void nespad_update() {
             input_map.joy0 &= INPUT_STICK_BACK;
         }
     if(!(input_map.control & 1))
-        input_map.trig0 = nespad_state & DPAD_START;
+        input_map.trig0 = nespad_state & DPAD_A;
+    if(!f4Pressed)
+        input_map.start = nespad_state & DPAD_START;
+    if(!f3Pressed)
+        input_map.select = nespad_state & DPAD_SELECT;
+    if(!f2Pressed)
+        input_map.option = nespad_state & DPAD_B;
+    if(!f1Pressed && (nespad_state & DPAD_START) && (nespad_state & DPAD_SELECT)) {
+        input_map.keychar = 255; // UI
+    }
 
     if (!_7Pressed && !_4Pressed && !_1Pressed)
         if (nespad_state2 & DPAD_LEFT) {
@@ -425,13 +467,12 @@ void nespad_update() {
             input_map.joy1 &= INPUT_STICK_BACK;
         }
     if(!(input_map.control & 2))
-        input_map.trig1 = nespad_state2 & DPAD_START;
+        input_map.trig1 = nespad_state2 & DPAD_A;
 }
 
 void __time_critical_func(render_core)() {
     multicore_lockout_victim_init();
     graphics_init();
-
     const auto buffer = libatari800_get_screen_ptr();
     graphics_set_buffer(buffer, Screen_WIDTH, Screen_HEIGHT);
     graphics_set_textbuffer(buffer);
@@ -439,8 +480,6 @@ void __time_critical_func(render_core)() {
     graphics_set_offset(0, 0);
     graphics_set_mode(GRAPHICSMODE_DEFAULT);
     graphics_set_flashmode(false, false);
- ///   clrScr(1);
-
     sem_acquire_blocking(&vga_start_semaphore);
     // 60 FPS loop
 #define frame_tick (16666)
@@ -463,10 +502,8 @@ void __time_critical_func(render_core)() {
             nespad_update();
         }
         tick = time_us_64();
-
         tight_loop_contents();
     }
-
     __unreachable();
 }
 
@@ -501,38 +538,14 @@ static bool __not_in_flash_func(AY_timer_callback)(repeating_timer_t *rt) {
     }
     register UBYTE* uba = LIBATARI800_Sound_array;
     if (snd_channels == 2) {
-     //   if (snd_bits == 8) {
-            outL = ((uint16_t)uba[idx]) << (11 - 8);
-            outR = ((uint16_t)uba[idx + 1]) << (11 - 8);
-            sound_array_idx += 2;
-     //   } else {
-     //       outL = ((uint16_t*)uba)[idx << 1] >> (16 - 11);
-     //       outR = ((uint16_t*)uba)[(idx << 1) + 2] >> (16 - 11);
-     //       sound_array_idx += 4;
-     //   }
+        outL = ((uint16_t)uba[idx]) << (11 - 8);
+        outR = ((uint16_t)uba[idx + 1]) << (11 - 8);
+        sound_array_idx += 2;
     } else {
-     //   if (snd_bits == 8) {
-            outL = outR = ((uint16_t)uba[idx]) << (11 - 8);
-            sound_array_idx++;
-      //  } else {
-      //      outL = outR = ((uint16_t*)uba)[idx << 1] >> (16 - 11);
-      //      sound_array_idx += 2;
-      //  }
+        outL = outR = ((uint16_t)uba[idx]) << (11 - 8);
+        sound_array_idx++;
     }
-  //  if (outR || outL) {
-     ///   register uint8_t mult = 0; ///g_conf.snd_volume;
-     ///   if (mult >= 0) {
-     ///       if (mult > 5) mult = 5;
-     //       outL <<= mult;
-     ///       outR <<= mult;
-     ///   } else {
-     ///       register int8_t div = -mult;
-     ///       if (div > 16) div = 16;
-     ///       outL >>= div;
-     ///       outR >>= div;
-     ///   }
- //       pwm_set_gpio_level(BEEPER_PIN, 0);
- //   }
+    ///pwm_set_gpio_level(BEEPER_PIN, 0);
     return true;
 }
 #endif
