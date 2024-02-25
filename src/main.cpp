@@ -77,29 +77,93 @@ bool __time_critical_func(handleScancode)(const uint32_t ps2scancode) {
             switch(ps2scancode & 0xFF) {
                 case 0xb6: sp &= ~1; input_map.shift = sp; break; // rshift
                 case 0xaa: sp &= ~2; input_map.shift = sp; break; // lshift // CapsLock TODO: reverse shift
-                case 0x9d: input_map.control = 0; break; // lctrl
+                case 0x9d: {
+                    input_map.control &= ~1;
+                    input_map.trig2 = 0; 
+                    break;
+                } // lctrl
                 case 0xb8: input_map.alt &= ~1; break; // lalt
                 case 0xbc: input_map.option = 0; break; // F2 Option
                 case 0xbd: input_map.select = 0; break; // F3 Select
                 case 0xbe: input_map.start = 0; break; // F4 Start
                 case 0xc8: { // Up
                     input_map.keychar = 0;
-                    input_map.joy0 |= ~INPUT_STICK_FORWARD;
+                    input_map.joy0 &= INPUT_STICK_FORWARD;
                     break;
                 }
                 case 0xcb: { // Left
                     input_map.keychar = 0;
-                    input_map.joy0 |= ~INPUT_STICK_LEFT;
+                    input_map.joy0 &= INPUT_STICK_LEFT;
                     break;
                 }
                 case 0xd0: { // Down
                     input_map.keychar = 0;
-                    input_map.joy0 |= ~INPUT_STICK_BACK;
+                    input_map.joy0 &= INPUT_STICK_BACK;
                     break;
                 }
                 case 0xcd: { // Right
                     input_map.keychar = 0;
-                    input_map.joy0 |= ~INPUT_STICK_RIGHT;
+                    input_map.joy0 &= INPUT_STICK_RIGHT;
+                    break;
+                }
+                case 0xc7: { // 7 UpLeft
+                    input_map.keychar = 0;
+                    input_map.joy0 &= INPUT_STICK_UL;
+                    break;
+                }
+                case 0xc9: { // 9 UpRight
+                    input_map.keychar = 0;
+                    input_map.joy0 &= INPUT_STICK_UR;
+                    break;
+                }
+                case 0xcf: { // 1 LowLeft
+                    input_map.keychar = 0;
+                    input_map.joy0 &= INPUT_STICK_LL;
+                    break;
+                }
+                case 0xd1: { // 3 LowRight
+                    input_map.keychar = 0;
+                    input_map.joy0 &= INPUT_STICK_LR;
+                    break;
+                }
+                case 0x90: { // Q
+                    input_map.keychar = 0;
+                    input_map.joy2 &= INPUT_STICK_UL;
+                    break;
+                }
+                case 0x91: { // W
+                    input_map.keychar = 0;
+                    input_map.joy2 &= INPUT_STICK_FORWARD;
+                    break;
+                }
+                case 0x92: { // E
+                    input_map.keychar = 0;
+                    input_map.joy2 &= INPUT_STICK_UR;
+                    break;
+                }
+                case 0x9e: { // A
+                    input_map.keychar = 0;
+                    input_map.joy2 &= INPUT_STICK_LEFT;
+                    break;
+                }
+                case 0xa0: { // D
+                    input_map.keychar = 0;
+                    input_map.joy2 &= INPUT_STICK_RIGHT;
+                    break;
+                }
+                case 0xac: { // Z
+                    input_map.keychar = 0;
+                    input_map.joy2 &= INPUT_STICK_LL;
+                    break;
+                }
+                case 0xad: { // X
+                    input_map.keychar = 0;
+                    input_map.joy2 &= INPUT_STICK_BACK;
+                    break;
+                }
+                case 0xae: { // C
+                    input_map.keychar = 0;
+                    input_map.joy2 &= INPUT_STICK_LR;
                     break;
                 }
                 default: input_map.keychar = 0; break;
@@ -132,13 +196,33 @@ bool __time_critical_func(handleScancode)(const uint32_t ps2scancode) {
             case 0x28: input_map.keychar = sp ? '\'' : '"'; break;
             case 0x0f: input_map.keychar = '\t'; break;
             case 0x3a: if(sp & 4) sp &= ~4; else sp |= 4; input_map.shift = sp; break; // CapsLock
-            case 0x1d: input_map.control = 1; break; // lctl
+            case 0x1d: {
+                input_map.control |= 1;
+                input_map.trig2 = 1; 
+                break;
+            } // lctl
             case 0x38: input_map.alt |= 1; break; // lalt
-            case 0x1e: input_map.keychar = sp ? 'A' : 'a'; break;
+            case 0x1e: {
+                input_map.keychar = sp ? 'A' : 'a';
+                 input_map.joy2 |= ~INPUT_STICK_LEFT;
+                break;
+            }
             case 0x30: input_map.keychar = sp ? 'B' : 'b'; break;
-            case 0x2e: input_map.keychar = sp ? 'C' : 'c'; break;
-            case 0x20: input_map.keychar = sp ? 'D' : 'd'; break;
-            case 0x12: input_map.keychar = sp ? 'E' : 'e'; break;
+            case 0x2e: {
+                input_map.keychar = sp ? 'C' : 'c';
+                input_map.joy2 |= ~INPUT_STICK_LR;
+                break;
+            }
+            case 0x20: {
+                input_map.keychar = sp ? 'D' : 'd';
+                input_map.joy2 |= ~INPUT_STICK_RIGHT; 
+                break;
+            }
+            case 0x12: {
+                input_map.keychar = sp ? 'E' : 'e';
+                input_map.joy2 |= ~INPUT_STICK_UR; 
+                break;
+            }
             case 0x21: input_map.keychar = sp ? 'F' : 'f'; break;
             case 0x22: input_map.keychar = sp ? 'G' : 'g'; break;
             case 0x23: input_map.keychar = sp ? 'H' : 'h'; break;
@@ -150,16 +234,32 @@ bool __time_critical_func(handleScancode)(const uint32_t ps2scancode) {
             case 0x31: input_map.keychar = sp ? 'N' : 'n'; break;
             case 0x18: input_map.keychar = sp ? 'O' : 'o'; break;
             case 0x19: input_map.keychar = sp ? 'P' : 'p'; break;
-            case 0x10: input_map.keychar = sp ? 'Q' : 'q'; break;
+            case 0x10: {
+                input_map.keychar = sp ? 'Q' : 'q';
+                input_map.joy2 |= ~INPUT_STICK_UL;
+                break;
+            }
             case 0x13: input_map.keychar = sp ? 'R' : 'r'; break;
             case 0x1f: input_map.keychar = sp ? 'S' : 's'; break;
             case 0x14: input_map.keychar = sp ? 'T' : 't'; break;
             case 0x16: input_map.keychar = sp ? 'U' : 'u'; break;
             case 0x2f: input_map.keychar = sp ? 'V' : 'v'; break;
-            case 0x11: input_map.keychar = sp ? 'W' : 'w'; break;
-            case 0x2d: input_map.keychar = sp ? 'X' : 'x'; break;
+            case 0x11: {
+                input_map.keychar = sp ? 'W' : 'w';
+                input_map.joy2 |= ~INPUT_STICK_FORWARD; 
+                break;
+            }
+            case 0x2d: {
+                input_map.keychar = sp ? 'X' : 'x';
+                input_map.joy2 |= ~INPUT_STICK_BACK;
+                break;
+            }
             case 0x15: input_map.keychar = sp ? 'Y' : 'y'; break;
-            case 0x2c: input_map.keychar = sp ? 'Z' : 'z'; break;
+            case 0x2c: {
+                input_map.keychar = sp ? 'Z' : 'z';
+                input_map.joy2 |= ~INPUT_STICK_LL;
+                break;
+            }
             case 0x36: sp |= 1; input_map.shift = sp; break; // rshift
             case 0x2a: sp |= 2; input_map.shift = sp; break; // lshift
             case 0x01: input_map.keychar = 27; break; // Esc
@@ -171,22 +271,42 @@ bool __time_critical_func(handleScancode)(const uint32_t ps2scancode) {
             case 0x3f: input_map.keychar = 250; break; // F5 Help
             case 0x48: { // Up
                 input_map.keychar = 254;
-                input_map.joy0 &= INPUT_STICK_FORWARD;
+                input_map.joy0 |= ~INPUT_STICK_FORWARD;
                 break;
             }
             case 0x4b: { // Left
                 input_map.keychar = 253;
-                input_map.joy0 &= INPUT_STICK_LEFT;
+                input_map.joy0 |= ~INPUT_STICK_LEFT;
                 break;
             }
             case 0x50: { // Down
                 input_map.keychar = 252;
-                input_map.joy0 &= INPUT_STICK_BACK;
+                input_map.joy0 |= ~INPUT_STICK_BACK;
                 break;
             }
             case 0x4d: { // Right
                 input_map.keychar = 251;
-                input_map.joy0 &= INPUT_STICK_RIGHT;
+                input_map.joy0 |= ~INPUT_STICK_RIGHT;
+                break;
+            }
+            case 0x47: { // 7 - Up Left
+                input_map.keychar = '7'; // TODO: NumLock
+                input_map.joy0 |= ~INPUT_STICK_UL;
+                break;
+            }
+            case 0x49: { // 9 - Up Right
+                input_map.keychar = '9'; // TODO: NumLock
+                input_map.joy0 |= ~INPUT_STICK_UR;
+                break;
+            }
+            case 0x4f: { // 1 - Low Left
+                input_map.keychar = '1'; // TODO: NumLock
+                input_map.joy0 |= ~INPUT_STICK_LL;
+                break;
+            }
+            case 0x51: { // 3 - Low Right
+                input_map.keychar = '3'; // TODO: NumLock
+                input_map.joy0 |= ~INPUT_STICK_LR;
                 break;
             }
             default:
@@ -370,7 +490,6 @@ int main() {
     libatari800_init(-1, test_args);
     printf("libatari800_clear_input_array");
     libatari800_clear_input_array(&input_map);
-    input_map.joy0 = 0x0F;
 
     gpio_init(PICO_DEFAULT_LED_PIN);
     gpio_set_dir(PICO_DEFAULT_LED_PIN, GPIO_OUT);
