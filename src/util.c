@@ -299,7 +299,7 @@ double Util_round(double x)
 
 void *Util_malloc(size_t size, const char* from)
 {
-	printf("Util_malloc(%d, '%s')", size, from);
+///	printf("Util_malloc(%d, '%s')", size, from);
 	void *ptr = malloc(size);
 	if (ptr == NULL) {
 		printf("Fatal error: out of memory\n");

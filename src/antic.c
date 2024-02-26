@@ -706,7 +706,11 @@ static UWORD pmbase_s;
 static UWORD pmbase_d;
 
 /* PMG lookup tables */
+#ifdef pm_lookup_table.h_regenerate
 static UBYTE pm_lookup_table[20][256];
+#else
+#include "pm_lookup_table.h"
+#endif
 /* current PMG lookup table */
 static const UBYTE *pm_lookup_ptr;
 
@@ -742,9 +746,8 @@ static const UBYTE prior_to_pm_lookup[64] = {
 	PL_31, PL_31, PL_30, PL_33, PL_3c, PL_35, PL_3e, PL_35
 };
 
-static void init_pm_lookup(void)
-{
-	static const UBYTE pm_lookup_template[10][16] = {
+#ifdef pm_lookup_table.h_regenerate
+static const UBYTE pm_lookup_template[10][16] = {
 		/* PL_20 */
 		{ L_BAK, L_PM0, L_PM1, L_PM01, L_PM2, L_PM0, L_PM1, L_PM01,
 		L_PM3, L_PM0, L_PM1, L_PM01, L_PM23, L_PM0, L_PM1, L_PM01 },
@@ -775,16 +778,18 @@ static void init_pm_lookup(void)
 		/* PL_3e */
 		{ L_PF3, L_PF3, L_PF3, L_PF3, L_PM25, L_BLACK, L_BLACK, L_BLACK,
 		L_PM25, L_BLACK, L_BLACK, L_BLACK, L_PM25, L_BLACK, L_BLACK, L_BLACK }
-	};
+};
 
-	static const UBYTE multi_to_normal[] = {
+static const UBYTE multi_to_normal[] = {
 		L_BAK,
 		L_PM0, L_PM1, L_PM0,
 		L_PM2, L_PM3, L_PM2,
 		L_PM023, L_PM123, L_PM023,
 		L_PM25, L_PM35, L_PM25
-	};
+};
 
+static void init_pm_lookup(void)
+{
 	int i;
 	int j;
 	UBYTE temp;
@@ -804,8 +809,33 @@ static void init_pm_lookup(void)
 			pm_lookup_table[i][j] = temp <= L_PM235 ? multi_to_normal[temp >> 1] : temp;
 		}
 	}
-}
 
+	FIL f;
+	UINT bw;
+	char tmp[64];
+	const char * str = "const UBYTE __in_flash() __aligned(1024) pm_lookup_table[] = {\n";
+	f_open(&f, "\\pm_lookup_table.h", FA_CREATE_ALWAYS | FA_WRITE);
+	f_write(&f, str, strlen(str), &bw);
+	const char * b = pm_lookup_table;
+	for(int i = 0; i < sizeof(pm_lookup_table); i++) {
+		if (i && !(i % 16)) {
+			sprintf(tmp, " // 0x%08X\n", i - 16);
+			f_write(&f, tmp, strlen(tmp), &bw);
+		}
+		if (i == 0) {
+			str = "  ";
+		} else {
+			str = ", ";
+		}
+		f_write(&f, str, strlen(str), &bw);
+		sprintf(tmp, "0x%02X", (unsigned char)b[i] & 0xFF);
+		f_write(&f, tmp, strlen(tmp), &bw);
+	}
+	str = "\n};\n";
+	f_write(&f, str, strlen(str), &bw);
+	f_close(&f);
+}
+#endif
 static const UBYTE hold_missiles_tab[16] = {
 	0x00,0x03,0x0c,0x0f,0x30,0x33,0x3c,0x3f,
 	0xc0,0xc3,0xcc,0xcf,0xf0,0xf3,0xfc,0xff};
@@ -999,7 +1029,9 @@ int ANTIC_Initialise(int *argc, char *argv[])
 	hires_mask(0xc0) = 0xf0f0;
 	hires_lum(0x00) = hires_lum(0x40) = hires_lum(0x80) = hires_lum(0xc0) = 0;
 #endif
+#ifdef pm_lookup_table.h_regenerate
 	init_pm_lookup();
+#endif
 	mode_e_an_lookup[0] = 0;
 	mode_e_an_lookup[1] = mode_e_an_lookup[4] = mode_e_an_lookup[0x10] = mode_e_an_lookup[0x40] = 0;
 	mode_e_an_lookup[2] = mode_e_an_lookup[8] = mode_e_an_lookup[0x20] = mode_e_an_lookup[0x80] = 1;

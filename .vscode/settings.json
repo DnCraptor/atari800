@@ -18,6 +18,7 @@
         "cfg.h": "c",
         "ui.h": "c",
         "build_poly17.h": "c",
-        "pokey_poly17_lookup.h": "c"
+        "pokey_poly17_lookup.h": "c",
+        "pm_lookup_table.h": "c"
     }
 }
