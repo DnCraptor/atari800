@@ -613,7 +613,7 @@ void graphics_init() {
     );
     //dma_channel_set_read_addr(dma_chan, &DMA_BUF_ADDR[0], false);
 
-    graphics_set_mode(TGA_320x200x16);
+    graphics_set_mode(GRAPHICSMODE_DEFAULT);
 
     irq_set_exclusive_handler(VGA_DMA_IRQ, dma_handler_VGA);
 

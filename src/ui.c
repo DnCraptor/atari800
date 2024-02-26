@@ -4474,18 +4474,9 @@ void UI_Run(void)
 		UI_MENU_SUBMENU_ACCEL(UI_MENU_SYSTEM, "System Settings", "Alt+Y"),
 #ifdef SOUND
 		UI_MENU_SUBMENU_ACCEL(UI_MENU_SOUND, "Sound Settings", "Alt+O"),
-#ifndef DREAMCAST
-		UI_MENU_ACTION_ACCEL(UI_MENU_SOUND_RECORDING, "Sound Recording Start/Stop", "Alt+W"),
-#endif
-#endif
-#ifdef VIDEO_RECORDING
-		UI_MENU_ACTION_ACCEL(UI_MENU_VIDEO_RECORDING, "Video Recording Start/Stop", "Alt+V"),
 #endif
 #ifndef CURSES_BASIC
 		UI_MENU_SUBMENU(UI_MENU_DISPLAY, "Display Settings"),
-#endif
-#ifdef DIRECTX
-		UI_MENU_SUBMENU(UI_MENU_WINDOWS, "Windows Display Options"),
 #endif
 #ifndef USE_CURSES
 		UI_MENU_SUBMENU(UI_MENU_CONTROLLER, "Controller Configuration"),
@@ -4493,69 +4484,18 @@ void UI_Run(void)
 		UI_MENU_SUBMENU(UI_MENU_SETTINGS, "Emulator Configuration"),
 		UI_MENU_FILESEL_ACCEL(UI_MENU_SAVESTATE, "Save State", "Alt+S"),
 		UI_MENU_FILESEL_ACCEL(UI_MENU_LOADSTATE, "Load State", "Alt+L"),
-#if SCREENSHOTS
-#ifdef HAVE_LIBPNG
-		UI_MENU_FILESEL_ACCEL(UI_MENU_PCX, "Save Screenshot", "F10"),
-		/* there isn't enough space for "PNG/PCX Interlaced Screenshot Shift+F10" */
-		UI_MENU_FILESEL_ACCEL(UI_MENU_PCXI, "Save Interlaced Screenshot", "Shift+F10"),
-#else
-		UI_MENU_FILESEL_ACCEL(UI_MENU_PCX, "PCX Screenshot", "F10"),
-		UI_MENU_FILESEL_ACCEL(UI_MENU_PCXI, "PCX Interlaced Screenshot", "Shift+F10"),
-#endif
-#endif
 		UI_MENU_ACTION_ACCEL(UI_MENU_BACK, "Back to Emulated Atari", "Esc"),
 		UI_MENU_ACTION_ACCEL(UI_MENU_RESETW, "Reset (Warm Start)", "F5"),
 		UI_MENU_ACTION_ACCEL(UI_MENU_RESETC, "Reboot (Cold Start)", "Shift+F5"),
-#if defined(_WIN32_WCE)
-		UI_MENU_ACTION(UI_MENU_MONITOR, "About Pocket Atari"),
-#elif defined(DREAMCAST)
-		UI_MENU_ACTION(UI_MENU_MONITOR, "About AtariDC"),
-#elif defined(DIRECTX)
-		UI_MENU_ACTION_ACCEL(UI_MENU_MONITOR, monitor_label, "F8"),
-#else
-		UI_MENU_ACTION_ACCEL(UI_MENU_MONITOR, "Enter Monitor", "F8"),
-#endif
 		UI_MENU_ACTION_ACCEL(UI_MENU_ABOUT, "About the Emulator", "Alt+A"),
-		UI_MENU_ACTION_ACCEL(UI_MENU_EXIT, "Exit Emulator", "F9"),
 		UI_MENU_END
 	};
-
 	int option = UI_MENU_RUN;
 	int done = FALSE;
-#if SUPPORTS_CHANGE_VIDEOMODE
-	VIDEOMODE_ForceStandardScreen(TRUE);
-#endif
-
 	UI_is_active = TRUE;
-
-#ifdef DIRECTX
-	setcursor();
-	snprintf(desktopreslabel, sizeof(desktopreslabel), "Desktop [%dx%d]", origScreenWidth, origScreenHeight);
-	snprintf(hcrop_label, sizeof(hcrop_label), "%d", crop.horizontal);
-	snprintf(vcrop_label, sizeof(vcrop_label), "%d", crop.vertical);
-	snprintf(hshift_label, sizeof(hshift_label), "%d", offset.horizontal);
-	snprintf(vshift_label, sizeof(vshift_label), "%d", offset.vertical);
-	snprintf(native_width_label, sizeof(native_width_label), "[Width:  %d]", frameparams.view.right - frameparams.view.left);
-	snprintf(native_height_label, sizeof(native_height_label), "[Height: %d]", frameparams.view.bottom - frameparams.view.top);
-	if (useconsole)
-		strcpy(monitor_label, "Enter Monitor");
-	else
-		strcpy(monitor_label, "Enter Monitor (need -console)"); 
-#endif
-	
-
 	/* Sound_Active(FALSE); */
 	UI_driver->fInit();
-
-#ifdef CRASH_MENU
-	if (UI_crash_code >= 0) {
-		done = CrashMenu();
-		UI_crash_code = -1;
-	}
-#endif
-
 	while (!done) {
-		
 		if (UI_alt_function != -1)
 			UI_current_function = UI_alt_function;		
 		if (UI_alt_function < 0)
@@ -4565,7 +4505,6 @@ void UI_Run(void)
 			UI_alt_function = -1;
 			done = TRUE;
 		}
-
 		switch (option) {
 		case -2:
 		case -1:				/* ESC key */
@@ -4598,16 +4537,6 @@ void UI_Run(void)
 				done = TRUE;	/* reboot immediately */
 			}
 			break;
-#ifdef AUDIO_RECORDING
-		case UI_MENU_SOUND_RECORDING:
-			SoundRecording();
-			break;
-#endif
-#endif
-#ifdef VIDEO_RECORDING
-		case UI_MENU_VIDEO_RECORDING:
-			VideoRecording();
-			break;
 #endif
 		case UI_MENU_SAVESTATE:
 			SaveState();
@@ -4621,22 +4550,6 @@ void UI_Run(void)
 		case UI_MENU_DISPLAY:
 			DisplaySettings();
 			break;
-#ifdef SCREENSHOTS
-		case UI_MENU_PCX:
-			Screenshot(FALSE);
-			break;
-		case UI_MENU_PCXI:
-			Screenshot(TRUE);
-			break;
-#endif
-#endif
-#ifdef DIRECTX
-		case UI_MENU_WINDOWS:
-			WindowsOptions();
-			break;
-		case UI_MENU_SAVE_CONFIG:
-			CFG_WriteConfig();
-			return;
 #endif
 #ifndef USE_CURSES
 		case UI_MENU_CONTROLLER:
@@ -4657,114 +4570,12 @@ void UI_Run(void)
 		case UI_MENU_ABOUT:
 			AboutEmulator();
 			break;
-#ifdef DIRECTX
-		case UI_MENU_FUNCT_KEY_HELP:
-			FunctionKeyHelp();
-			break;
-		case UI_MENU_HOT_KEY_HELP:
-			HotKeyHelp();
-			break;
-#endif
-		case UI_MENU_MONITOR:
-#if defined(_WIN32_WCE)
-			AboutPocketAtari();
-			break;
-#elif defined(DREAMCAST)
-			AboutAtariDC();
-			break;
-#else
-#if defined(DIRECTX)
-			if (!useconsole) {
-				UI_driver->fMessage("Console required for monitor", 1);
-				break;
-			}
-#endif /* DIRECTX */
-			if (Atari800_Exit(TRUE))
-				break;
-			/* if 'quit' typed in monitor, exit emulator */
-			exit(0);
-#endif
-		case UI_MENU_EXIT:
-			Atari800_Exit(FALSE);
-			exit(0);
 		}
 	}
-
 	/* Sound_Active(TRUE); */
 	UI_is_active = FALSE;
-#ifdef DIRECTX
-	setcursor();
-#endif
-	
 	/* flush keypresses */
 	while (PLATFORM_Keyboard() != AKEY_NONE)
 		Atari800_Sync();
-
 	UI_alt_function = UI_current_function = -1;
-	/* restore 80 column screen */
-#if SUPPORTS_CHANGE_VIDEOMODE
-	VIDEOMODE_ForceStandardScreen(FALSE);
-#endif
 }
-
-
-#ifdef CRASH_MENU
-
-int CrashMenu(void)
-{
-	static char cim_info[42];
-	static UI_tMenuItem menu_array[] = {
-		UI_MENU_LABEL(cim_info),
-		UI_MENU_ACTION_ACCEL(0, "Reset (Warm Start)", "F5"),
-		UI_MENU_ACTION_ACCEL(1, "Reboot (Cold Start)", "Shift+F5"),
-		UI_MENU_ACTION_ACCEL(2, "Menu", "F1"),
-#if !defined(_WIN32_WCE) && !defined(DREAMCAST) && !defined(DIRECTX)
-		UI_MENU_ACTION_ACCEL(3, "Enter Monitor", "F8"),
-#endif
-#ifdef DIRECTX
-		UI_MENU_ACTION_ACCEL(3, monitor_label, "F8"),
-#endif
-		UI_MENU_ACTION_ACCEL(4, "Continue After CIM", "Esc"),
-		UI_MENU_ACTION_ACCEL(5, "Exit Emulator", "F9"),
-		UI_MENU_END
-	};
-
-	int option = 0;
-	snprintf(cim_info, sizeof(cim_info), "Code $%02X (CIM) at address $%04X", UI_crash_code, UI_crash_address);
-
-	for (;;) {
-		option = UI_driver->fSelect("!!! The Atari computer has crashed !!!", 0, option, menu_array, NULL);
-
-		if (UI_alt_function >= 0) /* pressed F5, Shift+F5 or F9 */
-			return FALSE;
-
-		switch (option) {
-		case 0:				/* Power On Reset */
-			UI_alt_function = UI_MENU_RESETW;
-			return FALSE;
-		case 1:				/* Power Off Reset */
-			UI_alt_function = UI_MENU_RESETC;
-			return FALSE;
-		case 2:				/* Menu */
-			return FALSE;
-#if !defined(_WIN32_WCE) && !defined(DREAMCAST)
-		case 3:				/* Monitor */
-			UI_alt_function = UI_MENU_MONITOR;
-			return FALSE;
-#endif
-		case -2:
-		case -1:			/* ESC key */
-		case 4:				/* Continue after CIM */
-			CPU_regPC = UI_crash_afterCIM;
-			return TRUE;
-		case 5:				/* Exit */
-			UI_alt_function = UI_MENU_EXIT;
-			return FALSE;
-		}
-	}
-}
-#endif
-
-/*
-vim:ts=4:sw=4:
-*/

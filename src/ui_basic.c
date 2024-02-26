@@ -128,9 +128,9 @@ static int GetKeyPress(void)
 		case AKEY_COLDSTART:
 			UI_alt_function = UI_MENU_RESETC;
 			return 0x1b; /* escape */
-		case AKEY_EXIT:
-			UI_alt_function = UI_MENU_EXIT;
-			return 0x1b; /* escape */
+	///	case AKEY_EXIT:
+	///		UI_alt_function = UI_MENU_EXIT;
+	///		return 0x1b; /* escape */
 		case AKEY_UI:
 #ifdef DIRECTX			
 			UI_Run();

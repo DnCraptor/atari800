@@ -1292,14 +1292,6 @@ void Atari800_Frame(void)
 	static int refresh_counter = 0;
 	static int frame_timer_start = 0;
 	if (!frame_timer_start) frame_timer_start = time_us_64();
-#ifdef CTRL_C_HANDLER
-	if (sigint_flag) {
-		sigint_flag = FALSE;
-		INPUT_key_code = AKEY_UI;
-		UI_alt_function = UI_MENU_MONITOR;
-	}
-#endif /* CTRL_C_HANDLER */
-
 	switch (INPUT_key_code) {
 	case AKEY_COLDSTART:
 		Atari800_Coldstart();

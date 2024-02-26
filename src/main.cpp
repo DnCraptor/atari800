@@ -13,6 +13,7 @@
 #include "nespad.h"
 
 extern "C" {
+#include "ui.h"
 #include "ps2.h"
 #include "libatari800/libatari800.h"
 #include "sound.h"
@@ -263,7 +264,10 @@ bool __time_critical_func(handleScancode)(const uint32_t ps2scancode) {
                 input_map.trig0 = 1; 
                 break;
             } // lctl
-            case 0x38: input_map.alt |= 1; break; // lalt
+            case 0x38: {
+                input_map.alt |= 1;
+                break;
+            } // lalt
             case 0x1e: {
                 input_map.keychar = sp ? 'A' : 'a';
                 input_map.joy0 |= ~INPUT_STICK_LEFT;
@@ -306,7 +310,10 @@ bool __time_critical_func(handleScancode)(const uint32_t ps2scancode) {
                 qPressed = true;
                 break;
             }
-            case 0x13: input_map.keychar = sp ? 'R' : 'r'; break;
+            case 0x13:
+                input_map.keychar = sp ? 'R' : 'r';
+                if (input_map.alt) UI_alt_function = UI_MENU_RUN;
+                break;
             case 0x1f: input_map.keychar = sp ? 'S' : 's'; break;
             case 0x14: input_map.keychar = sp ? 'T' : 't'; break;
             case 0x16: input_map.keychar = sp ? 'U' : 'u'; break;
@@ -484,14 +491,14 @@ void nespad_update() {
 }
 
 void __time_critical_func(render_core)() {
+    const auto buffer = __screen;
+    memset(buffer, 0, Screen_WIDTH * Screen_HEIGHT);
+    graphics_set_buffer(buffer, Screen_WIDTH, Screen_HEIGHT);
     multicore_lockout_victim_init();
     graphics_init();
-    const auto buffer = __screen;//libatari800_get_screen_ptr();
-    graphics_set_buffer(buffer, Screen_WIDTH, Screen_HEIGHT);
     graphics_set_textbuffer(buffer);
     graphics_set_bgcolor(0x000000);
     graphics_set_offset(0, 0);
-    graphics_set_mode(GRAPHICSMODE_DEFAULT);
     graphics_set_flashmode(false, false);
     sem_acquire_blocking(&vga_start_semaphore);
     // 60 FPS loop
