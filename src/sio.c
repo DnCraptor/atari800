@@ -669,7 +669,7 @@ static int SeekSector(int unit, int sector)
 	SIO_last_sector = sector;
 	snprintf(SIO_status, sizeof(SIO_status), "%d: %d", unit + 1, sector);
 	SIO_SizeOfSector((UBYTE) unit, sector, &size, &offset);
-	fseek(&disk[unit], offset, SEEK_SET);
+	fseek(disk[unit], offset, SEEK_SET);
 
 	return size;
 }
@@ -698,7 +698,7 @@ int SIO_ReadSector(int unit, int sector, UBYTE *buffer)
 		unsigned char *count;
 		info = (pro_additional_info_t *)additional_info[unit];
 		count = info->count;
-		if (fread(buffer, 1, 12, &disk[unit]) < 12) {
+		if (fread(buffer, 1, 12, disk[unit]) < 12) {
 			Log_print("Error in header of .pro image: sector:%d", sector);
 			return 'E';
 		}
@@ -718,7 +718,7 @@ int SIO_ReadSector(int unit, int sector, UBYTE *buffer)
 				}
 				size = SeekSector(unit, sector);
 				/* read sector header */
-				if (fread(buffer, 1, 12, &disk[unit]) < 12) {
+				if (fread(buffer, 1, 12, disk[unit]) < 12) {
 					Log_print("Error in header2 of .pro image: sector:%d dupnum:%d", sector, dupnum);
 					return 'E';
 				}
@@ -726,7 +726,7 @@ int SIO_ReadSector(int unit, int sector, UBYTE *buffer)
 		}
 		/* bad sector */
 		if (buffer[1] != 0xff) {
-			if (fread(buffer, 1, size, &disk[unit]) < size) {
+			if (fread(buffer, 1, size, disk[unit]) < size) {
 				Log_print("Error in bad sector of .pro image: sector:%d", sector);
 			}
 			io_success[unit] = sector;
@@ -818,13 +818,13 @@ int SIO_ReadSector(int unit, int sector, UBYTE *buffer)
 		if (secinfo->sec_count > 1)
 			Log_print("duplicate sector:%d dupnum:%d delay:%d",sector, secindex,info->vapi_delay_time);
 #endif
-		fseek(&disk[unit],secinfo->sec_offset[secindex],SEEK_SET);
+		fseek(disk[unit], secinfo->sec_offset[secindex], SEEK_SET);
 		info->sec_stat_buff[0] = 0x8 | ((secinfo->sec_status[secindex] == 0xFF) ? 0 : 0x04);
 		info->sec_stat_buff[1] = secinfo->sec_status[secindex];
 		info->sec_stat_buff[2] = 0xe0;
 		info->sec_stat_buff[3] = 0;
 		if (secinfo->sec_status[secindex] != 0xFF) {
-			if (fread(buffer, 1, size, &disk[unit]) < size) {
+			if (fread(buffer, 1, size, disk[unit]) < size) {
 				Log_print("error reading sector:%d", sector);
 			}
 			io_success[unit] = sector;
@@ -848,7 +848,7 @@ int SIO_ReadSector(int unit, int sector, UBYTE *buffer)
 		Log_flushlog();
 #endif		
 	}
-	if (fread(buffer, 1, size, &disk[unit]) < size) {
+	if (fread(buffer, 1, size, disk[unit]) < size) {
 		Log_print("incomplete sector num:%d", sector);
 	}
 	io_success[unit] = 0;
@@ -910,7 +910,7 @@ int SIO_WriteSector(int unit, int sector, const UBYTE *buffer)
 	} 
 #endif
 	size = SeekSector(unit, sector);
-	fwrite(buffer, 1, size, &disk[unit]);
+	fwrite(buffer, 1, size, disk[unit]);
 	io_success[unit] = 0;
 	return 'C';
 }
@@ -1100,7 +1100,7 @@ int SIO_DriveStatus(int unit, UBYTE *buffer)
 	if (io_success[unit] != 0  && image_type[unit] == IMAGE_TYPE_PRO) {
 		int sector = io_success[unit];
 		SeekSector(unit, sector);
-		if (fread(buffer, 1, 4, &disk[unit]) < 4) {
+		if (fread(buffer, 1, 4, disk[unit]) < 4) {
 			Log_print("SIO_DriveStatus: failed to read sector header");
 		}
 		return 'C';
@@ -1113,7 +1113,7 @@ int SIO_DriveStatus(int unit, UBYTE *buffer)
 		buffer[1] = info->sec_stat_buff[1];
 		buffer[2] = info->sec_stat_buff[2];
 		buffer[3] = info->sec_stat_buff[3];
-		Log_print("Drive Status unit %d %x %x %x %x",unit,buffer[0], buffer[1], buffer[2], buffer[3]);
+		Log_print("Drive Status unit %d %x %x %x %x", unit, buffer[0], buffer[1], buffer[2], buffer[3]);
 		return 'C';
 	}	
 	buffer[0] = 16;         /* drive active */
