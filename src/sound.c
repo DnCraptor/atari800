@@ -40,7 +40,6 @@ int paused = TRUE;
 Sound_setup_t Sound_desired = {
 	44100,
 	2,
-	1,
 	0
 };
 
@@ -77,7 +76,7 @@ static unsigned int sync_max_fill;
 double last_audio_write_time;
 #endif /* SYNCHRONIZED_SOUND */
 
-enum { MAX_SAMPLE_SIZE = 2, /* for 16-bit */
+enum { MAX_SAMPLE_SIZE = 1, /* for 8-bit */
 #ifdef STEREO_SOUND
        MAX_CHANNELS = 2,
 #else /* !STEREO_SOUND */
@@ -92,12 +91,6 @@ int Sound_ReadConfig(char *option, char *ptr)
 		return (Sound_enabled = Util_sscanbool(ptr)) != -1;
 	else if (strcmp(option, "SOUND_RATE") == 0)
 		return (Sound_desired.freq = Util_sscandec(ptr)) != -1;
-	else if (strcmp(option, "SOUND_BITS") == 0) {
-		int bits = Util_sscandec(ptr);
-		if (bits != 8 && bits != 16)
-			return FALSE;
-		Sound_desired.sample_size = bits / 8;
-	}
 	else if (strcmp(option, "SOUND_BUFFER_MS") == 0) {
 		int val = Util_sscandec(ptr);
 		if (val == -1)
@@ -117,7 +110,6 @@ void Sound_WriteConfig(FIL *fp)
 {
 	fprintf(fp, "SOUND_ENABLED=%u\n", Sound_enabled);
 	fprintf(fp, "SOUND_RATE=%u\n", Sound_desired.freq);
-	fprintf(fp, "SOUND_BITS=%u\n", Sound_desired.sample_size * 8);
 	fprintf(fp, "SOUND_BUFFER_MS=%u\n", Sound_desired.buffer_ms);
 #ifdef SYNCHRONIZED_SOUND
 	fprintf(fp, "SOUND_LATENCY=%u\n", Sound_latency);
@@ -153,10 +145,6 @@ int Sound_Initialise(int *argc, char *argv[])
 			}
 			else a_m = TRUE;
 		}
-		else if (strcmp(argv[i], "-audio16") == 0)
-			Sound_desired.sample_size = 2;
-		else if (strcmp(argv[i], "-audio8") == 0)
-			Sound_desired.sample_size = 1;
 		else if (strcmp(argv[i], "snd-buflen") == 0) {
 			if (i_a) {
 				int val = Util_sscandec(argv[++i]);
@@ -180,8 +168,6 @@ int Sound_Initialise(int *argc, char *argv[])
 				Log_print("\t-nosound             Disable sound");
 				Log_print("\t-dsprate <rate>      Set sound output frequency in Hz");
 				Log_print("\t-volume <0 .. 100>   Set sound output volume");
-				Log_print("\t-audio16             Set sound output format to 16-bit");
-				Log_print("\t-audio8              Set sound output format to 8-bit");
 				Log_print("\t-snd-buflen <ms>     Set length of the hardware sound buffer in milliseconds");
 #ifdef SYNCHRONIZED_SOUND
 				Log_print("\t-snddelay <ms>       Set sound latency in milliseconds");
@@ -243,18 +229,17 @@ int Sound_Setup(void)
 	POKEYSND_stereo_enabled = Sound_out.channels == 2;
 #ifndef SOUND_CALLBACK
 	free(process_buffer);
-	process_buffer_size = Sound_out.buffer_frames * Sound_out.channels * Sound_out.sample_size;
+	process_buffer_size = Sound_out.buffer_frames * Sound_out.channels;
 	process_buffer = Util_malloc(process_buffer_size, "Sound_Setup");
 #endif /* !SOUND_CALLBACK */
 
-	POKEYSND_Init(POKEYSND_FREQ_17_EXACT, Sound_out.freq, Sound_out.channels, Sound_out.sample_size == 2 ? POKEYSND_BIT16 : 0);
+	POKEYSND_Init(POKEYSND_FREQ_17_EXACT, Sound_out.freq, Sound_out.channels, 0);
 
 #ifdef SYNCHRONIZED_SOUND
 	Sound_SetLatency(Sound_latency);
 #endif /* SYNCHRONIZED_SOUND */
 
 	Sound_desired.freq = Sound_out.freq;
-	Sound_desired.sample_size = Sound_out.sample_size;
 	Sound_desired.channels = Sound_out.channels;
 	/* buffer_ms and buffer_frames are not copied from Sound_out back to
 	   Sound_desired. The reason is, for some backends (e.g. SDL on PulseAudio)
@@ -353,7 +338,7 @@ static void FillBuffer(UBYTE *buffer, unsigned int size)
 		} while (to_write < size);
 	}
 #else /* !SYNCHRONIZED_SOUND */
-	POKEYSND_Process(buffer, size / Sound_out.sample_size);
+	POKEYSND_Process(buffer, size);
 #endif /* !SYNCHRONIZED_SOUND */
 }
 

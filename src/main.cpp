@@ -535,11 +535,10 @@ extern "C" void PLATFORM_SoundWrite(UBYTE const *buffer, unsigned int size)
 #ifdef SOUND
 static repeating_timer_t timer;
 static int snd_channels = 2;
-static int snd_bits = 16;
 static bool __not_in_flash_func(AY_timer_callback)(repeating_timer_t *rt) {
     static uint16_t outL = 0;  
     static uint16_t outR = 0;
-    register uint16_t idx = sound_array_idx;
+    register size_t idx = sound_array_idx;
     if (idx >= sound_array_fill) {
         return true;
     }
@@ -551,13 +550,12 @@ static bool __not_in_flash_func(AY_timer_callback)(repeating_timer_t *rt) {
     }
     register UBYTE* uba = LIBATARI800_Sound_array;
     if (snd_channels == 2) {
-        outL = ((uint16_t)uba[idx]) << (11 - 8);
-        outR = ((uint16_t)uba[idx + 1]) << (11 - 8);
-        sound_array_idx += 2;
+        outL = uba[idx++];
+        outR = uba[idx++];
     } else {
-        outL = outR = ((uint16_t)uba[idx]) << (11 - 8);
-        sound_array_idx++;
+        outL = outR = uba[idx++];
     }
+    sound_array_idx = idx;
     ///pwm_set_gpio_level(BEEPER_PIN, 0);
     return true;
 }
@@ -620,10 +618,10 @@ int main() {
     init_fs(); // TODO: psram replacement (pagefile)
     init_psram();
 
-    PWM_init_pin(BEEPER_PIN, (1 << 12) - 1);
+    PWM_init_pin(BEEPER_PIN, (1 << 8) - 1);
 #ifdef SOUND
-    PWM_init_pin(PWM_PIN0, (1 << 12) - 1);
-    PWM_init_pin(PWM_PIN1, (1 << 12) - 1);
+    PWM_init_pin(PWM_PIN0, (1 << 8) - 1);
+    PWM_init_pin(PWM_PIN1, (1 << 8) - 1);
 #endif
 #if LOAD_WAV_PIO
     //пин ввода звука
@@ -637,7 +635,6 @@ int main() {
 #ifdef SOUND
 	int hz = libatari800_get_sound_frequency(); ///44100;	//44000 //44100 //96000 //22050
     snd_channels = libatari800_get_num_sound_channels();
-    snd_bits = libatari800_get_sound_sample_size();
 	// negative timeout means exact delay (rather than delay between callbacks)
 	if (!add_repeating_timer_us(-1000000 / hz, AY_timer_callback, NULL, &timer)) {
 		printf("Failed to add timer");

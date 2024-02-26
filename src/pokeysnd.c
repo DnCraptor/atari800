@@ -187,9 +187,9 @@ int POKEYSND_volume = 0x100;
 
 /* multiple sound engine interface */
 static void pokeysnd_process_8(void *sndbuffer, int sndn);
-static void pokeysnd_process_16(void *sndbuffer, int sndn);
+///static void pokeysnd_process_16(void *sndbuffer, int sndn);
 static void null_pokey_process(void *sndbuffer, int sndn) {}
-void (*POKEYSND_Process_ptr)(void *sndbuffer, int sndn) = null_pokey_process;
+void (*POKEYSND_Process_ptr)(void *sndbuffer, int sndn) = pokeysnd_process_8;
 
 static void Update_pokey_sound_rf(UWORD, UBYTE, UBYTE, UBYTE);
 static void null_pokey_sound(UWORD addr, UBYTE val, UBYTE chip, UBYTE gain) {}
@@ -1286,7 +1286,7 @@ void POKEYSND_SetVolume(int vol)
 
     POKEYSND_volume = vol * 0x100 / 100;
 }
-
+/***
 static void pokeysnd_process_16(void *sndbuffer, int sndn)
 {
 	UWORD *buffer = (UWORD *) sndbuffer;
@@ -1308,7 +1308,7 @@ static void pokeysnd_process_16(void *sndbuffer, int sndn)
 		buffer[i] = smp;
 	}
 }
-
+**/
 #ifdef SYNCHRONIZED_SOUND
 static void Generate_sync_rf(unsigned int num_ticks)
 {

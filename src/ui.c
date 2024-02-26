@@ -4138,7 +4138,7 @@ static int SoundSettings(void)
 #ifdef SOUND_THIN_API
 		UI_MENU_CHECK(0, "Enable sound:"),
 		UI_MENU_SUBMENU_SUFFIX(1, "Frequency:", freq_string),
-		UI_MENU_ACTION(2, "Bit depth:"),
+///		UI_MENU_ACTION(2, "Bit depth:"),
 		UI_MENU_SUBMENU_SUFFIX(3, "Hardware buffer length:", hw_buflen_string),
 #ifdef SYNCHRONIZED_SOUND
 		UI_MENU_SUBMENU_SUFFIX(4, "Latency:", latency_string),
@@ -4167,7 +4167,7 @@ static int SoundSettings(void)
 #ifdef SOUND_THIN_API
 		SetItemChecked(menu_array, 0, Sound_enabled);
 		snprintf(freq_string, sizeof(freq_string), "%i Hz", setup.freq);
-		menu_array[2].suffix = setup.sample_size == 2 ? "16 bit" : "8 bit";
+	///	menu_array[2].suffix = "8 bit";
 		if (setup.buffer_ms == 0) {
 			if (Sound_enabled)
 				snprintf(hw_buflen_string, sizeof(hw_buflen_string), "auto (%u ms)", Sound_out.buffer_ms);
@@ -4232,9 +4232,8 @@ static int SoundSettings(void)
 					setup.freq = freq_values[option2];
 			}
 			break;
-		case 2:
-			setup.sample_size = 3 - setup.sample_size; /* Toggle 1<->2 */
-			break;
+	///	case 2:
+	///		break;
 		case 3:
 			{
 				int current = 1; /* 1 means "custom" as in hw_buflen_menu_array */
@@ -4308,7 +4307,6 @@ static int SoundSettings(void)
 				/* Only store setup from menu in Sound_desired. */
 				Sound_desired = setup;
 			else if (setup.freq        != Sound_desired.freq ||
-			         setup.sample_size != Sound_desired.sample_size ||
 #ifdef STEREO_SOUND
 			         setup.channels    != Sound_desired.channels ||
 #endif

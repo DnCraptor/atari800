@@ -54,7 +54,7 @@ int PLATFORM_SoundSetup(Sound_setup_t *setup)
 	samples_per_video_frame = setup->freq / refresh_rate;
 	setup->buffer_frames = (int)(ceil(samples_per_video_frame));
 
-	sound_hw_buffer_size = setup->buffer_frames * setup->sample_size * setup->channels;
+	sound_hw_buffer_size = setup->buffer_frames * setup->channels;
 	if (sound_hw_buffer_size == 0)
 	        return FALSE;
 
@@ -94,7 +94,7 @@ unsigned int PLATFORM_SoundAvailable(void)
 	sample_residual += sample_diff;
 	if (sample_residual > 1.0) {
 		sample_residual -= 1.0;
-		buf_size -= Sound_out.sample_size * Sound_out.channels;
+		buf_size -= Sound_out.channels;
 	}
 	sound_array_fill = 0;
 	return buf_size;

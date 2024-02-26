@@ -391,9 +391,8 @@ int libatari800_get_num_sound_channels() {
  * @retval 2 16-bit audio
  */
 int libatari800_get_sound_sample_size() {
-	return Sound_out.sample_size;
+	return 1;
 }
-
 
 /** Return the video frame rate
  *
