@@ -492,7 +492,6 @@ void nespad_update() {
 
 void __time_critical_func(render_core)() {
     const auto buffer = __screen;
-    memset(buffer, 0, Screen_WIDTH * Screen_HEIGHT);
     graphics_set_buffer(buffer, Screen_WIDTH, Screen_HEIGHT);
     multicore_lockout_victim_init();
     graphics_init();
@@ -627,10 +626,6 @@ int main() {
     /* force the 400/800 OS to get the Memo Pad */
     char *test_args[] = {
         "-atari",
-       // "-xl",
-       // "-atari_files",
-       // "\\atari800",
-       // "-basic",
         NULL,
     };
     printf("libatari800_init");
@@ -639,7 +634,7 @@ int main() {
     libatari800_clear_input_array(&input_map);
 
 #ifdef SOUND
-	int hz = libatari800_get_sound_frequency(); ///44100;	//44000 //44100 //96000 //22050
+	int hz = libatari800_get_sound_frequency();
     snd_channels = libatari800_get_num_sound_channels();
 	// negative timeout means exact delay (rather than delay between callbacks)
 	if (!add_repeating_timer_us(-1000000 / hz, snd_timer_callback, NULL, &timer)) {

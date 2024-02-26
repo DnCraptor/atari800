@@ -42,15 +42,7 @@
 #endif
 
 UBYTE __aligned(4) __screen[Screen_HEIGHT * Screen_WIDTH] = { 0 };
-UBYTE *Screen_atari = &__screen;
-#ifdef DIRTYRECT
-UBYTE *Screen_dirty = NULL;
-#endif
-#ifdef BITPL_SCR
-ULONG *Screen_atari_b = NULL;
-ULONG *Screen_atari1 = NULL;
-ULONG *Screen_atari2 = NULL;
-#endif
+UBYTE *Screen_atari = __screen;
 
 /* The area that can been seen is Screen_visible_x1 <= x < Screen_visible_x2,
    Screen_visible_y1 <= y < Screen_visible_y2.
@@ -85,82 +77,29 @@ static int screenshot_no_max = 0;
 int Screen_show_multimedia_stats = TRUE;
 #endif
 
-int Screen_Initialise(int *argc, char *argv[])
-{
+int Screen_Initialise(int *argc, char *argv[]) {
 	printf("Screen_Initialise");
 	int i;
 	int j;
 	int help_only = FALSE;
-
 	for (i = j = 1; i < *argc; i++) {
-#ifdef SCREENSHOTS
-		int i_a = (i + 1 < *argc);		/* is argument available? */
-		int a_m = FALSE;			/* error, argument missing! */
-#endif
-
-		if (0) {}
-#ifdef SCREENSHOTS
-		else if (strcmp(argv[i], "-screenshots") == 0) {
-			if (i_a)
-				screenshot_no_max = Util_filenamepattern(argv[++i], screenshot_filename_format, FILENAME_MAX, DEFAULT_SCREENSHOT_FILENAME_FORMAT);
-			else a_m = TRUE;
-		}
-#endif
-#if defined(AUDIO_RECORDING) || defined(VIDEO_RECORDING)
-		else if (strcmp(argv[i], "-showstats") == 0) {
-			Screen_show_multimedia_stats = TRUE;
-		}
-		else if (strcmp(argv[i], "-no-showstats") == 0) {
-			Screen_show_multimedia_stats = FALSE;
-		}
-#endif
-		else if (strcmp(argv[i], "-showspeed") == 0) {
+		if (strcmp(argv[i], "-showspeed") == 0) {
 			Screen_show_atari_speed = TRUE;
 		}
 		else {
 			if (strcmp(argv[i], "-help") == 0) {
 				help_only = TRUE;
-#ifdef SCREENSHOTS
-				Log_print("\t-screenshots <p> Set filename pattern for screenshots");
-#endif
-#if defined(AUDIO_RECORDING) || defined(VIDEO_RECORDING)
-				Log_print("\t-showstats       Show recording stats of video or audio");
-				Log_print("\t-no-showstats    Don't show recording stats of video or audio");
-#endif
 				Log_print("\t-showspeed       Show percentage of actual speed");
 			}
 			argv[j++] = argv[i];
 		}
-
-#ifdef SCREENSHOTS
-		if (a_m) {
-			Log_print("Missing argument for '%s'", argv[i]);
-			return FALSE;
-		}
-#endif
 	}
 	*argc = j;
-
 	/* don't bother mallocing Screen_atari with just "-help" */
 	if (help_only)
 		return TRUE;
-/***
-	if (Screen_atari == NULL) { /* platform-specific code can initialize it * /
-		Screen_atari = (ULONG *) Util_malloc(Screen_HEIGHT * Screen_WIDTH);
-#ifdef DIRTYRECT
-		Screen_dirty = (UBYTE *) Util_malloc(Screen_HEIGHT * Screen_WIDTH / 8);
-		Screen_EntireDirty();
-#endif
-#ifdef BITPL_SCR
-		Screen_atari_b = (ULONG *) Util_malloc(Screen_HEIGHT * Screen_WIDTH);
-		memset(Screen_atari_b, 0, Screen_HEIGHT * Screen_WIDTH);
-		Screen_atari1 = Screen_atari;
-		Screen_atari2 = Screen_atari_b;
-#endif
-	}
-**/
 	/* Clear the screen. */
-	memset(Screen_atari, 0, Screen_HEIGHT * Screen_WIDTH);
+	memset(__screen, 0, Screen_HEIGHT * Screen_WIDTH);
 	return TRUE;
 }
 
@@ -174,10 +113,6 @@ int Screen_ReadConfig(char *string, char *ptr)
 		return (Screen_show_sector_counter = Util_sscanbool(ptr)) != -1;
 	else if (strcmp(string, "SCREEN_SHOW_1200XL_LEDS") == 0)
 		return (Screen_show_1200_leds = Util_sscanbool(ptr)) != -1;
-#if defined(AUDIO_RECORDING) || defined(VIDEO_RECORDING)
-	else if (strcmp(string, "SCREEN_SHOW_MULTIMEDIA_STATS") == 0)
-		return (Screen_show_multimedia_stats = Util_sscanbool(ptr)) != -1;
-#endif
 	else return FALSE;
 	return TRUE;
 }
@@ -188,9 +123,6 @@ void Screen_WriteConfig(FIL *fp)
 	fprintf(fp, "SCREEN_SHOW_IO_ACTIVITY=%d\n", Screen_show_disk_led);
 	fprintf(fp, "SCREEN_SHOW_IO_COUNTER=%d\n", Screen_show_sector_counter);
 	fprintf(fp, "SCREEN_SHOW_1200XL_LEDS=%d\n", Screen_show_1200_leds);
-#if defined(AUDIO_RECORDING) || defined(VIDEO_RECORDING)
-	fprintf(fp, "SCREEN_SHOW_MULTIMEDIA_STATS=%d\n", Screen_show_multimedia_stats);
-#endif
 }
 
 #define SMALLFONT_WIDTH    5

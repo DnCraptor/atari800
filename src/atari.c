@@ -175,7 +175,6 @@ int Atari800_nframes = 0;
 int Atari800_refresh_rate = 1;
 int Atari800_collisions_in_skipped_frames = FALSE;
 int Atari800_turbo = FALSE;
-int Atari800_start_in_monitor = FALSE;
 int Atari800_auto_frameskip = FALSE;
 
 #ifdef BENCHMARK
@@ -442,9 +441,6 @@ int Atari800_Initialise(int *argc, char *argv[])
 		char current_dir[FILENAME_MAX];
 		SYSROM_FindInDir(Util_getcwd(current_dir, FILENAME_MAX), TRUE);
 	}
-#if defined(unix) || defined(__unix__) || defined(__linux__)
-	SYSROM_FindInDir("/usr/share/atari800", TRUE);
-#endif
 	if (*argc > 0 && argv[0] != NULL) {
 		char atari800_exe_dir[FILENAME_MAX];
 		char atari800_exe_rom_dir[FILENAME_MAX];
@@ -621,22 +617,6 @@ int Atari800_Initialise(int *argc, char *argv[])
 			if (strcmp(argv[i], "-run") == 0) {
 				if (i_a) run_direct = argv[++i]; else a_m = TRUE;
 			}
-#ifdef R_IO_DEVICE
-			else if (strcmp(argv[i], "-rdevice") == 0) {
-				Devices_enable_r_patch = TRUE;
-#ifdef R_SERIAL
-				if (i_a && i + 2 < *argc && *argv[i + 1] != '-') {  /* optional serial device name */
-					struct stat statbuf;
-					if (! stat(argv[i + 1], &statbuf)) {
-						if (S_ISCHR(statbuf.st_mode)) { /* only accept devices as serial device */
-							Util_strlcpy(RDevice_serial_device, argv[++i], FILENAME_MAX);
-							RDevice_serial_enabled = TRUE;
-						}
-					}
-				}
-#endif /* R_SERIAL */
-			}
-#endif
 			else if (strcmp(argv[i], "-mosaic") == 0) {
 				if (i_a) {
 					int total_ram = Util_sscandec(argv[++i]);
@@ -688,18 +668,6 @@ int Atari800_Initialise(int *argc, char *argv[])
 			else if (strcmp(argv[i], "-no-autosave-config") == 0)
 				CFG_save_on_exit = FALSE;
 #endif /* BASIC */
-			else if (strcmp(argv[i], "-monitor") == 0)
-				Atari800_start_in_monitor = TRUE;
-#ifdef MONITOR_HINTS
-			else if (strcmp(argv[i], "-label-file") == 0)
-				if (i_a) MONITOR_PreloadLabelFile(argv[++i]); else a_m = TRUE;
-#endif /* MONITOR_HINTS */
-#ifdef MONITOR_BREAK
-			else if (strcmp(argv[i], "-bbrk") == 0)
-				MONITOR_BBRK_on();
-			else if (strcmp(argv[i], "-bpc") == 0)
-				if (i_a) MONITOR_BPC(argv[++i]); else a_m = TRUE;
-#endif /* MONITOR_BREAK */
 			else {
 				/* all options known to main module tried but none matched */
 
@@ -738,13 +706,7 @@ int Atari800_Initialise(int *argc, char *argv[])
 					Log_print("\t-mosaic <n>      Use 400/800 Mosaic memory expansion: <n> k total RAM");
 					Log_print("\t-mapram          Enable MapRAM for Atari XL/XE");
 					Log_print("\t-no-mapram       Disable MapRAM");
-#ifdef R_IO_DEVICE
-					Log_print("\t-rdevice [<dev>] Enable R: emulation (using serial device <dev>)");
-#endif
 					Log_print("\t-turbo           Run emulated Atari as fast as possible");
-#ifdef MONITOR_HINTS
-					Log_print("\t-label-file <f>  Load monitor labels from file <f>");
-#endif
 					Log_print("\t-v               Show version/release number");
 				}
 
