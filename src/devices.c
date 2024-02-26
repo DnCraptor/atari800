@@ -504,13 +504,8 @@ char Devices_h_device_name = 'H';
    only Util_DIR_SEP_CHAR can be used as a directory separator here */
 char Devices_h_current_dir[4][FILENAME_MAX];
 
-typedef struct FILE_t {
-	int open;
-    FIL fil;
-} FILE_t;
-
 /* stream open via H: device per IOCB */
-static FILE_t h_fp[8] = { { FALSE }, { FALSE }, { FALSE }, { FALSE }, { FALSE }, { FALSE }, { FALSE }, { FALSE } };
+static FIL* h_fp[8] = { NULL };
 
 /* H: text mode per IOCB */
 static int h_textmode[8];
@@ -552,7 +547,7 @@ int Devices_H_CountOpen(void)
 	int r = 0;
 	int i;
 	for (i = 0; i < 8; i++)
-		if (h_fp[i].open)
+		if (h_fp[i])
 			r++;
 	return r;
 }
@@ -561,9 +556,10 @@ void Devices_H_CloseAll(void)
 {
 	int i;
 	for (i = 0; i < 8; i++)
-		if (h_fp[i].open) {
-			f_close(&h_fp[i].fil);
-			h_fp[i].open = FALSE;
+		if (h_fp[i]) {
+			f_close(h_fp[i]);
+			free(h_fp[i]);
+			h_fp[i] = NULL;
 		}
 }
 
@@ -834,9 +830,10 @@ static void Devices_H_Open(void)
 	if (Devices_GetHostPath(TRUE) == 0)
 		return;
 
-	if (h_fp[h_iocb].open) {
-		f_close(&h_fp[h_iocb].fil);
-		h_fp[h_iocb].open = FALSE;
+	if (h_fp[h_iocb]) {
+		f_close(h_fp[h_iocb]);
+		free(h_fp[h_iocb]);
+		h_fp[h_iocb] = NULL;
 	}
 #if 0
 	if (devbug)
@@ -844,19 +841,21 @@ static void Devices_H_Open(void)
 #endif
 	h_wascr[h_iocb] = FALSE;
 	h_lastop[h_iocb] = 'o';
-
 	aux1 = MEMORY_dGetByte(Devices_ICAX1Z);
 	switch (aux1) {
 	case 4:
 		/* don't bother using "r" for textmode:
 		   we want to support LF, CR/LF and CR, not only native EOLs */
-		if (f_open(&h_fp[h_iocb], host_path, FA_READ) != FR_OK) {
-			h_fp[h_iocb].open = FALSE;
+		fp = (FIL*)Util_malloc(sizeof(FIL), "Devices_H_Open");
+		if (f_open(fp, host_path, FA_READ) != FR_OK) {
+			free(fp);
+			fp = NULL;
 			CPU_regY = 1;
 			CPU_ClrN;
 		}
 		else {
-			h_fp[h_iocb].open = TRUE;
+			h_fp[h_iocb] = fp;
+			fp = NULL;
 			CPU_regY = 170; /* file not found */
 			CPU_SetN;
 		}
@@ -872,6 +871,7 @@ static void Devices_H_Open(void)
 		}
 		if (!Devices_OpenDir(host_path)) {
 			Util_fclose(fp, h_tmpbuf[h_iocb]);
+			free(fp);
 			fp = NULL;
 			CPU_regY = 144; /* device done error */
 			CPU_SetN;
@@ -957,18 +957,24 @@ static void Devices_H_Open(void)
 		}
 		{
 			BYTE mode = FA_READ;
-            if (aux1 & 1) mode |= FA_OPEN_APPEND;
-			if (aux1 < 12) mode |= FA_WRITE;
-			if (aux1 >= 12) mode |= FA_OPEN_APPEND;
-			FRESULT fr = f_open(&h_fp[h_iocb].fil, host_path, mode);
-			h_fp[h_iocb].open = fr == FR_OK;
-			if (fr != FR_OK && aux1 == 12) {
-				mode |= FA_WRITE;
-				fr = f_open(&h_fp[h_iocb].fil, host_path, mode);
-				h_fp[h_iocb].open = fr == FR_OK;
+            if (aux1 & 1) mode |= ~FA_OPEN_APPEND;
+			if (aux1 < 12) mode |= ~FA_WRITE;
+			if (aux1 >= 12) mode |= ~FA_OPEN_APPEND;
+			FIL* fp2 = (FIL*)Util_malloc(sizeof(FIL), "Devices_h_read_only");
+			FRESULT fr = f_open(h_fp[h_iocb], host_path, mode);
+			if (fr == FR_OK) {
+				h_fp[h_iocb] = fp2;
+			} else if (fr != FR_OK && aux1 == 12) {
+				mode &= FA_WRITE;
+				if (FR_OK == f_open(fp2, host_path, mode)) {
+					h_fp[h_iocb] = fp2;
+				}
+			}
+			if (!h_fp[h_iocb]) {
+				free(fp2);
 			}
 		}
-		if (h_fp[h_iocb].open) {
+		if (h_fp[h_iocb]) {
 			CPU_regY = 1;
 			CPU_ClrN;
 		}
@@ -982,6 +988,10 @@ static void Devices_H_Open(void)
 		CPU_SetN;
 		break;
 	}
+	if (fp) {
+		f_close(fp);
+		free(fp);
+	}
 }
 
 static void Devices_H_Close(void)
@@ -990,9 +1000,9 @@ static void Devices_H_Close(void)
 		Log_print("HHCLOS");
 	if (!Devices_GetIOCB())
 		return;
-	if (h_fp[h_iocb].open) {
-		f_close(&h_fp[h_iocb]);
-		h_fp[h_iocb].open = FALSE;
+	if (h_fp[h_iocb]) {
+		f_close(h_fp[h_iocb]);
+		h_fp[h_iocb] = NULL;
 	}
 	CPU_regY = 1;
 	CPU_ClrN;
@@ -1004,12 +1014,12 @@ static void Devices_H_Read(void)
 		Log_print("HHREAD");
 	if (!Devices_GetIOCB())
 		return;
-	if (h_fp[h_iocb].open) {
+	if (h_fp[h_iocb]) {
 		int ch;
 		if (h_lastop[h_iocb] != 'r') {
-		///	if (h_lastop[h_iocb] == 'w')
-		///		fseek(h_fp[h_iocb], 0, SEEK_CUR);
-			h_lastbyte[h_iocb] = _fgetc(&h_fp[h_iocb].fil);
+			if (h_lastop[h_iocb] == 'w')
+				fseek(h_fp[h_iocb], 0, 1/* SEEK_CUR*/);
+			h_lastbyte[h_iocb] = _fgetc(h_fp[h_iocb]);
 			h_lastop[h_iocb] = 'r';
 		}
 		ch = h_lastbyte[h_iocb];
@@ -1023,7 +1033,7 @@ static void Devices_H_Read(void)
 				case 0x0a:
 					if (h_wascr[h_iocb]) {
 						/* ignore LF next to CR */
-						ch = _fgetc(&h_fp[h_iocb].fil);
+						ch = _fgetc(h_fp[h_iocb]);
 						if (ch != EOF) {
 							if (ch == 0x0d) {
 								h_wascr[h_iocb] = TRUE;
@@ -1049,8 +1059,8 @@ static void Devices_H_Read(void)
 			CPU_regA = (UBYTE) ch;
 			/* [OSMAN] p. 79: Status should be 3 if next read would yield EOF.
 			   But to set the stream's EOF flag, we need to read the next byte. */
-			h_lastbyte[h_iocb] = _fgetc(&h_fp[h_iocb].open);
-			CPU_regY = f_size(&h_fp[h_iocb].fil) == f_tell(&h_fp[h_iocb].fil) ? 3 : 1;
+			h_lastbyte[h_iocb] = _fgetc(h_fp[h_iocb]);
+			CPU_regY = f_size(h_fp[h_iocb]) == f_tell(h_fp[h_iocb]) ? 3 : 1;
 			CPU_ClrN;
 		}
 		else {
@@ -1070,15 +1080,15 @@ static void Devices_H_Write(void)
 		Log_print("HHWRIT");
 	if (!Devices_GetIOCB())
 		return;
-	if (h_fp[h_iocb].open) {
+	if (h_fp[h_iocb]) {
 		int ch;
-	///	if (h_lastop[h_iocb] == 'r')
-	///		fseek(h_fp[h_iocb], 0, SEEK_CUR);
+		if (h_lastop[h_iocb] == 'r')
+			fseek(h_fp[h_iocb], 0, 1/*SEEK_CUR*/);
 		h_lastop[h_iocb] = 'w';
 		ch = CPU_regA;
 		if (ch == 0x9b && h_textmode[h_iocb])
 			ch = '\n';
-		fputc(ch, &h_fp[h_iocb].fil);
+		fputc(ch, h_fp[h_iocb]);
 		CPU_regY = 1;
 		CPU_ClrN;
 	}
@@ -1348,8 +1358,8 @@ static void Devices_H_Note(void)
 		Log_print("NOTE Command");
 	if (!Devices_GetIOCB())
 		return;
-	if (h_fp[h_iocb].open) {
-		long pos = f_tell(&h_fp[h_iocb].fil);
+	if (h_fp[h_iocb]) {
+		long pos = f_tell(h_fp[h_iocb]);
 		if (pos >= 0) {
 			int iocb = Devices_IOCB0 + h_iocb * 16;
 			/* In Devices_H_Read one byte is read ahead. Take it into account. */
@@ -1378,11 +1388,11 @@ static void Devices_H_Point(void)
 		Log_print("POINT Command");
 	if (!Devices_GetIOCB())
 		return;
-	if (h_fp[h_iocb].open) {
+	if (h_fp[h_iocb]) {
 		int iocb = Devices_IOCB0 + h_iocb * 16;
 		long pos = (MEMORY_dGetByte(iocb + Devices_ICAX4) << 16) +
 			(MEMORY_dGetByte(iocb + Devices_ICAX3) << 8) + (MEMORY_dGetByte(iocb + Devices_ICAX5));
-		if (f_lseek(&h_fp[h_iocb].fil, pos) == FR_OK) {
+		if (f_lseek(h_fp[h_iocb], pos) == FR_OK) {
 			CPU_regY = 1;
 			CPU_ClrN;
 		}
@@ -1606,7 +1616,7 @@ static void Devices_H_FileLength(void)
 	if (!Devices_GetIOCB())
 		return;
 	/* if IOCB is closed then assume it is a MyDOS Load File command */
-	if (h_fp[h_iocb].open == FALSE)
+	if (!h_fp[h_iocb])
 		Devices_H_Load(TRUE);
 	/* if we are running MyDOS then assume it is a MyDOS Load File command */
 	else if (MEMORY_dGetByte(0x700) == 'M') {
@@ -1614,7 +1624,7 @@ static void Devices_H_FileLength(void)
 
 		/* In Devices_H_Read one byte is read ahead. Take it into account. */
 		if (h_lastop[h_iocb] == 'r' && h_lastbyte[h_iocb] != EOF)
-			f_lseek(&h_fp[h_iocb].fil, f_tell(&h_fp[h_iocb].fil) - 1);
+			f_lseek(h_fp[h_iocb], f_tell(h_fp[h_iocb]) - 1);
 
 		binf = &h_fp[h_iocb];
 		Devices_H_LoadProceed(TRUE);
@@ -1631,7 +1641,7 @@ static void Devices_H_FileLength(void)
 		fstat(fileno(h_fp[h_iocb]), &fstatus);
 		filesize = fstatus.st_size;
 #else
-		FIL *fp = &h_fp[h_iocb].fil;
+		FIL *fp = h_fp[h_iocb];
 		long currentpos = f_tell(fp);
 		filesize = f_size(fp);
 		f_lseek(fp, currentpos);
