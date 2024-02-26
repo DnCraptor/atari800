@@ -486,7 +486,7 @@ void nespad_update() {
 void __time_critical_func(render_core)() {
     multicore_lockout_victim_init();
     graphics_init();
-    const auto buffer = libatari800_get_screen_ptr();
+    const auto buffer = __screen;//libatari800_get_screen_ptr();
     graphics_set_buffer(buffer, Screen_WIDTH, Screen_HEIGHT);
     graphics_set_textbuffer(buffer);
     graphics_set_bgcolor(0x000000);
@@ -535,7 +535,7 @@ extern "C" void PLATFORM_SoundWrite(UBYTE const *buffer, unsigned int size)
 #ifdef SOUND
 static repeating_timer_t timer;
 static int snd_channels = 2;
-static bool __not_in_flash_func(AY_timer_callback)(repeating_timer_t *rt) {
+static bool __not_in_flash_func(snd_timer_callback)(repeating_timer_t *rt) {
     static uint16_t outL = 0;  
     static uint16_t outR = 0;
     register size_t idx = sound_array_idx;
@@ -590,21 +590,10 @@ int main() {
         printf("reset_usb_boot");
         reset_usb_boot(0, 0);
     }
-    /* force the 400/800 OS to get the Memo Pad */
-    char *test_args[] = {
-        "-atari",
-       // "-xl",
-       // "-atari_files",
-       // "\\atari800",
-       // "-basic",
-        NULL,
-    };
 
     sem_init(&vga_start_semaphore, 0, 1);
     multicore_launch_core1(render_core);
     sem_release(&vga_start_semaphore);
-    printf("libatari800_init");
-    libatari800_init(-1, test_args);
 
     gpio_init(PICO_DEFAULT_LED_PIN);
     gpio_set_dir(PICO_DEFAULT_LED_PIN, GPIO_OUT);
@@ -614,9 +603,6 @@ int main() {
         sleep_ms(33);
         gpio_put(PICO_DEFAULT_LED_PIN, false);
     }
-
-    init_fs(); // TODO: psram replacement (pagefile)
-    init_psram();
 
     PWM_init_pin(BEEPER_PIN, (1 << 8) - 1);
 #ifdef SOUND
@@ -628,23 +614,43 @@ int main() {
     inInit(LOAD_WAV_PIO);
 #endif
 
+    init_fs(); // TODO: psram replacement (pagefile)
+    init_psram();
+
+    /* force the 400/800 OS to get the Memo Pad */
+    char *test_args[] = {
+        "-atari",
+       // "-xl",
+       // "-atari_files",
+       // "\\atari800",
+       // "-basic",
+        NULL,
+    };
+    printf("libatari800_init");
+    libatari800_init(-1, test_args);
     printf("libatari800_clear_input_array");
     libatari800_clear_input_array(&input_map);
-
 
 #ifdef SOUND
 	int hz = libatari800_get_sound_frequency(); ///44100;	//44000 //44100 //96000 //22050
     snd_channels = libatari800_get_num_sound_channels();
 	// negative timeout means exact delay (rather than delay between callbacks)
-	if (!add_repeating_timer_us(-1000000 / hz, AY_timer_callback, NULL, &timer)) {
+	if (!add_repeating_timer_us(-1000000 / hz, snd_timer_callback, NULL, &timer)) {
 		printf("Failed to add timer");
 	}
 #endif
 
     while(true) {
+        int hz_new = libatari800_get_sound_frequency();
+        if (hz_new != hz) {
+            cancel_repeating_timer(&timer);
+            hz = hz_new;
+            if (!add_repeating_timer_us(-1000000 / hz, snd_timer_callback, NULL, &timer)) {
+		        printf("Failed to update timer");
+	        }
+        }
+        snd_channels = libatari800_get_num_sound_channels();
         libatari800_next_frame(&input_map);
-        sleep_us(5);
-
         tight_loop_contents();
     }
 
