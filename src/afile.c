@@ -163,9 +163,10 @@ int AFILE_DetectFileType(const char *filename)
 	return AFILE_ERROR;
 }
 
-int AFILE_OpenFile(const char *filename, int reboot, int diskno, int readonly)
-{
+int AFILE_OpenFile(const char *filename, int reboot, int diskno, int readonly) {
+	printf("AFILE_OpenFile '%s' reboot: %d; diskno: %d; readonly: %d", filename, reboot, diskno, readonly);
 	int type = AFILE_DetectFileType(filename);
+	printf("AFILE_OpenFile '%s' type: %d", filename, type);
 	switch (type) {
 	case AFILE_ATR:
 	case AFILE_ATX:
@@ -188,6 +189,7 @@ int AFILE_OpenFile(const char *filename, int reboot, int diskno, int readonly)
 	case AFILE_CART:
 	case AFILE_ROM:
 		{
+			printf("AFILE_OpenFile '%s' type: %d CART/ROM", filename, type);
 			int r;
 			if (reboot)
 				r = CARTRIDGE_InsertAutoReboot(filename);
@@ -231,5 +233,6 @@ int AFILE_OpenFile(const char *filename, int reboot, int diskno, int readonly)
 	default:
 		break;
 	}
+	printf("AFILE_OpenFile '%s' type: %d DONE", filename, type);
 	return type;
 }

@@ -1623,8 +1623,8 @@ void CARTRIDGE_SetType(CARTRIDGE_image_t *cart, int type)
 	InitCartridge(cart);
 }
 
-void CARTRIDGE_SetTypeAutoReboot(CARTRIDGE_image_t *cart, int type)
-{
+void CARTRIDGE_SetTypeAutoReboot(CARTRIDGE_image_t *cart, int type) {
+	printf("CARTRIDGE_SetTypeAutoReboot");
 	CARTRIDGE_SetType(cart, type);
 	/* We don't want to autoreboot on inserting the piggyback cartridge. */
 	if (cart != &CARTRIDGE_piggyback)

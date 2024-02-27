@@ -196,8 +196,8 @@ static void SetItemChecked(UI_tMenuItem *mip, int option, int checked)
 	FindMenuItem(mip, option)->flags = checked ? (UI_ITEM_CHECK | UI_ITEM_CHECKED) : UI_ITEM_CHECK;
 }
 
-static void FilenameMessage(const char *format, const char *filename)
-{
+static void FilenameMessage(const char *format, const char *filename) {
+	printf("FilenameMessage %s %s ", format, filename);
 	char msg[FILENAME_MAX + 30];
 	snprintf(msg, sizeof(msg), format, filename);
 	UI_driver->fMessage(msg, 1);
@@ -1009,31 +1009,36 @@ static void DiskManagement(void)
 	}
 }
 
-int UI_SelectCartType(int k)
-{
+int UI_SelectCartType(int k) {
 	UI_tMenuItem menu_array[CARTRIDGE_TYPE_COUNT] = { 0 };
 	int cart_entry;
 	int menu_entry = 0;
-	int option = 0;
-
+	int option = 1;
+	printf("UI_SelectCartType(%d)", k);
 	UI_driver->fInit();
-
+	printf("UI_SelectCartType(%d) fInit PASSED", k);
 	for (cart_entry = 1; cart_entry < CARTRIDGE_TYPE_COUNT; cart_entry++) {
+		///printf("UI_SelectCartType(%d) cart_entry: %d", k, cart_entry);
 		if (CARTRIDGES[cart_entry].kb == k) {
+			printf("UI_SelectCartType(%d) CARTRIDGES[%d].desc: %s", k, cart_entry, CARTRIDGES[cart_entry].description);
+			menu_array[menu_entry].prefix = NULL;
+			menu_array[menu_entry].suffix = NULL;
 			menu_array[menu_entry].flags = UI_ITEM_ACTION;
 			menu_array[menu_entry].retval = cart_entry;
 			menu_array[menu_entry].item = CARTRIDGES[cart_entry].description;
 			menu_entry++;
-	    	}
+	    }
 	}
-		
+	printf("UI_SelectCartType(%d) menu_entry: %d", k, menu_entry);
 	if (menu_entry == 0)
 		return CARTRIDGE_NONE;
-
 	/* Terminate menu_array, but do it by hand */
 	menu_array[menu_entry].flags = UI_ITEM_END;
 
+	printf("UI_SelectCartType(%d) UI_driver->fSelect", k);
+	int seltype;
 	option = UI_driver->fSelect("Select Cartridge Type", 0, option, menu_array, NULL);
+	printf("UI_SelectCartType(%d) UI_driver->fSelect returns %s", k, option);
 	if (option > 0)
 		return option;
 
@@ -1523,25 +1528,31 @@ static void VideoRecording(void)
 }
 #endif /* VIDEO_RECORDING */
 
-static int AutostartFile(void)
-{
-	static char filename[FILENAME_MAX];
+static int AutostartFile(void) {
+	static char filename[FILENAME_MAX] = { 0 };
+	printf("AutostartFile prev.: %s", filename);
 	if (UI_driver->fGetLoadFilename(filename, UI_atari_files_dir, UI_n_atari_files_dir)) {
 		int file_type = AFILE_OpenFile(filename, TRUE, 1, FALSE);
+		printf("AFILE_OpenFile file_type: %d", file_type);
 		if (file_type != 0) {
 			int rom_kb;
-			if ((file_type & 0xff) == AFILE_ROM
-			    && (rom_kb = (file_type & ~0xff) >> 8) != 0) {
+			if ((file_type & 0xff) == AFILE_ROM && (rom_kb = (file_type & ~0xff) >> 8) != 0) {
+				printf("AFILE_OpenFile file_type: ROM %d KB", rom_kb);
 				int cart_type = UI_SelectCartType(rom_kb);
-				if (cart_type == CARTRIDGE_NONE)
+				printf("AFILE_OpenFile cart_type: %d", cart_type);
+				if (cart_type == CARTRIDGE_NONE) {
 					/* User chose nothing - go back to parent menu. */
+					FilenameMessage("Wrong cartridge", filename);
 					return FALSE;
+				}
 				CARTRIDGE_SetTypeAutoReboot(&CARTRIDGE_main, cart_type);
 			}
+			printf("AutostartFile %s OK", filename);
 			return TRUE;
 		}
 		CantLoad(filename);
 	}
+	printf("AutostartFile cancelled");
 	return FALSE;
 }
 

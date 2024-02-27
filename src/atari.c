@@ -1072,12 +1072,11 @@ static void autoframeskip(double curtime, double lasttime)
 	}
 }
 
-void Atari800_Sync(void)
-{
+void Atari800_Sync(void) {
 	static double lasttime = 0;
 	double deltatime = 1.0 / ((Atari800_tv_mode == Atari800_TV_PAL) ? Atari800_FPS_PAL : Atari800_FPS_NTSC);
 	double curtime;
-
+	printf("Atari800_Sync");
 #ifdef SYNCHRONIZED_SOUND
 	deltatime *= Sound_AdjustSpeed();
 #endif

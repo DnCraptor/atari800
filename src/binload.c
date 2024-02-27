@@ -178,6 +178,7 @@ int BINLOAD_LoaderStart(UBYTE *buffer)
 /* Load BIN file, returns TRUE if ok */
 int BINLOAD_Loader(const char *filename)
 {
+	printf("BINLOAD_Loader '%s'", filename);
 	UBYTE buf[2];
 	if (BINLOAD_bin_file_open) {		/* close previously open file */
 		f_close(&BINLOAD_bin_file);

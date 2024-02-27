@@ -40,11 +40,10 @@ static int lastkey = -1, key_control = 0;
 
 input_template_t *LIBATARI800_Input_array = NULL;
 
-int PLATFORM_Keyboard(void)
-{
+int PLATFORM_Keyboard(void) {
 	int shiftctrl = 0;
 	int keycode = 0;
-
+	//printf("PLATFORM_Keyboard");
 	input_template_t *input = LIBATARI800_Input_array;
 
 	lastkey = input->keychar;

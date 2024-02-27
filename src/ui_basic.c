@@ -91,23 +91,20 @@ const unsigned char UI_BASIC_key_to_ascii[256] =
 #define KB_DELAY       20
 #define KB_AUTOREPEAT  3
 
-static int GetKeyPress(void)
-{
+static int GetKeyPress(void) {
 	int keycode;
-
+///	printf("GetKeyPress");
 	if (UI_alt_function >= 0) {
 		printf("UI_alt_function B %d", UI_alt_function);
 		return 0x1b; /* escape - go to Main Menu */
 	}
 	PLATFORM_DisplayScreen();
-
 	for (;;) {  
 		static int rep = KB_DELAY;
 		if (PLATFORM_Keyboard() == AKEY_NONE) {
 			rep = KB_DELAY;
 			break;
 		}
-		
 		if (rep == 0) {
 			rep = KB_AUTOREPEAT;
 			break;
@@ -115,7 +112,7 @@ static int GetKeyPress(void)
 		rep--;
 		Atari800_Sync();
 	}
-
+///	printf("GetKeyPress #2");
 	do { 
 		Atari800_Sync();
 		keycode = PLATFORM_Keyboard();
@@ -142,8 +139,8 @@ static int GetKeyPress(void)
 			break;
 		}
 	} while (keycode < 0);
-
-	return UI_BASIC_key_to_ascii[keycode];
+	printf("GetKeyPress returns: %02Xh", UI_BASIC_key_to_ascii[(uint8_t)keycode & 0xFF]);
+	return UI_BASIC_key_to_ascii[(uint8_t)keycode & 0xFF];
 }
 
 static void Plot(int fg, int bg, int ch, int x, int y)
@@ -180,8 +177,8 @@ static void Print(int fg, int bg, const char *string, int x, int y, int maxwidth
 		Plot(fg, bg, *string++, x++, y);
 }
 
-static void CenterPrint(int fg, int bg, const char *string, int y)
-{
+static void CenterPrint(int fg, int bg, const char *string, int y) {
+	printf("CenterPrint: '%s'", string);
 	int length = strlen(string);
 	Print(fg, bg, string, (length < 38) ? (40 - length) >> 1 : 1, y, 38);
 }
@@ -207,11 +204,8 @@ static void Box(int fg, int bg, int x1, int y1, int x2, int y2)
 	Plot(fg, bg, 26, x1, y2);
 }
 
-static void ClearRectangle(int bg, int x1, int y1, int x2, int y2)
-{
-#ifdef USE_CURSES
-	curses_clear_rectangle(x1, y1, x2, y2);
-#else
+static void ClearRectangle(int bg, int x1, int y1, int x2, int y2) {
+	printf("ClearRectangle");
 	UBYTE *ptr = (UBYTE *) Screen_atari + Screen_WIDTH * 24 + 32 + x1 * 8 + y1 * (Screen_WIDTH * 8);
 	int bytesperline = (x2 - x1 + 1) << 3;
 	UBYTE *end_ptr = (UBYTE *) Screen_atari + Screen_WIDTH * 32 + 32 + y2 * (Screen_WIDTH * 8);
@@ -223,7 +217,6 @@ static void ClearRectangle(int bg, int x1, int y1, int x2, int y2)
 #endif
 		ptr += Screen_WIDTH;
 	}
-#endif /* USE_CURSES */
 }
 
 static void ClearScreen(void)
@@ -284,6 +277,7 @@ static int Select(int default_item, int nitems, const char *item[],
                   int itemwidth, int drag, const char *global_tip,
                   int *seltype)
 {
+	printf("Select default_item: %d; nitems: %d", default_item, nitems);
 	int offset = 0;
 	int index = default_item;
 	int localseltype;
@@ -306,22 +300,29 @@ static int Select(int default_item, int nitems, const char *item[],
 		col = 0;
 		row = 0;
 		for (i = offset; i < nitems; i++) {
-			char szbuf[40 + FILENAME_MAX]; /* allow for prefix and suffix */
+		//	printf("Select i: %d", i);
+			char szbuf[40 + FILENAME_MAX] = { 0 }; /* allow for prefix and suffix */
 			char *p = szbuf;
-			if (prefix != NULL && prefix[i] != NULL)
+			if (prefix != NULL && prefix[i] != NULL) {
 				p = Util_stpcpy(szbuf, prefix[i]);
+		//		printf("Select 1 p: %d", p);
+			}
 			p = Util_stpcpy(p, item[i]);
+		//	printf("Select 2 p: %d", p);
 			if (suffix != NULL && suffix[i] != NULL) {
 				char *q = szbuf + itemwidth - strlen(suffix[i]);
 				while (p < q)
 					*p++ = ' ';
 				strcpy(p, suffix[i]);
+		//		printf("Select 3 p: %d", p);
 			}
 			else {
 				while (p < szbuf + itemwidth)
 					*p++ = ' ';
 				*p = '\0';
+		//		printf("Select 4 p: %d", p);
 			}
+		//	printf("Select szbuf: '%s'", szbuf);
 			if (i == index)
 				Print(0x94, 0x9a, szbuf, xoffset + col * (itemwidth + 1), yoffset + row, itemwidth);
 			else
@@ -337,13 +338,15 @@ static int Select(int default_item, int nitems, const char *item[],
 		else if (itemwidth < 38 && (int) strlen(item[index]) > itemwidth)
 			/* the selected item was shortened */
 			message = item[index];
-		if (message != NULL)
+		if (message != NULL) {
 			CenterPrint(0x94, 0x9a, message, 22);
-
+		}
+		printf("Select [index: %d]", index);
 		for (;;) {
 			int ascii;
 			int tmp_index;
 			ascii = GetKeyPress();
+			printf("Select GetKeyPress ascii: %02Xh", ascii);
 			switch (ascii) {
 			case 0x1c:				/* Up */
 				if (drag) {
@@ -413,19 +416,25 @@ static int Select(int default_item, int nitems, const char *item[],
 	}
 }
 
+static const char *prefix[100] = { 0 };
+static const char *item[100] = { 0 };
+static const char *suffix[100] = { 0 };
+static const char *tip[100] = { 0 };
+static int nonselectable[100] = { 0 };
+
 static int BasicUISelect(const char *title, int flags, int default_item, const UI_tMenuItem *menu, int *seltype)
 {
 	int nitems;
 	int index;
 	const UI_tMenuItem *pmenu;
-	static const char *prefix[100];
-	static const char *item[100];
-	static const char *suffix[100];
-	static const char *tip[100];
-	static int nonselectable[100];
 	int w;
 	int x1, y1, x2, y2;
-
+	printf("BasicUISelect flags: %d", flags);
+	memset(prefix, 0, sizeof(prefix));
+	memset(item, 0, sizeof(item));
+	memset(suffix, 0, sizeof(suffix));
+	memset(tip, 0, sizeof(tip));
+	memset(nonselectable, 0, sizeof(nonselectable));
 	nitems = 0;
 	index = 0;
 	for (pmenu = menu; pmenu->flags != UI_ITEM_END; pmenu++) {
@@ -453,10 +462,12 @@ static int BasicUISelect(const char *title, int flags, int default_item, const U
 			nitems++;
 		}
 	}
+	printf("BasicUISelect nitems: %d", nitems);
 	if (nitems == 0)
 		return -1; /* cancel immediately */
 
 	if (flags & UI_SELECT_POPUP) {
+		printf("BasicUISelect UI_SELECT_POPUP");
 		int i;
 		w = 0;
 		for (i = 0; i < nitems; i++) {
@@ -477,6 +488,7 @@ static int BasicUISelect(const char *title, int flags, int default_item, const U
 		y2 = y1 + nitems + 1;
 	}
 	else {
+		printf("BasicUISelect ClearScreen");
 		ClearScreen();
 		TitleScreen(title);
 		w = 38;
@@ -485,12 +497,12 @@ static int BasicUISelect(const char *title, int flags, int default_item, const U
 		x2 = 39;
 		y2 = 23;
 	}
-
 	if (y1 < 0)
 		y1 = 0;
 	if (y2 > 23)
 		y2 = 23;
-
+	
+	printf("BasicUISelect Box");
 	Box(0x9a, 0x94, x1, y1, x2, y2);
 	index = Select(index, nitems, item, prefix, suffix, tip, nonselectable,
 	                y2 - y1 - 1, 1, x1 + 1, y1 + 1, w,

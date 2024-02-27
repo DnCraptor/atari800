@@ -232,7 +232,7 @@ int libatari800_next_frame(input_template_t *input)
 		}
 		else if (ANTIC_dlist == 0) {
 			libatari800_error_code = LIBATARI800_DLIST_ERROR;
-			printf("LIBATARI800_DLIST_ERROR");
+		///	printf("LIBATARI800_DLIST_ERROR");
 		}
 	}
 	PLATFORM_DisplayScreen();
