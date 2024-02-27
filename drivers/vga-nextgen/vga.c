@@ -501,10 +501,12 @@ void graphics_set_bgcolor(const uint32_t color888) {
                   ((c_lo << 8 | c_hi) & 0x3f3f | palette16_mask);
 }
 
-void graphics_set_palette(const uint8_t i, const uint32_t color888) {
-    const uint8_t conv0[] = { 0b00, 0b00, 0b01, 0b10, 0b10, 0b10, 0b11, 0b11 };
-    const uint8_t conv1[] = { 0b00, 0b01, 0b01, 0b01, 0b10, 0b11, 0b11, 0b11 };
+const uint8_t conv0[] = { 0b00, 0b00, 0b01, 0b10, 0b10, 0b10, 0b11, 0b11 };
+const uint8_t conv1[] = { 0b00, 0b01, 0b01, 0b01, 0b10, 0b11, 0b11, 0b11 };
 
+static bool external_palette = false;
+void graphics_set_palette(const uint8_t i, const uint32_t color888) {
+    external_palette = true;
     const uint8_t b = (color888 & 0xff) / 42;
 
     const uint8_t r = (color888 >> 16 & 0xff) / 42;
@@ -519,9 +521,7 @@ void graphics_set_palette(const uint8_t i, const uint32_t color888) {
 
 void graphics_init() {
     //инициализация палитры по умолчанию
-#if 1
-    const uint8_t conv0[] = { 0b00, 0b00, 0b01, 0b10, 0b10, 0b10, 0b11, 0b11 };
-    const uint8_t conv1[] = { 0b00, 0b01, 0b01, 0b01, 0b10, 0b11, 0b11, 0b11 };
+    if(!external_palette) // already installed
     for (int i = 0; i < 256; i++) {
         const uint8_t b = i & 0b11;
         const uint8_t r = i >> 5 & 0b111;
@@ -533,7 +533,7 @@ void graphics_init() {
         palette[0][i] = c_hi << 8 | c_lo;
         palette[1][i] = c_lo << 8 | c_hi;
     }
-#endif
+
     //текстовая палитра
     for (int i = 0; i < 16; i++) {
         const uint8_t b = i & 1 ? (i >> 3 ? 3 : 2) : 0;

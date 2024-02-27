@@ -30,6 +30,7 @@
 #include "colours.h"
 #include "log.h"
 #include "util.h"
+#include "graphics.h"
 
 #ifndef M_PI
 #define M_PI		3.14159265358979323846
@@ -369,6 +370,7 @@ static void YUV2RGB(double const yuv_table[256*5])
 
 		Colours_SetRGB(n, (int) (r * 255), (int) (g * 255), (int) (b * 255));
 	}
+	graphics_set_mode(GRAPHICSMODE_DEFAULT);
 }
 
 void COLOURS_PAL_Update()

@@ -430,7 +430,7 @@ int SIO_Mount(int diskno, const char *filename, int b_open_readonly)
 				free(info->sectors);
 				free(info);
 				Util_fclose(fp, sio_tmpbuf[diskno - 1]);
-				free(fp)
+				free(fp);
 				Log_print("VAPI: Bad Track Header while reading sectors");
 				return(FALSE);
 			}

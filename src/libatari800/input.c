@@ -34,6 +34,7 @@
 #include "platform.h"
 #include "pokey.h"
 #include "libatari800/statesav.h"
+#include "ui.h"
 
 static int lastkey = -1, key_control = 0;
 
@@ -84,6 +85,7 @@ int PLATFORM_Keyboard(void)
 	if (input->keychar == 253) return AKEY_LEFT;
 	if (input->keychar == 252) return AKEY_DOWN;
 	if (input->keychar == 251) return AKEY_RIGHT;
+
 
 	if (!lastkey) {
 		return AKEY_NONE;
@@ -244,6 +246,9 @@ int PLATFORM_Keyboard(void)
 	case 'Q':
 		return AKEY_Q|shiftctrl;
 	case 'R':
+	    if (input->alt) {
+            return UI_MENU_RUN;
+        }
 		return AKEY_R|shiftctrl;
 	case 'S':
 		return AKEY_S|shiftctrl;
@@ -330,6 +335,9 @@ int PLATFORM_Keyboard(void)
 	case 'q':
 		return AKEY_q|shiftctrl;
 	case 'r':
+	    if (input->alt) {
+            return UI_MENU_RUN;
+        }
 		return AKEY_r|shiftctrl;
 	case 's':
 		return AKEY_s|shiftctrl;

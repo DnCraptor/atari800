@@ -69,7 +69,7 @@ static char const * const preset_cfg_strings[COLOURS_PRESET_SIZE] = {
 
 ///int Colours_table[256];
 
-void Colours_SetRGB(int i, int r, int g, int b)
+void Colours_SetRGB(int i, int r, int g, int b) // graphics_set_mode
 {
 	if (r < 0)
 		r = 0;
@@ -169,8 +169,10 @@ static void CopyExternalWithoutAdjustments(void)
 {
 	int i;
 	unsigned char *ext_ptr;
-	for (i = 0, ext_ptr = Colours_external->palette; i < 256; i ++, ext_ptr += 3)
+	for (i = 0, ext_ptr = Colours_external->palette; i < 256; i ++, ext_ptr += 3) {
 		Colours_SetRGB(i, *ext_ptr, *(ext_ptr + 1), *(ext_ptr + 2));
+	}
+	graphics_set_mode(GRAPHICSMODE_DEFAULT);
 }
 
 /* Updates contents of Colours_table. */

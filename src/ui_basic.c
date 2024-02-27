@@ -95,9 +95,10 @@ static int GetKeyPress(void)
 {
 	int keycode;
 
-	if (UI_alt_function >= 0)
+	if (UI_alt_function >= 0) {
+		printf("UI_alt_function B %d", UI_alt_function);
 		return 0x1b; /* escape - go to Main Menu */
-
+	}
 	PLATFORM_DisplayScreen();
 
 	for (;;) {  
@@ -128,15 +129,8 @@ static int GetKeyPress(void)
 		case AKEY_COLDSTART:
 			UI_alt_function = UI_MENU_RESETC;
 			return 0x1b; /* escape */
-	///	case AKEY_EXIT:
-	///		UI_alt_function = UI_MENU_EXIT;
-	///		return 0x1b; /* escape */
 		case AKEY_UI:
-#ifdef DIRECTX			
-			UI_Run();
-#else	
 			if (UI_alt_function >= 0)  /* Alt+letter, not F1 */
-#endif
 			return 0x1b; /* escape */				
 			break;
 		case AKEY_SCREENSHOT:
@@ -154,39 +148,8 @@ static int GetKeyPress(void)
 	return UI_BASIC_key_to_ascii[keycode];
 }
 
-#ifdef DIRECTX
-/* Convert atari-pixel based mouse click coordinates to simplified
-   UI coordinates consisting of 20 horizontal bands and 2 columns */
-void SetMouseIndex(int x, int y)
-{
-	int yband;
-	
-	/* set the y-band that the user clicked on */
-	yband = y / DX_MENU_ITEM_HEIGHT - 5;
-	if (y < 37 || x > 346 || yband < 0 || yband > 20)
-		UI_mouse_click.y = -1;
-	else
-		UI_mouse_click.y = yband;
-		
-	/* set the x-band that the user clicked on */
-	if (x >= 37 && x < 186)
-		UI_mouse_click.x = 1;
-	else if (x >= 186 && x <= 346)
-		UI_mouse_click.x = 2;
-	else 
-		UI_mouse_click.x = -1;
-		
-	/* set any click outside of any band to -1,-1 */
-	if (UI_mouse_click.x == -1 || UI_mouse_click.y == -1)
-		UI_mouse_click.x = UI_mouse_click.y = -1;
-}
-#endif
-
 static void Plot(int fg, int bg, int ch, int x, int y)
 {
-#ifdef USE_CURSES
-	curses_putch(x, y, ch, (UBYTE) fg, (UBYTE) bg);
-#else /* USE_CURSES */
 	const UBYTE *font_ptr = charset + (ch & 0x7f) * 8;
 	UBYTE *ptr = (UBYTE *) Screen_atari + 24 * Screen_WIDTH + 32 + y * (8 * Screen_WIDTH) + x * 8;
 	int i;
@@ -204,7 +167,6 @@ static void Plot(int fg, int bg, int ch, int x, int y)
 		}
 		ptr += Screen_WIDTH - 8;
 	}
-#endif /* USE_CURSES */
 }
 
 static void Print(int fg, int bg, const char *string, int x, int y, int maxwidth)

@@ -4,7 +4,6 @@ include(pico_sdk_import.cmake)
 project(pico-atari C CXX ASM)
 pico_sdk_init()
 
-
 option(VGA "Enable VGA" OFF)
 option(TFT "Enable TFT display" OFF)
 option(ILI9341 "Enable TFT ILI9341 display" OFF)

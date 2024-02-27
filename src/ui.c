@@ -4496,8 +4496,10 @@ void UI_Run(void)
 	/* Sound_Active(FALSE); */
 	UI_driver->fInit();
 	while (!done) {
-		if (UI_alt_function != -1)
-			UI_current_function = UI_alt_function;		
+		if (UI_alt_function != -1) {
+			UI_current_function = UI_alt_function;
+			printf("UI_current_function: %d", UI_current_function);
+		}	
 		if (UI_alt_function < 0)
 			option = UI_driver->fSelect(Atari800_TITLE, 0, option, menu_array, NULL);
 		if (UI_alt_function >= 0) {

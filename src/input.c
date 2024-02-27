@@ -661,11 +661,6 @@ void INPUT_Frame(void)
 				POKEY_POT_input[2 * i + 1] = INPUT_joy_5200_center;
 		}
 	}
-
-	/* handle mouse */
-#ifdef __PLUS
-	if (g_Input.ulState & IS_CAPTURE_MOUSE)
-#endif
 	switch (INPUT_mouse_mode) {
 	case INPUT_MOUSE_PAD:
 	case INPUT_MOUSE_TOUCH:
@@ -877,97 +872,21 @@ void INPUT_Frame(void)
 		GTIA_TRIG[2] = TRIG_input[2];
 		GTIA_TRIG[3] = TRIG_input[3];
 	}
-
-#ifdef EVENT_RECORDING
-	update_adler32_of_screen();
-#endif
 }
 
-#ifdef EVENT_RECORDING
-static void update_adler32_of_screen(void)
-{
-	unsigned int adler32val = 0;
-	static unsigned int adler32_errors = 0;
-	static int first = TRUE;
-	if (first) { /* don't calculate the first frame */
-		first = FALSE;
-		adler32val = 0;
-	}
-	else if (recording || playingback){
-		adler32val = compute_adler32_of_screen();
-	}
-
-	if (recording) {
-		gzprintf(recordfp, "%08X \n", adler32val);
-	}
-	if (playingback) {
-		unsigned int pb_adler32val;
-		gzgets(playbackfp, gzbuf, GZBUFSIZE);
-		sscanf(gzbuf, "%08X ", &pb_adler32val);
-		if (pb_adler32val != adler32val){
-			Log_print("adler32 does not match");
-			adler32_errors++;
-		}
-		
-	}
-	if (playingback && gzeof(playbackfp)) {
-		playingback = FALSE;
-		gzclose(playbackfp);
-		if (playingback_exit_after) { /* exit emulation when not set otherwise */
-			Atari800_ErrExit();
-			exit(adler32_errors > 0 ? 1 : 0); /* return code indicates errors*/
-		}
-	}
-}
-/* Compute the adler32 value of the visible screen */
-/* Note that the visible portion is 24..360 on the horizontal and */
-/* 0..Screen_HEIGHT on the vertical */
-static unsigned int compute_adler32_of_screen(void)
-{
-	int y;
-	unsigned int adler = adler32(0L,Z_NULL,0);
-	for (y = 0; y < Screen_HEIGHT; y++) {
-		adler = adler32(adler, (unsigned char*)Screen_atari + 24 + Screen_WIDTH*y, 360 - 24);
-	}
-	return adler;
-}
-#endif /* EVENT_RECORDING */
-
-int INPUT_Recording(void)
-{
-#ifdef EVENT_RECORDING
-	return recording;
-#else
+int INPUT_Recording(void) {
 	return 0;
-#endif
 }
 
-int INPUT_Playingback(void)
-{
-#ifdef EVENT_RECORDING
-	return playingback;
-#else
+int INPUT_Playingback(void) {
 	return 0;
-#endif
 }
 
-void INPUT_RecordInt(int i)
-{
-#ifdef EVENT_RECORDING
-	if (recording) gzprintf(recordfp, "%d\n", i);
-#endif
+void INPUT_RecordInt(int i) {
 }
 
-int INPUT_PlaybackInt(void)
-{
-	int i = 0;
-#ifdef EVENT_RECORDING
-	if (playingback) {
-		gzgets(playbackfp, gzbuf, GZBUFSIZE);
-		sscanf(gzbuf, "%d", &i);
-	}
-#endif
-	return i;
+int INPUT_PlaybackInt(void) {
+	return 0;
 }
 
 void INPUT_Scanline(void)

@@ -312,7 +312,6 @@ bool __time_critical_func(handleScancode)(const uint32_t ps2scancode) {
             }
             case 0x13:
                 input_map.keychar = sp ? 'R' : 'r';
-                if (input_map.alt) UI_alt_function = UI_MENU_RUN;
                 break;
             case 0x1f: input_map.keychar = sp ? 'S' : 's'; break;
             case 0x14: input_map.keychar = sp ? 'T' : 't'; break;
@@ -597,6 +596,19 @@ int main() {
         reset_usb_boot(0, 0);
     }
 
+    init_fs(); // TODO: psram replacement (pagefile)
+    init_psram();
+
+    /* force the 400/800 OS to get the Memo Pad */
+    char *test_args[] = {
+        "-atari",
+        NULL,
+    };
+    printf("libatari800_init");
+    libatari800_init(-1, test_args);
+    printf("libatari800_clear_input_array");
+    libatari800_clear_input_array(&input_map);
+
     sem_init(&vga_start_semaphore, 0, 1);
     multicore_launch_core1(render_core);
     sem_release(&vga_start_semaphore);
@@ -620,19 +632,6 @@ int main() {
     inInit(LOAD_WAV_PIO);
 #endif
 
-    init_fs(); // TODO: psram replacement (pagefile)
-    init_psram();
-
-    /* force the 400/800 OS to get the Memo Pad */
-    char *test_args[] = {
-        "-atari",
-        NULL,
-    };
-    printf("libatari800_init");
-    libatari800_init(-1, test_args);
-    printf("libatari800_clear_input_array");
-    libatari800_clear_input_array(&input_map);
-
 #ifdef SOUND
 	int hz = libatari800_get_sound_frequency();
     snd_channels = libatari800_get_num_sound_channels();
@@ -643,6 +642,7 @@ int main() {
 #endif
 
     while(true) {
+#ifdef SOUND
         int hz_new = libatari800_get_sound_frequency();
         if (hz_new != hz) {
             cancel_repeating_timer(&timer);
@@ -652,6 +652,7 @@ int main() {
 	        }
         }
         snd_channels = libatari800_get_num_sound_channels();
+#endif
         libatari800_next_frame(&input_map);
         tight_loop_contents();
     }
