@@ -246,9 +246,6 @@ int PLATFORM_Keyboard(void)
 	case 'Q':
 		return AKEY_Q|shiftctrl;
 	case 'R':
-	    if (input->alt) {
-            return UI_MENU_RUN;
-        }
 		return AKEY_R|shiftctrl;
 	case 'S':
 		return AKEY_S|shiftctrl;
@@ -335,9 +332,6 @@ int PLATFORM_Keyboard(void)
 	case 'q':
 		return AKEY_q|shiftctrl;
 	case 'r':
-	    if (input->alt) {
-            return UI_MENU_RUN;
-        }
 		return AKEY_r|shiftctrl;
 	case 's':
 		return AKEY_s|shiftctrl;

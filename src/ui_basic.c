@@ -117,9 +117,6 @@ static int GetKeyPress(void)
 	}
 
 	do { 
-#ifdef DIRECTX
-		DoEvents();
-#endif	
 		Atari800_Sync();
 		keycode = PLATFORM_Keyboard();
 		switch (keycode) {
@@ -130,8 +127,9 @@ static int GetKeyPress(void)
 			UI_alt_function = UI_MENU_RESETC;
 			return 0x1b; /* escape */
 		case AKEY_UI:
+			printf("AKEY_UI UI_alt_function: %d", UI_alt_function);
 			if (UI_alt_function >= 0)  /* Alt+letter, not F1 */
-			return 0x1b; /* escape */				
+				return 0x1b; /* escape */				
 			break;
 		case AKEY_SCREENSHOT:
 			UI_alt_function = UI_MENU_PCX;
@@ -396,37 +394,6 @@ static int Select(int default_item, int nitems, const char *item[],
 			case 0x9b:				/* Return=Select */
 				*seltype = UI_USER_SELECT;
 				return index;
-#ifdef DIRECTX
-			case 0xAA:              /* Mouse click */
-			
-			/* mouse click location, adjusted by context 
-			   this is all we need for one column */
-			tmp_index = UI_mouse_click.y - yoffset + 2;
-					  
-			/* handle two column mode scenarios */
-			if (ncolumns == 2) {
-				/* special case - do nothing if user clicks empty 
-			       bottom cell in column 1 in two column mode.   */	
-				if (UI_mouse_click.x == 1 && UI_mouse_click.y == 20) {
-					UI_mouse_click.x = UI_mouse_click.y = -1;
-					break;
-				} 
-				/* handle two column, multi-page scenarios */
-				else if (UI_mouse_click.x == 1) 
-					tmp_index += offset;
-				else if (UI_mouse_click.x == 2)
-					tmp_index += offset + 20;
-			}
-
-			/* if cell is a valid one, update the index */
-			if (tmp_index > -1 && tmp_index < nitems)
-				index = tmp_index;
-			else 
-				/* otherwise, invalid item, so do nothing */
-				UI_mouse_click.x = UI_mouse_click.y = -1;
-				
-			break;
-#endif 
 			case 0x1b:				/* Esc=Cancel */
 				return -1;
 			default:

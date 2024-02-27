@@ -4485,8 +4485,8 @@ void UI_Run(void)
 		UI_MENU_FILESEL_ACCEL(UI_MENU_SAVESTATE, "Save State", "Alt+S"),
 		UI_MENU_FILESEL_ACCEL(UI_MENU_LOADSTATE, "Load State", "Alt+L"),
 		UI_MENU_ACTION_ACCEL(UI_MENU_BACK, "Back to Emulated Atari", "Esc"),
-		UI_MENU_ACTION_ACCEL(UI_MENU_RESETW, "Reset (Warm Start)", "F5"),
-		UI_MENU_ACTION_ACCEL(UI_MENU_RESETC, "Reboot (Cold Start)", "Shift+F5"),
+		UI_MENU_ACTION_ACCEL(UI_MENU_RESETW, "Reset (Warm Start)", "Alt+Q"),
+		UI_MENU_ACTION_ACCEL(UI_MENU_RESETC, "Reboot (Cold Start)", "Ctrl+Alt+Del"),
 		UI_MENU_ACTION_ACCEL(UI_MENU_ABOUT, "About the Emulator", "Alt+A"),
 		UI_MENU_END
 	};
@@ -4496,6 +4496,7 @@ void UI_Run(void)
 	/* Sound_Active(FALSE); */
 	UI_driver->fInit();
 	while (!done) {
+	///	printf("UI_alt_function: %d", UI_alt_function);
 		if (UI_alt_function != -1) {
 			UI_current_function = UI_alt_function;
 			printf("UI_current_function: %d", UI_current_function);

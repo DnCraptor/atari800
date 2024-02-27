@@ -80,23 +80,29 @@ bool __time_critical_func(handleScancode)(const uint32_t ps2scancode) {
         input_map.option = 0;
         input_map.start = 0;
     } else {
-        if (ps2scancode == 0xE01D) {
-            input_map.control |= 2;
-            input_map.trig1 = 1;
-            return true;
-        } // rCnt
-        if (ps2scancode == 0xE09D) {
-            input_map.control &= ~2;
-            input_map.trig1 = 0;
-            return true;
-        } // rCnt
-        if (ps2scancode == 0xE038) { input_map.alt |= 2; return true; } // rAlt
-        if (ps2scancode == 0xE0B8) { input_map.alt &= ~2; return true; } // rAlt
+        if ((ps2scancode & 0xFF00) == 0xE000) {
+            switch ((uint8_t)ps2scancode & 0xFF) {
+                case 0x1d: // rCnt down
+                    input_map.control |= 2;
+                    input_map.trig1 = 1;
+                    return true;
+                case 0x9d: // rCnt up
+                    input_map.control &= ~2;
+                    input_map.trig1 = 0;
+                    return true;
+                case 0x38: // rAlt down
+                    input_map.alt |= 2;
+                    return true;
+                case 0xb8: // rAlt up
+                    input_map.alt &= ~2;
+                    return true;
+            }
+        }
         //if (ps2scancode == 0xE05B) { ; return true; } // lWin
         //if (ps2scancode == 0xE05C) { ; return true; } // rWin
         //if (ps2scancode == 0xE05D) { ; return true; } // Menu
-        if ((ps2scancode & 0xFF) > 0x80) {
-            switch(ps2scancode & 0xFF) {
+        if (((uint8_t)ps2scancode & 0xFF) > 0x80) { // DOWN
+            switch((uint8_t)ps2scancode & 0xFF) {
                 case 0xb6: sp &= ~1; input_map.shift = sp; break; // rshift
                 case 0xaa: sp &= ~2; input_map.shift = sp; break; // lshift // CapsLock TODO: reverse shift
                 case 0xd3: { // Del
@@ -109,7 +115,9 @@ bool __time_critical_func(handleScancode)(const uint32_t ps2scancode) {
                     input_map.trig0 = 0; 
                     break;
                 } // lctrl
-                case 0xb8: input_map.alt &= ~1; break; // lalt
+                case 0xb8:
+                    input_map.alt &= ~1;
+                    break; // lalt
                 case 0xbc: {
                     input_map.option = 0;
                     f2Pressed = false;
@@ -225,7 +233,7 @@ bool __time_critical_func(handleScancode)(const uint32_t ps2scancode) {
             }
             return true;
         }
-        switch(ps2scancode & 0xFF) {
+        switch((uint8_t)ps2scancode & 0xFF) {
             case 0x53: {
                 input_map.keychar = 127;
                 delPressed = true;
@@ -276,12 +284,22 @@ bool __time_critical_func(handleScancode)(const uint32_t ps2scancode) {
             }
             case 0x30: input_map.keychar = sp ? 'B' : 'b'; break;
             case 0x2e: {
+	            if (input_map.alt) {
+                    input_map.keychar = 255; // -> AKEY_UI;
+			        UI_alt_function = UI_MENU_CARTRIDGE;
+                    return true;
+                }
                 input_map.keychar = sp ? 'C' : 'c';
                 input_map.joy0 |= ~INPUT_STICK_LR;
                 cPressed = true;
                 break;
             }
             case 0x20: {
+	            if (input_map.alt) {
+                    input_map.keychar = 255; // -> AKEY_UI;
+			        UI_alt_function = UI_MENU_DISK;
+                    return true;
+                }
                 input_map.keychar = sp ? 'D' : 'd';
                 input_map.joy0 |= ~INPUT_STICK_RIGHT;
                 dPressed = true;
@@ -299,22 +317,56 @@ bool __time_critical_func(handleScancode)(const uint32_t ps2scancode) {
             case 0x17: input_map.keychar = sp ? 'I' : 'i'; break;
             case 0x24: input_map.keychar = sp ? 'J' : 'j'; break;
             case 0x25: input_map.keychar = sp ? 'K' : 'k'; break;
-            case 0x26: input_map.keychar = sp ? 'L' : 'l'; break;
+            case 0x26:
+	            if (input_map.alt) {
+                    input_map.keychar = 255; // -> AKEY_UI;
+			        UI_alt_function = UI_MENU_LOADSTATE;
+                    return true;
+                }
+                input_map.keychar = sp ? 'L' : 'l'; break;
             case 0x32: input_map.keychar = sp ? 'M' : 'm'; break;
             case 0x31: input_map.keychar = sp ? 'N' : 'n'; break;
-            case 0x18: input_map.keychar = sp ? 'O' : 'o'; break;
+            case 0x18:
+	            if (input_map.alt) {
+                    input_map.keychar = 255; // -> AKEY_UI;
+			        UI_alt_function = UI_MENU_SOUND;
+                    return true;
+                }
+                input_map.keychar = sp ? 'O' : 'o'; break;
             case 0x19: input_map.keychar = sp ? 'P' : 'p'; break;
             case 0x10: {
+	            if (input_map.alt) {
+                    input_map.keychar = 255; // -> AKEY_UI;
+			        UI_alt_function = UI_MENU_RESETW;
+                    return true;
+                }
                 input_map.keychar = sp ? 'Q' : 'q';
                 input_map.joy0 |= ~INPUT_STICK_UL;
                 qPressed = true;
                 break;
             }
             case 0x13:
+	            if (input_map.alt) {
+                    input_map.keychar = 255; // -> AKEY_UI;
+			        UI_alt_function = UI_MENU_RUN;
+                    return true;
+                }
                 input_map.keychar = sp ? 'R' : 'r';
                 break;
-            case 0x1f: input_map.keychar = sp ? 'S' : 's'; break;
-            case 0x14: input_map.keychar = sp ? 'T' : 't'; break;
+            case 0x1f:
+	            if (input_map.alt) {
+                    input_map.keychar = 255; // -> AKEY_UI;
+			        UI_alt_function = UI_MENU_SAVESTATE;
+                    return true;
+                }
+                input_map.keychar = sp ? 'S' : 's'; break;
+            case 0x14:
+	            if (input_map.alt) {
+                    input_map.keychar = 255; // -> AKEY_UI;
+			        UI_alt_function = UI_MENU_CASSETTE;
+                    return true;
+                }
+                input_map.keychar = sp ? 'T' : 't'; break;
             case 0x16: input_map.keychar = sp ? 'U' : 'u'; break;
             case 0x2f: input_map.keychar = sp ? 'V' : 'v'; break;
             case 0x11: {
@@ -329,7 +381,13 @@ bool __time_critical_func(handleScancode)(const uint32_t ps2scancode) {
                 xPressed = true;
                 break;
             }
-            case 0x15: input_map.keychar = sp ? 'Y' : 'y'; break;
+            case 0x15:
+	            if (input_map.alt) {
+                    input_map.keychar = 255; // -> AKEY_UI;
+			        UI_alt_function = UI_MENU_SETTINGS;
+                    return true;
+                }
+                input_map.keychar = sp ? 'Y' : 'y'; break;
             case 0x2c: {
                 input_map.keychar = sp ? 'Z' : 'z';
                 input_map.joy0 |= ~INPUT_STICK_LL;
