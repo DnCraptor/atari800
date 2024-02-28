@@ -72,7 +72,7 @@
 #if defined(MEMCOMPR) || defined(LIBATARI800)
 /* libatari800 pretends to care about libz but it doesn't */
 #ifdef LIBATARI800
-#define gzFile char *
+#define gzFile FIL*
 #define Z_OK 0
 #endif
 static gzFile mem_open(const char *name, const char *mode);
@@ -560,171 +560,81 @@ int StateSav_ReadAtariState(const char *filename, const char *mode)
 	return TRUE;
 }
 
-
-/* Common definitions for in-memory state save used for DREAMCAST and libatari800
- */
-#if defined(MEMCOMPR) || defined(LIBATARI800)
-static char * plainmembuf;
-static unsigned int plainmemoff;
-static unsigned int unclen;
-
-/* hack to compress in memory before writing
- * - for DREAMCAST only
- * - 2 reasons for this:
- * - use bzip2 instead of zip: better compression ratio (the DC VMUs are small)
- * - write in DC specific file format to provide icon and description
- */
-#ifdef MEMCOMPR
-static char * comprmembuf;
-#define OM_READ  1
-#define OM_WRITE 2
-static int openmode;
-static char savename[FILENAME_MAX];
-#define HDR_LEN 640
-
-/* replacement for GZOPEN */
-static gzFile mem_open(const char *name, const char *mode)
-{
-	if (*mode == 'w') {
-		/* open for write (save) */
-		openmode = OM_WRITE;
-		strcpy(savename, name); /* remember name */
-		plainmembuf = Util_malloc(STATESAV_MAX_SIZE);
-		plainmemoff = 0; /*HDR_LEN;*/
-		return (gzFile *) plainmembuf;
+/* replacement for GZOPEN TODO: LZW */
+static gzFile mem_open(const char *name, const char *mode) {
+	if (LIBATARI800_StateSav_file != NULL) {
+		f_close(LIBATARI800_StateSav_file);
+	} else {
+		LIBATARI800_StateSav_file = (FIL*)Util_malloc(sizeof(FIL), "mem_open");
 	}
-	else {
-		/* open for read (read) */
-		FILE *f;
-		size_t len;
-		openmode = OM_READ;
-		unclen = STATESAV_MAX_SIZE;
-		f = fopen(name, mode);
-		if (f == NULL)
-			return NULL;
-		plainmembuf = Util_malloc(STATESAV_MAX_SIZE);
-		comprmembuf = Util_malloc(STATESAV_MAX_SIZE);
-		len = fread(comprmembuf, 1, STATESAV_MAX_SIZE, f);
-		fclose(f);
-		/* XXX: does DREAMCAST's fread return ((size_t) -1) ? */
-		if (len != 0
-		 && BZ2_bzBuffToBuffDecompress(plainmembuf, &unclen, comprmembuf + HDR_LEN, len - HDR_LEN, 1, 0) == BZ_OK) {
-#ifdef DEBUG
-			printf("decompress: old len %lu, new len %lu\n",
-				   (unsigned long) len - 1024, (unsigned long) unclen);
-#endif
-			free(comprmembuf);
-			plainmemoff = 0;
-			return (gzFile) plainmembuf;
-		}
-		free(comprmembuf);
-		free(plainmembuf);
+	FRESULT fr = f_open(LIBATARI800_StateSav_file, name, FA_CREATE_ALWAYS | FA_WRITE | FA_READ);
+	if (fr != FR_OK) {
+		free(LIBATARI800_StateSav_file);
+		LIBATARI800_StateSav_file = NULL;
 		return NULL;
 	}
+	return LIBATARI800_StateSav_file;
 }
 
 /* replacement for GZCLOSE */
-static int mem_close(gzFile stream)
-{
-	int status = -1;
-	unsigned int comprlen = STATESAV_MAX_SIZE - HDR_LEN;
-	if (openmode != OM_WRITE) {
-		/* was opened for read */
-		free(plainmembuf);
-		return 0;
+static int mem_close(gzFile stream) {
+	if (LIBATARI800_StateSav_file != NULL) {
+		f_close(LIBATARI800_StateSav_file);
+		free(LIBATARI800_StateSav_file);
+		LIBATARI800_StateSav_file = NULL;
 	}
-	comprmembuf = Util_malloc(STATESAV_MAX_SIZE);
-	if (BZ2_bzBuffToBuffCompress(comprmembuf + HDR_LEN, &comprlen, plainmembuf, plainmemoff, 9, 0, 0) == BZ_OK) {
-		FILE *f;
-		f = fopen(savename, "wb");
-		if (f != NULL) {
-			char icon[32 + 512];
-#ifdef DEBUG
-			printf("mem_close: plain len %lu, compr len %lu\n",
-			       (unsigned long) plainmemoff, (unsigned long) comprlen);
-#endif
-			memcpy(icon, palette, 32);
-			memcpy(icon + 32, bitmap, 512);
-			ndc_vmu_create_vmu_header(comprmembuf, "Atari800DC",
-						  "Atari800DC " A800DCVERASC " saved state",
-						  comprlen, icon);
-			comprlen = (comprlen + HDR_LEN + 511) & ~511;
-			ndc_vmu_do_crc(comprmembuf, comprlen);
-			status = (fwrite(comprmembuf, 1, comprlen, f) == comprlen) ? 0 : -1;
-			status |= fclose(f);
-#ifdef DEBUG
-			if (status != 0)
-				printf("mem_close: fwrite: error!!\n");
-#endif
-		}
-	}
-	free(comprmembuf);
-	free(plainmembuf);
-	return status;
-}
-#endif /* #ifdef MEMCOMPR */
-
-#ifdef LIBATARI800
-/* replacement for GZOPEN */
-static gzFile mem_open(const char *name, const char *mode)
-{
-	plainmembuf = (char *)LIBATARI800_StateSav_buffer;
-	plainmemoff = 0; /*HDR_LEN;*/
-	unclen = STATESAV_MAX_SIZE;
-	return (gzFile) plainmembuf;
-}
-
-/* replacement for GZCLOSE */
-static int mem_close(gzFile stream)
-{
 	return 0;
 }
 
-ULONG StateSav_Tell()
-{
-	return (ULONG)plainmemoff;
+ULONG StateSav_Tell() {
+	if (!LIBATARI800_StateSav_file) return UINT16_MAX;
+	return f_tell(LIBATARI800_StateSav_file);
 }
-#endif /* #ifdef LIBATARI800 */
-
 
 /* replacement for GZREAD */
-static size_t mem_read(void *buf, size_t len, gzFile stream)
-{
-	if (plainmemoff + len > unclen) return 0;  /* shouldn't happen */
-	memcpy(buf, plainmembuf + plainmemoff, len);
-	plainmemoff += len;
+inline static size_t mem_read(void *buf, size_t len, gzFile stream) {
+	if (FR_OK != f_read(stream, buf, len, &len)) return 0;
 	return len;
 }
 
-static size_t psram_read(size_t offset, size_t len, gzFile stream)
-{
-	if (plainmemoff + len > unclen) return 0;  /* shouldn't happen */
-	for (size_t i = 0; i < len; ++i)
-		write8psram(offset + i, plainmembuf[plainmemoff + plainmemoff + i]);
-	plainmemoff += len;
-	return len;
-}
-
-static size_t psram_write(size_t offset, size_t len, gzFile stream)
-{
-	if (plainmemoff + len > unclen) return 0;  /* shouldn't happen */
-	for (size_t i = 0; i < len; ++i)
-		plainmembuf[plainmemoff + plainmemoff + i] = read8psram(offset + i);
-	plainmemoff += len;
-	return len;
+inline static size_t psram_read(size_t offset, size_t len, gzFile stream) {
+	UBYTE buf[512];
+	UINT rd = 0;
+	size_t offseti = offset;
+	while(rd < len) {
+		UINT to_rd = len - rd;
+		if (to_rd > 512) to_rd = 512;
+		UINT rdi = mem_read(buf, to_rd, stream);
+		if (rdi == 0) {
+			return rd;
+		}
+		rd += rdi;
+		for (size_t i = 0; i < rdi; ++i)
+			write8psram(offseti++, buf[i]);
+	}
+	return rd;
 }
 
 /* replacement for GZWRITE */
-static size_t mem_write(const void *buf, size_t len, gzFile stream)
-{
-	if (plainmemoff + len > unclen) return 0;  /* shouldn't happen */
-	memcpy(plainmembuf + plainmemoff, buf, len);
-	plainmemoff += len;
+inline static size_t mem_write(const void *buf, size_t len, gzFile stream) {
+	if (FR_OK != f_write(stream, buf, len, &len)) return 0;
 	return len;
 }
 
-#endif /* defined(MEMCOMPR) || defined(LIBATARI800) */
-
-/*
-vim:ts=4:sw=4:
-*/
+inline static size_t psram_write(size_t offset, size_t len, gzFile stream) {
+	UBYTE buf[512];
+	UINT rd = 0;
+	size_t offseti = offset;
+	while(rd < len) {
+		UINT to_rd = len - rd;
+		if (to_rd > 512) to_rd = 512;
+		for (size_t i = 0; i < to_rd; ++i)
+			buf[i] = read8psram(offseti++);
+		UINT rdi = mem_write(buf, to_rd, stream);
+		if (rdi == 0) {
+			return rd;
+		}
+		rd += rdi;
+	}
+	return rd;
+}

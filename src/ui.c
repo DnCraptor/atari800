@@ -1010,7 +1010,7 @@ static void DiskManagement(void)
 }
 
 int UI_SelectCartType(int k) {
-	UI_tMenuItem menu_array[CARTRIDGE_TYPE_COUNT] = { 0 };
+	UI_tMenuItem *menu_array = (UI_tMenuItem*)Util_malloc(CARTRIDGE_TYPE_COUNT * sizeof(UI_tMenuItem), "UI_SelectCartType");
 	int cart_entry;
 	int menu_entry = 0;
 	int option = 1;
@@ -1030,8 +1030,10 @@ int UI_SelectCartType(int k) {
 	    }
 	}
 	printf("UI_SelectCartType(%d) menu_entry: %d", k, menu_entry);
-	if (menu_entry == 0)
+	if (menu_entry == 0) {
+		free(menu_array);
 		return CARTRIDGE_NONE;
+	}
 	/* Terminate menu_array, but do it by hand */
 	menu_array[menu_entry].flags = UI_ITEM_END;
 
@@ -1039,37 +1041,37 @@ int UI_SelectCartType(int k) {
 	int seltype;
 	option = UI_driver->fSelect("Select Cartridge Type", 0, option, menu_array, NULL);
 	printf("UI_SelectCartType(%d) UI_driver->fSelect returns %s", k, option);
+	free(menu_array);
 	if (option > 0)
 		return option;
 
 	return CARTRIDGE_NONE;
 }
 
-int UI_SelectCartTypeBetween(int *types)
-{
-	UI_tMenuItem menu_array[CARTRIDGE_TYPE_COUNT] = { 0 };
+int UI_SelectCartTypeBetween(int *types) {
+	UI_tMenuItem *menu_array = (UI_tMenuItem*)Util_malloc(CARTRIDGE_TYPE_COUNT * sizeof(UI_tMenuItem), "UI_SelectCartType");
 	int cart_entry;
 	int menu_entry = 0;
 	int option = 0;
-
 	UI_driver->fInit();
-
 	for (cart_entry = 1; cart_entry < CARTRIDGE_TYPE_COUNT; cart_entry++) {
 		if (cart_entry == types[menu_entry]) {
+			menu_array[menu_entry].prefix = NULL;
+			menu_array[menu_entry].suffix = NULL;
 			menu_array[menu_entry].flags = UI_ITEM_ACTION;
 			menu_array[menu_entry].retval = cart_entry;
 			menu_array[menu_entry].item = CARTRIDGES[cart_entry].description;
 			menu_entry++;
-	    	}
+	    }
 	}
-	
-	if (menu_entry == 0)
+	if (menu_entry == 0) {
+		free(menu_array);
 		return CARTRIDGE_NONE;
-
+	}
 	/* Terminate menu_array, but do it by hand */
 	menu_array[menu_entry].flags = UI_ITEM_END;
-
 	option = UI_driver->fSelect("Select Cartridge Type", 0, option, menu_array, NULL);
+	free(menu_array);
 	if (option > 0)
 		return option;
 

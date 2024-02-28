@@ -161,7 +161,7 @@ int main_TODO3(int argc, char **argv) {
 	libatari800_init(-1, test_args);
 
 	libatari800_clear_input_array(&input);
-
+#if 0
 	emulator_state_t state;
 	cpu_state_t *cpu;
 	pc_state_t *pc;
@@ -194,6 +194,6 @@ int main_TODO3(int argc, char **argv) {
 	cpu = (cpu_state_t *)&state.state[state.tags.cpu];  /* order: A,SR,SP,X,Y */
 	pc = (pc_state_t *)&state.state[state.tags.pc];
 	printf("frame %d: A=%02x X=%02x Y=%02x SP=%02x SR=%02x PC=%04x\n", libatari800_get_frame_number(), cpu->A, cpu->X, cpu->Y, cpu->P, cpu->S, pc->PC);
-
+#endif
 	libatari800_exit();
 }

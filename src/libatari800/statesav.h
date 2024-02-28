@@ -8,10 +8,7 @@
 #include "../statesav.h"
 #include "libatari800/libatari800.h"
 
-extern UBYTE *LIBATARI800_StateSav_buffer;
+extern FIL *LIBATARI800_StateSav_file;
 extern statesav_tags_t *LIBATARI800_StateSav_tags;
-
-void LIBATARI800_StateSave(UBYTE *buffer, statesav_tags_t *tags);
-void LIBATARI800_StateLoad(UBYTE *buffer);
 
 #endif /* LIBATARI800_STATESAV_H_ */

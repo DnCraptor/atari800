@@ -456,6 +456,7 @@ int libatari800_get_frame_number() {
  *
  * @param state pointer to an already allocated \a emulator_state_t structure
  */
+#if 0
 void libatari800_get_current_state(emulator_state_t *state)
 {
 	printf("libatari800_get_current_state");
@@ -464,7 +465,6 @@ void libatari800_get_current_state(emulator_state_t *state)
 	state->flags.nframes = (ULONG)Atari800_nframes;
 	state->flags.sample_residual = (ULONG)(0xffffffff * sample_residual);
 }
-
 
 /** Restore the state of the emulator
  *
@@ -484,7 +484,7 @@ void libatari800_restore_state(emulator_state_t *state)
 	Atari800_nframes = state->flags.nframes;
 	sample_residual = (double)state->flags.sample_residual / (double)0xffffffff;
 }
-
+#endif
 
 /** Free resources used by the emulator.
  *

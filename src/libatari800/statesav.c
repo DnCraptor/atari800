@@ -29,19 +29,5 @@
 #include "libatari800/statesav.h"
 #include "libatari800/init.h"
 
-UBYTE *LIBATARI800_StateSav_buffer = NULL;
+FIL *LIBATARI800_StateSav_file = NULL;
 statesav_tags_t *LIBATARI800_StateSav_tags = NULL;
-
-
-void LIBATARI800_StateSave(UBYTE *buffer, statesav_tags_t *tags) {
-    printf("LIBATARI800_StateSave");
-    LIBATARI800_StateSav_buffer = buffer;
-    LIBATARI800_StateSav_tags = tags;
-	StateSav_SaveAtariState(NULL, NULL, 0);
-}
-
-void LIBATARI800_StateLoad(UBYTE *buffer) {
-    printf("LIBATARI800_StateLoad");
-    LIBATARI800_StateSav_buffer = buffer;
-	StateSav_ReadAtariState(NULL, NULL);
-}
