@@ -889,7 +889,7 @@ int Atari800_Initialise(int *argc, char *argv[])
 #ifndef BASIC
 	/* Load state file */
 	if (state_file != NULL) {
-		if (StateSav_ReadAtariState(state_file, "rb"))
+		if (StateSav_ReadAtariState(state_file, FA_READ))
 			/* Don't press Start nor Option */
 			GTIA_consol_override = 0;
 	}
@@ -1076,7 +1076,7 @@ void Atari800_Sync(void) {
 	static double lasttime = 0;
 	double deltatime = 1.0 / ((Atari800_tv_mode == Atari800_TV_PAL) ? Atari800_FPS_PAL : Atari800_FPS_NTSC);
 	double curtime;
-	printf("Atari800_Sync");
+	//printf("Atari800_Sync");
 #ifdef SYNCHRONIZED_SOUND
 	deltatime *= Sound_AdjustSpeed();
 #endif

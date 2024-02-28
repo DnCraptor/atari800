@@ -30,4 +30,3 @@
 #include "libatari800/init.h"
 
 FIL *LIBATARI800_StateSav_file = NULL;
-statesav_tags_t *LIBATARI800_StateSav_tags = NULL;

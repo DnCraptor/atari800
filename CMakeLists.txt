@@ -156,8 +156,8 @@ target_compile_definitions(${PROJECT_NAME} PRIVATE
         BEEPER_PIN=28
         STEREO_SOUND=1
 
-        #MNGR_DEBUG=1
-        #DEBUG2=1
+        MNGR_DEBUG=1
+        DEBUG2=1
 
         HAVE_OPENDIR=1
 )

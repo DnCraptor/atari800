@@ -2954,9 +2954,9 @@ static void save_load_state(int save) {
 
 	if( (filename = get_token()) == NULL ) filename = "monitor.a8s";
 	if(save) {
-		result = StateSav_SaveAtariState(filename, "wb", TRUE);
+		result = StateSav_SaveAtariState(filename, FA_CREATE_ALWAYS | FA_WRITE | FA_READ, TRUE);
 	} else {
-		result = StateSav_ReadAtariState(filename, "rb");
+		result = StateSav_ReadAtariState(filename, FA_READ);
 		PLATFORM_Exit(FALSE);
 	}
 

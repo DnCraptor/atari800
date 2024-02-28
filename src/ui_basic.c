@@ -139,7 +139,7 @@ static int GetKeyPress(void) {
 			break;
 		}
 	} while (keycode < 0);
-	printf("GetKeyPress returns: %02Xh", UI_BASIC_key_to_ascii[(uint8_t)keycode & 0xFF]);
+	//printf("GetKeyPress returns: %02Xh", UI_BASIC_key_to_ascii[(uint8_t)keycode & 0xFF]);
 	return UI_BASIC_key_to_ascii[(uint8_t)keycode & 0xFF];
 }
 
@@ -205,7 +205,7 @@ static void Box(int fg, int bg, int x1, int y1, int x2, int y2)
 }
 
 static void ClearRectangle(int bg, int x1, int y1, int x2, int y2) {
-	printf("ClearRectangle");
+	//printf("ClearRectangle");
 	UBYTE *ptr = (UBYTE *) Screen_atari + Screen_WIDTH * 24 + 32 + x1 * 8 + y1 * (Screen_WIDTH * 8);
 	int bytesperline = (x2 - x1 + 1) << 3;
 	UBYTE *end_ptr = (UBYTE *) Screen_atari + Screen_WIDTH * 32 + 32 + y2 * (Screen_WIDTH * 8);
@@ -341,12 +341,12 @@ static int Select(int default_item, int nitems, const char *item[],
 		if (message != NULL) {
 			CenterPrint(0x94, 0x9a, message, 22);
 		}
-		printf("Select [index: %d]", index);
+	//	printf("Select [index: %d]", index);
 		for (;;) {
 			int ascii;
 			int tmp_index;
 			ascii = GetKeyPress();
-			printf("Select GetKeyPress ascii: %02Xh", ascii);
+		//	printf("Select GetKeyPress ascii: %02Xh", ascii);
 			switch (ascii) {
 			case 0x1c:				/* Up */
 				if (drag) {

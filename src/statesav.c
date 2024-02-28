@@ -75,12 +75,12 @@
 #define gzFile FIL*
 #define Z_OK 0
 #endif
-static gzFile mem_open(const char *name, const char *mode);
-static int mem_close(gzFile stream);
-static size_t mem_read(void *buf, size_t len, gzFile stream);
-static size_t mem_write(const void *buf, size_t len, gzFile stream);
-static size_t psram_read(size_t offset, size_t len, gzFile stream);
-static size_t psram_write(size_t offset, size_t len, gzFile stream);
+inline static gzFile mem_open(const char *name, int mode);
+inline static int mem_close(gzFile stream);
+inline static size_t mem_read(void *buf, size_t len, gzFile stream);
+inline static size_t mem_write(const void *buf, size_t len, gzFile stream);
+inline static size_t psram_read(size_t offset, size_t len, gzFile stream);
+inline static size_t psram_write(size_t offset, size_t len, gzFile stream);
 #define GZOPEN(X, Y)     mem_open(X, Y)
 #define GZCLOSE(X)       mem_close(X)
 #define GZREAD(X, Y, Z)  mem_read(Y, Z, X)
@@ -346,10 +346,9 @@ void StateSav_ReadFNAME(char *filename)
 	filename[namelen] = 0;
 }
 
-int StateSav_SaveAtariState(const char *filename, const char *mode, UBYTE SaveVerbose)
-{
+int StateSav_SaveAtariState(const char *filename, int mode, UBYTE SaveVerbose) {
 	UBYTE StateVersion = SAVE_VERSION_NUMBER;
-
+	printf("StateSav_SaveAtariState");
 	if (StateFile != NULL) {
 		GZCLOSE(StateFile);
 		StateFile = NULL;
@@ -369,33 +368,44 @@ int StateSav_SaveAtariState(const char *filename, const char *mode, UBYTE SaveVe
 		return FALSE;
 	}
 
-	STATESAV_TAG(size);  /* initialize to 0, set to actual size if successful */
+	///STATESAV_TAG(size);  /* initialize to 0, set to actual size if successful */
 	StateSav_SaveUBYTE(&StateVersion, 1);
 	StateSav_SaveUBYTE(&SaveVerbose, 1);
 	/* The order here is important. Atari800_StateSave must be first because it saves the machine type, and
 	   decisions on what to save/not save are made based off that later in the process */
+	printf("Atari800_StateSave");
 	Atari800_StateSave();
+	printf("CARTRIDGE_StateSave");
 	CARTRIDGE_StateSave();
+	printf("SIO_StateSave");
 	SIO_StateSave();
+	printf("ANTIC_StateSave");
 	ANTIC_StateSave();
+	printf("CPU_StateSave(%d)", SaveVerbose);
 	CPU_StateSave(SaveVerbose);
+	printf("GTIA_StateSave");
 	GTIA_StateSave();
+	printf("PIA_StateSave");
 	PIA_StateSave();
+	printf("POKEY_StateSave");
 	POKEY_StateSave();
 #ifdef XEP80_EMULATION
 	XEP80_StateSave();
 #else
 	{
 		int local_xep80_enabled = FALSE;
+		printf("StateSav_SaveINT local_xep80_enabled %d", local_xep80_enabled);
 		StateSav_SaveINT(&local_xep80_enabled, 1);
 	}
 #endif /* XEP80_EMULATION */
+	printf("");
 	PBI_StateSave();
 #ifdef PBI_MIO
 	PBI_MIO_StateSave();
 #else
 	{
 		int local_mio_enabled = FALSE;
+		printf("StateSav_SaveINT local_mio_enabled %d", local_mio_enabled);
 		StateSav_SaveINT(&local_mio_enabled, 1);
 	}
 #endif /* PBI_MIO */
@@ -404,6 +414,7 @@ int StateSav_SaveAtariState(const char *filename, const char *mode, UBYTE SaveVe
 #else
 	{
 		int local_bb_enabled = FALSE;
+		printf("StateSav_SaveINT local_bb_enabled %d", local_bb_enabled);
 		StateSav_SaveINT(&local_bb_enabled, 1);
 	}
 #endif /* PBI_BB */
@@ -412,6 +423,7 @@ int StateSav_SaveAtariState(const char *filename, const char *mode, UBYTE SaveVe
 #else
 	{
 		int local_xld_enabled = FALSE;
+		printf("StateSav_SaveINT local_xld_enabled %d", local_xld_enabled);
 		StateSav_SaveINT(&local_xld_enabled, 1);
 	}
 #endif /* PBI_XLD */
@@ -419,7 +431,7 @@ int StateSav_SaveAtariState(const char *filename, const char *mode, UBYTE SaveVe
 	DCStateSave();
 #endif
 
-	STATESAV_TAG(size);
+	///STATESAV_TAG(size);
 	if (GZCLOSE(StateFile) != 0) {
 		StateFile = NULL;
 		return FALSE;
@@ -432,7 +444,7 @@ int StateSav_SaveAtariState(const char *filename, const char *mode, UBYTE SaveVe
 	return TRUE;
 }
 
-int StateSav_ReadAtariState(const char *filename, const char *mode)
+int StateSav_ReadAtariState(const char *filename, int mode)
 {
 	char header_string[8];
 	UBYTE StateVersion = 0;  /* The version of the save file */
@@ -561,23 +573,25 @@ int StateSav_ReadAtariState(const char *filename, const char *mode)
 }
 
 /* replacement for GZOPEN TODO: LZW */
-static gzFile mem_open(const char *name, const char *mode) {
+static gzFile mem_open(const char *name, int mode) {
 	if (LIBATARI800_StateSav_file != NULL) {
 		f_close(LIBATARI800_StateSav_file);
 	} else {
 		LIBATARI800_StateSav_file = (FIL*)Util_malloc(sizeof(FIL), "mem_open");
 	}
-	FRESULT fr = f_open(LIBATARI800_StateSav_file, name, FA_CREATE_ALWAYS | FA_WRITE | FA_READ);
+	FRESULT fr = f_open(LIBATARI800_StateSav_file, name, mode);
 	if (fr != FR_OK) {
 		free(LIBATARI800_StateSav_file);
 		LIBATARI800_StateSav_file = NULL;
 		return NULL;
 	}
+	printf("mem_open %s LIBATARI800_StateSav_file: %08Xh", name, LIBATARI800_StateSav_file);
 	return LIBATARI800_StateSav_file;
 }
 
 /* replacement for GZCLOSE */
 static int mem_close(gzFile stream) {
+	printf("mem_close  %08Xh LIBATARI800_StateSav_file: %08Xh", stream, LIBATARI800_StateSav_file);
 	if (LIBATARI800_StateSav_file != NULL) {
 		f_close(LIBATARI800_StateSav_file);
 		free(LIBATARI800_StateSav_file);
@@ -593,11 +607,13 @@ ULONG StateSav_Tell() {
 
 /* replacement for GZREAD */
 inline static size_t mem_read(void *buf, size_t len, gzFile stream) {
+	printf("mem_read len: %d", len);
 	if (FR_OK != f_read(stream, buf, len, &len)) return 0;
 	return len;
 }
 
 inline static size_t psram_read(size_t offset, size_t len, gzFile stream) {
+	printf("psram_read len: %d", len);
 	UBYTE buf[512];
 	UINT rd = 0;
 	size_t offseti = offset;
@@ -617,11 +633,13 @@ inline static size_t psram_read(size_t offset, size_t len, gzFile stream) {
 
 /* replacement for GZWRITE */
 inline static size_t mem_write(const void *buf, size_t len, gzFile stream) {
+	printf("mem_write len: %d", len);
 	if (FR_OK != f_write(stream, buf, len, &len)) return 0;
 	return len;
 }
 
 inline static size_t psram_write(size_t offset, size_t len, gzFile stream) {
+	printf("psram_write len: %d", len);
 	UBYTE buf[512];
 	UINT rd = 0;
 	size_t offseti = offset;

@@ -224,7 +224,7 @@ int AFILE_OpenFile(const char *filename, int reboot, int diskno, int readonly) {
 		Log_print("State files are not supported in BASIC version");
 		return AFILE_ERROR;
 #else
-		if (!StateSav_ReadAtariState(filename, "rb"))
+		if (!StateSav_ReadAtariState(filename, FA_READ))
 			return AFILE_ERROR;
 		/* Don't press Start nor Option */
 		GTIA_consol_override = 0;

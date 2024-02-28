@@ -9,6 +9,5 @@
 #include "libatari800/libatari800.h"
 
 extern FIL *LIBATARI800_StateSav_file;
-extern statesav_tags_t *LIBATARI800_StateSav_tags;
 
 #endif /* LIBATARI800_STATESAV_H_ */

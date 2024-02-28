@@ -4,8 +4,8 @@
 #include "config.h"
 #include "atari.h"
 
-int StateSav_SaveAtariState(const char *filename, const char *mode, UBYTE SaveVerbose);
-int StateSav_ReadAtariState(const char *filename, const char *mode);
+int StateSav_SaveAtariState(const char *filename, int mode, UBYTE SaveVerbose);
+int StateSav_ReadAtariState(const char *filename, int mode);
 
 void StateSav_Save2PSRAM(size_t offset, int len);
 void StateSav_Read2PSRAM(size_t offset, int len);
@@ -24,7 +24,7 @@ void StateSav_ReadFNAME(char *filename);
 ULONG StateSav_Tell(void);
 #include "libatari800/statesav.h"
 /* STATESAV_MAX_SIZE defined in libatari800 include file */
-#define STATESAV_TAG(a) (LIBATARI800_StateSav_tags->a = StateSav_Tell())
+///#define STATESAV_TAG(a) (LIBATARI800_StateSav_tags->a = StateSav_Tell())
 #else /* LIBATARI800 */
 #define STATESAV_MAX_SIZE 210000 /* max size of state save data */
 #define STATESAV_TAG(a)

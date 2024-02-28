@@ -622,6 +622,8 @@ void Util_sleep(double s)
 #endif /* !SUPPORTS_PLATFORM_SLEEP */
 }
 
+static const char* d = "\\atari800";
+
 char *Util_getcwd(char *buf, size_t size)
 {
 	printf("Util_getcwd");
@@ -631,7 +633,7 @@ char *Util_getcwd(char *buf, size_t size)
 		buf[1] = '\0';
 	}
 #else
-    strncpy(buf, "\\atari800", size);
+    strncpy(buf, d, size);
 #endif
 	return buf;
 }
