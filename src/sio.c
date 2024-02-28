@@ -212,6 +212,7 @@ int SIO_Mount(int diskno, const char *filename, int b_open_readonly)
 		printf("SIO_Mount(%d, %s, %d) too long filename", diskno, filename, b_open_readonly);
 		return FALSE;
 	}
+	SIO_Dismount(diskno);
 	FIL* fp = (FIL*)Util_malloc(sizeof(FIL), "SIO_Mount");
 	/* release previous disk */
 	SIO_Dismount(diskno);
