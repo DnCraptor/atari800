@@ -1060,7 +1060,7 @@ static void Devices_H_Read(void)
 			/* [OSMAN] p. 79: Status should be 3 if next read would yield EOF.
 			   But to set the stream's EOF flag, we need to read the next byte. */
 			h_lastbyte[h_iocb] = _fgetc(h_fp[h_iocb]);
-			CPU_regY = f_size(h_fp[h_iocb]) == f_tell(h_fp[h_iocb]) ? 3 : 1;
+			CPU_regY = f_eof(h_fp[h_iocb]) ? 3 : 1;
 			CPU_ClrN;
 		}
 		else {

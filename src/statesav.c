@@ -598,8 +598,15 @@ ULONG StateSav_Tell() {
 
 /* replacement for GZREAD */
 inline static size_t mem_read(void *buf, size_t len, gzFile stream) {
-	printf("mem_read len: %d", len);
+	printf("mem_read buf: %08Xh; len: %d; tell: %d", buf, len, f_tell(stream));
 	if (FR_OK != f_read(stream, buf, len, &len)) return 0;
+#ifdef MNGR_DEBUG
+    if (len < 10) {   char* b = (char*)buf;
+		for (int __f = 0; __f < len; __f++) {
+			printf("\t%02Xh", b[__f]);
+		}
+	}
+#endif
 	return len;
 }
 
@@ -624,7 +631,14 @@ inline static size_t psram_read(size_t offset, size_t len, gzFile stream) {
 
 /* replacement for GZWRITE */
 inline static size_t mem_write(const void *buf, size_t len, gzFile stream) {
-	printf("mem_write len: %d", len);
+	printf("mem_write buf: %08Xh; len: %d; tell: %d", buf, len, f_tell(stream));
+#ifdef MNGR_DEBUG
+    if (len < 10) {   char* b = (char*)buf;
+		for (int __f = 0; __f < len; __f++) {
+			printf("\t%02Xh", b[__f]);
+		}
+	}
+#endif
 	if (FR_OK != f_write(stream, buf, len, &len)) return 0;
 	return len;
 }

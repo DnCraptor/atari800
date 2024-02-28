@@ -105,5 +105,5 @@ int CRC32_FromFile(FIL *f, ULONG *result)
 			break;
 	}
 	*result = ~crc;
-	return f_tell(f) == f_size(f);
+	return f_eof(f);
 }

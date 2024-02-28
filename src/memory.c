@@ -357,7 +357,7 @@ void MEMORY_StateSave(UBYTE SaveVerbose)
 	/* Axlon/Mosaic for 400/800 */
 	if (Atari800_machine_type == Atari800_MACHINE_800) {
 		StateSav_SaveINT(&MEMORY_axlon_num_banks, 1);
-		if (MEMORY_axlon_num_banks > 0){
+		if (MEMORY_axlon_num_banks > 0) {
 			StateSav_SaveINT(&axlon_curbank, 1);
 			StateSav_SaveINT(&MEMORY_axlon_0f_mirror, 1);
 			StateSav_SaveUBYTE(axlon_ram, MEMORY_axlon_num_banks * 0x4000);
