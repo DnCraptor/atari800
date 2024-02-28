@@ -626,7 +626,6 @@ static const char* d = "\\atari800";
 
 char *Util_getcwd(char *buf, size_t size)
 {
-	printf("Util_getcwd");
 #ifdef HAVE_GETCWD
 	if (getcwd(buf, size) == NULL) {
 		buf[0] = '.';
@@ -634,6 +633,7 @@ char *Util_getcwd(char *buf, size_t size)
 	}
 #else
     strncpy(buf, d, size);
+	printf("Util_getcwd: '%s'", buf);
 #endif
 	return buf;
 }

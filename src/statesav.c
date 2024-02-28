@@ -219,11 +219,12 @@ void StateSav_ReadUWORD(UWORD *data, int num)
 	}
 }
 
-void StateSav_SaveINT(const int *data, int num)
-{
-	if (!StateFile || nFileError != Z_OK)
+void StateSav_SaveINT(const int *data, int num) {
+	printf("StateSav_SaveINT(%08Xh, %d)", data, num);
+	if (!StateFile || nFileError != Z_OK) {
+		printf("StateSav_SaveINT(%08Xh, %d) FAILED", data, num);
 		return;
-
+	}
 	/* INTs are always saved as 32bits (4 bytes) in the file. They can be any size
 	   on the platform however. The sign bit is clobbered into the fourth byte saved
 	   for each int; on read it will be extended out to its proper position for the
@@ -232,9 +233,9 @@ void StateSav_SaveINT(const int *data, int num)
 		UBYTE signbit = 0;
 		unsigned int temp;
 		UBYTE byte;
-		int temp0;
-
-		temp0 = *data++;
+		int temp0 = *data;
+		printf("StateSav_SaveINT(%08Xh, %d) .. %d", data, num, temp0);
+		data++;
 		if (temp0 < 0) {
 			temp0 = -temp0;
 			signbit = 0x80;
@@ -314,23 +315,13 @@ void StateSav_ReadINT(int *data, int num)
 	}
 }
 
-void StateSav_SaveFNAME(const char *filename)
-{
-	UWORD namelen;
-	char dirname[FILENAME_MAX]="";
-
-	/* Check to see if file is in application tree, if so, just save as
-	   relative path....*/
-	Util_getcwd(dirname, FILENAME_MAX);
-	if (strncmp(filename, dirname, strlen(dirname)) == 0) {
-		/* XXX: check if '/' or '\\' follows dirname in filename? */
-		filename += strlen(dirname) + 1;
-	}
-
-	namelen = strlen(filename);
+void StateSav_SaveFNAME(const char *filename) {
+	printf("StateSav_SaveFNAME(%s)", filename);
+	UWORD namelen = strlen(filename);
 	/* Save the length of the filename, followed by the filename */
 	StateSav_SaveUWORD(&namelen, 1);
 	StateSav_SaveUBYTE((const UBYTE *) filename, namelen);
+	printf("StateSav_SaveFNAME(%s): %d", filename, namelen);
 }
 
 void StateSav_ReadFNAME(char *filename)

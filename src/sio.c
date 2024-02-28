@@ -1712,25 +1712,21 @@ int SIO_RotateDisks(void)
 
 #ifndef BASIC
 
-void SIO_StateSave(void)
-{
-	int i;
-
-	for (i = 0; i < 8; i++) {
-		StateSav_SaveINT((int *) &SIO_drive_status[i], 1);
+void SIO_StateSave(void) {
+	for (int i = 0; i < SIO_MAX_DRIVES; i++) {
+		printf("SIO_StateSave %d", i);
+		UBYTE ti = (UBYTE)SIO_drive_status[i];
+		StateSav_SaveUBYTE(&ti, 1);
 		StateSav_SaveFNAME(SIO_filename[i]);
 	}
 }
 
-void SIO_StateRead(void)
-{
+void SIO_StateRead(void) {
 	int i;
-
 	for (i = 0; i < 8; i++) {
-		int saved_drive_status;
+		UBYTE saved_drive_status;
 		char filename[FILENAME_MAX];
-
-		StateSav_ReadINT(&saved_drive_status, 1);
+		StateSav_ReadUBYTE(&saved_drive_status, 1);
 		SIO_drive_status[i] = (SIO_UnitStatus)saved_drive_status;
 
 		StateSav_ReadFNAME(filename);
