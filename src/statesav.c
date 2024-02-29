@@ -338,6 +338,7 @@ void StateSav_ReadFNAME(char *filename)
 }
 
 int StateSav_SaveAtariState(const char *filename, int mode, UBYTE SaveVerbose) {
+	gpio_put(PICO_DEFAULT_LED_PIN, true);
 	UBYTE StateVersion = SAVE_VERSION_NUMBER;
 	printf("StateSav_SaveAtariState");
 	if (StateFile != NULL) {
@@ -431,12 +432,12 @@ int StateSav_SaveAtariState(const char *filename, int mode, UBYTE SaveVerbose) {
 
 	if (nFileError != Z_OK)
 		return FALSE;
-
+	gpio_put(PICO_DEFAULT_LED_PIN, false);
 	return TRUE;
 }
 
-int StateSav_ReadAtariState(const char *filename, int mode)
-{
+int StateSav_ReadAtariState(const char *filename, int mode) {
+	gpio_put(PICO_DEFAULT_LED_PIN, true);
 	char header_string[8];
 	UBYTE StateVersion = 0;  /* The version of the save file */
 	UBYTE SaveVerbose = 0;   /* Verbose mode means save basic, OS if patched */
@@ -559,7 +560,7 @@ int StateSav_ReadAtariState(const char *filename, int mode)
 
 	if (nFileError != Z_OK)
 		return FALSE;
-
+	gpio_put(PICO_DEFAULT_LED_PIN, false);
 	return TRUE;
 }
 

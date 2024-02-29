@@ -25,6 +25,7 @@ extern "C" {
 #include "sound.h"
 #include "util.h"
 #include "input.h"
+#include "statesav.h"
 }
 
 static FATFS fs;
@@ -399,26 +400,138 @@ bool __time_critical_func(handleScancode)(const uint32_t ps2scancode) {
             case 0x01: input_map.keychar = 27; break; // Esc
             case 0x0e: input_map.keychar = '\b'; break; // Backspace
             case 0x3b: {
+                if (input_map.control) {
+                    StateSav_SaveAtariState("\\atari800\\~f1.sav", FA_CREATE_ALWAYS | FA_WRITE | FA_READ, TRUE);
+                    return true;
+                }
+                if (input_map.shift) {
+                    StateSav_ReadAtariState("\\atari800\\~f1.sav", FA_READ);
+                    return true;
+                }
                 input_map.keychar = 255;
                 f1Pressed = true;
                 break;
             } // F1 UI
             case 0x3c: {
+                if (input_map.control) {
+                    StateSav_SaveAtariState("\\atari800\\~f2.sav", FA_CREATE_ALWAYS | FA_WRITE | FA_READ, TRUE);
+                    return true;
+                }
+                if (input_map.shift) {
+                    StateSav_ReadAtariState("\\atari800\\~f2.sav", FA_READ);
+                    return true;
+                }
                 input_map.option = 1;
                 f2Pressed = true;
                 break;
             } // F2 Option
             case 0x3d: {
+                if (input_map.control) {
+                    StateSav_SaveAtariState("\\atari800\\~f3.sav", FA_CREATE_ALWAYS | FA_WRITE | FA_READ, TRUE);
+                    return true;
+                }
+                if (input_map.shift) {
+                    StateSav_ReadAtariState("\\atari800\\~f3.sav", FA_READ);
+                    return true;
+                }
                 input_map.select = 1;
                 f3Pressed = true;
                 break;
             } // F3 Select
             case 0x3e: {
+                if (input_map.control) {
+                    StateSav_SaveAtariState("\\atari800\\~f4.sav", FA_CREATE_ALWAYS | FA_WRITE | FA_READ, TRUE);
+                    return true;
+                }
+                if (input_map.shift) {
+                    StateSav_ReadAtariState("\\atari800\\~f4.sav", FA_READ);
+                    return true;
+                }
                 input_map.start = 1;
                 f4Pressed = true;
                 break;
             } // F4 Start
-            case 0x3f: input_map.keychar = 250; break; // F5 Help
+            case 0x3f:
+                if (input_map.control) {
+                    StateSav_SaveAtariState("\\atari800\\~f5.sav", FA_CREATE_ALWAYS | FA_WRITE | FA_READ, TRUE);
+                    return true;
+                }
+                if (input_map.shift) {
+                    StateSav_ReadAtariState("\\atari800\\~f5.sav", FA_READ);
+                    return true;
+                }
+                input_map.keychar = 250;
+                break; // F5 Help
+            case 0x40:
+                if (input_map.control) {
+                    StateSav_SaveAtariState("\\atari800\\~f6.sav", FA_CREATE_ALWAYS | FA_WRITE | FA_READ, TRUE);
+                    return true;
+                }
+                if (input_map.shift) {
+                    StateSav_ReadAtariState("\\atari800\\~f6.sav", FA_READ);
+                    return true;
+                }
+                break; // F6
+            case 0x41:
+                if (input_map.control) {
+                    StateSav_SaveAtariState("\\atari800\\~f7.sav", FA_CREATE_ALWAYS | FA_WRITE | FA_READ, TRUE);
+                    return true;
+                }
+                if (input_map.shift) {
+                    StateSav_ReadAtariState("\\atari800\\~f7.sav", FA_READ);
+                    return true;
+                }
+                break; // F7
+            case 0x42:
+                if (input_map.control) {
+                    StateSav_SaveAtariState("\\atari800\\~f8.sav", FA_CREATE_ALWAYS | FA_WRITE | FA_READ, TRUE);
+                    return true;
+                }
+                if (input_map.shift) {
+                    StateSav_ReadAtariState("\\atari800\\~f8.sav", FA_READ);
+                    return true;
+                }
+                break; // F8
+            case 0x43:
+                if (input_map.control) {
+                    StateSav_SaveAtariState("\\atari800\\~f9.sav", FA_CREATE_ALWAYS | FA_WRITE | FA_READ, TRUE);
+                    return true;
+                }
+                if (input_map.shift) {
+                    StateSav_ReadAtariState("\\atari800\\~f9.sav", FA_READ);
+                    return true;
+                }
+                break; // F9
+            case 0x44:
+                if (input_map.control) {
+                    StateSav_SaveAtariState("\\atari800\\~f10.sav", FA_CREATE_ALWAYS | FA_WRITE | FA_READ, TRUE);
+                    return true;
+                }
+                if (input_map.shift) {
+                    StateSav_ReadAtariState("\\atari800\\~f10.sav", FA_READ);
+                    return true;
+                }
+                break; // F10
+            case 0x57:
+                if (input_map.control) {
+                    StateSav_SaveAtariState("\\atari800\\~f11.sav", FA_CREATE_ALWAYS | FA_WRITE | FA_READ, TRUE);
+                    return true;
+                }
+                if (input_map.shift) {
+                    StateSav_ReadAtariState("\\atari800\\~f11.sav", FA_READ);
+                    return true;
+                }
+                break; // F11
+            case 0x58:
+                if (input_map.control) {
+                    StateSav_SaveAtariState("\\atari800\\~f12.sav", FA_CREATE_ALWAYS | FA_WRITE | FA_READ, TRUE);
+                    return true;
+                }
+                if (input_map.shift) {
+                    StateSav_ReadAtariState("\\atari800\\~f12.sav", FA_READ);
+                    return true;
+                }
+                break; // F12
             case 0x48: { // Up
                 input_map.keychar = 254;
                 input_map.joy1 |= ~INPUT_STICK_FORWARD;

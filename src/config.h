@@ -18,5 +18,6 @@
 #define DIR_SEP_BACKSLASH 1
 
 #include "debug.h"
+#include <boards/pico.h>
 
 #endif
