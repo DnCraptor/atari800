@@ -19,5 +19,6 @@
 
 #include "debug.h"
 #include <boards/pico.h>
+#include <hardware/gpio.h>
 
 #endif

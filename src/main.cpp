@@ -10,12 +10,12 @@
 #include <pico/stdlib.h>
 #include "graphics.h"
 #include "psram_spi.h"
-#include "nespad.h"
 
 extern "C" {
 #include "ui.h"
 #include "ps2.h"
 #include "libatari800/libatari800.h"
+#include "nespad.h"
 #include "sound.h"
 #include "akey.h"
 #include "memory.h"
@@ -26,6 +26,7 @@ extern "C" {
 #include "util.h"
 #include "input.h"
 #include "statesav.h"
+#include "util_Wii_Joy.h"
 }
 
 static FATFS fs;
@@ -746,6 +747,13 @@ static void init_fs() {
         printf("Unable to mount SD-card: %s (%d)", FRESULT_str(result), result);
     } else {
         SD_CARD_AVAILABLE = true;
+    }
+}
+
+inline static void init_wii() {
+    if (Init_Wii_Joystick()) {
+        Wii_decode_joy();
+        printf("Found WII joystick");
     }
 }
 

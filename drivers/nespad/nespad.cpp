@@ -1,5 +1,10 @@
 #include "hardware/pio.h"
 
+extern "C" {
+  #include "util_Wii_Joy.h"
+  #include "nespad.h"
+}
+
 #define nespad_wrap_target 0
 #define nespad_wrap 6
 
@@ -80,8 +85,14 @@ bool nespad_begin(uint32_t cpu_khz, uint8_t clkPin, uint8_t dataPin,uint8_t latP
 // call nespad_begin() once to set up PIO. Result will be 0 if PIO failed to
 // init (e.g. no free state machine).
 
-void nespad_read()
-{
+void nespad_read() {
+  #ifdef USE_WII
+  if (is_WII_Init()) {
+      Wii_decode_joy();
+      nespad_state = map_to_nes(&Wii_joy);
+      return;
+  }
+  #endif
   if (sm<0) return;
   if (pio_sm_is_rx_fifo_empty(pio, sm)) return;
 
