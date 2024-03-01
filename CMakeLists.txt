@@ -164,6 +164,7 @@ target_compile_definitions(${PROJECT_NAME} PRIVATE
         PWM_PIN1=27
         BEEPER_PIN=28
         STEREO_SOUND=1
+        CONSOLE_SOUND=1
 
         #MNGR_DEBUG=1
         #DEBUG2=1
