@@ -362,7 +362,7 @@ void POKEYSND_Process(void *sndbuffer, int sndn)
 {
 	POKEYSND_Process_ptr(sndbuffer, sndn);
 #if defined(PBI_XLD) || defined (VOICEBOX)
-	VOTRAXSND_Process(sndbuffer,sndn);
+	VOTRAXSND_Process(sndbuffer, sndn);
 #endif
 #if defined(AUDIO_RECORDING)
 	File_Export_WriteAudio((const unsigned char *)sndbuffer, sndn);

@@ -433,10 +433,10 @@ int PLATFORM_PORT(int num)
 	input_template_t *input = LIBATARI800_Input_array;
 
 	if (num == 0) {
-		return (input->joy0 + (input->joy1 << 4)) ^ 0xff;
+		return ((input->joy0 & 0x0F) + ((input->joy1 & 0x0F) << 4)) ^ 0xff;
 	}
 	else if (num == 1) {
-		return (input->joy2 + (input->joy3 << 4)) ^ 0xff;
+		return ((input->joy2 & 0x0F) + ((input->joy3 & 0x0F) << 4)) ^ 0xff;
 	}
 	return 0xff;
 }
