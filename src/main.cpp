@@ -727,10 +727,10 @@ static bool __not_in_flash_func(snd_timer_callback)(repeating_timer_t *rt) {
     }
     register UBYTE* uba = LIBATARI800_Sound_array;
     if (snd_channels == 2) {
-        outL = uba[idx++];
-        outR = uba[idx++];
+        outL = uba[idx++]; idx++;
+        outR = uba[idx++]; idx++;
     } else {
-        outL = outR = uba[idx++];
+        outL = outR = uba[idx++]; idx++;
     }
     sound_array_idx = idx;
     ///pwm_set_gpio_level(BEEPER_PIN, 0);

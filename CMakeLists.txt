@@ -167,6 +167,7 @@ target_compile_definitions(${PROJECT_NAME} PRIVATE
         CONSOLE_SOUND=1
         SERIO_SOUND=1
         VOICEBOX=1
+        SOUND_THIN_API=1
 
         #MNGR_DEBUG=1
         #DEBUG2=1
