@@ -812,12 +812,12 @@ int main() {
 #endif
 
 #ifdef SOUND
-	int hz = libatari800_get_sound_frequency();
+    int hz = libatari800_get_sound_frequency();
     snd_channels = libatari800_get_num_sound_channels();
-	// negative timeout means exact delay (rather than delay between callbacks)
-	if (!add_repeating_timer_us(-1000000 / hz, snd_timer_callback, NULL, &timer)) {
-		printf("Failed to add timer");
-	}
+    // negative timeout means exact delay (rather than delay between callbacks)
+    if (!add_repeating_timer_us(-1000000 / hz, snd_timer_callback, NULL, &timer)) {
+        printf("Failed to add timer");
+    }
 #endif
 
     while(true) {
