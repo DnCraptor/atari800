@@ -1,26 +1,40 @@
 {
-    "files.associations": {
-        "videomode.h": "c",
-        "sound.h": "c",
-        "dirent.h": "c",
-        "time.h": "c",
-        "ataribas_rom.h": "c",
-        "atariosb_rom.h": "c",
-        "atarixl_rom.h": "c",
-        "atari.h": "c",
-        "ff.h": "c",
-        "string.h": "c",
-        "config.h": "c",
-        "debug.h": "c",
-        "util.h": "c",
-        "log.h": "c",
-        "crc32.h": "c",
-        "cfg.h": "c",
-        "ui.h": "c",
-        "build_poly17.h": "c",
-        "pokey_poly17_lookup.h": "c",
-        "pm_lookup_table.h": "c",
-        "vga.h": "c",
-        "statesav.h": "c"
-    }
+    "cmake.options.statusBarVisibility": "hidden",
+    "cmake.options.advanced": {
+        "build": {
+            "statusBarVisibility": "hidden"
+        },
+        "launch": {
+            "statusBarVisibility": "hidden"
+        },
+        "debug": {
+            "statusBarVisibility": "hidden"
+        }
+    },
+    "cmake.configureOnEdit": false,
+    "cmake.automaticReconfigure": false,
+    "cmake.configureOnOpen": false,
+    "cmake.generator": "Ninja",
+    "cmake.cmakePath": "${userHome}/.pico-sdk/cmake/v3.28.6/bin/cmake",
+    "C_Cpp.debugShortcut": false,
+    "terminal.integrated.env.windows": {
+        "PICO_SDK_PATH": "${env:USERPROFILE}/.pico-sdk/sdk/2.0.0",
+        "PICO_TOOLCHAIN_PATH": "${env:USERPROFILE}/.pico-sdk/toolchain/13_2_Rel1",
+        "Path": "${env:USERPROFILE}/.pico-sdk/toolchain/13_2_Rel1/bin;${env:USERPROFILE}/.pico-sdk/picotool/2.0.0/picotool;${env:USERPROFILE}/.pico-sdk/cmake/v3.28.6/bin;${env:USERPROFILE}/.pico-sdk/ninja/v1.12.1;${env:PATH}"
+    },
+    "terminal.integrated.env.osx": {
+        "PICO_SDK_PATH": "${env:HOME}/.pico-sdk/sdk/2.0.0",
+        "PICO_TOOLCHAIN_PATH": "${env:HOME}/.pico-sdk/toolchain/13_2_Rel1",
+        "PATH": "${env:HOME}/.pico-sdk/toolchain/13_2_Rel1/bin:${env:HOME}/.pico-sdk/picotool/2.0.0/picotool:${env:HOME}/.pico-sdk/cmake/v3.28.6/bin:${env:HOME}/.pico-sdk/ninja/v1.12.1:${env:PATH}"
+    },
+    "terminal.integrated.env.linux": {
+        "PICO_SDK_PATH": "${env:HOME}/.pico-sdk/sdk/2.0.0",
+        "PICO_TOOLCHAIN_PATH": "${env:HOME}/.pico-sdk/toolchain/13_2_Rel1",
+        "PATH": "${env:HOME}/.pico-sdk/toolchain/13_2_Rel1/bin:${env:HOME}/.pico-sdk/picotool/2.0.0/picotool:${env:HOME}/.pico-sdk/cmake/v3.28.6/bin:${env:HOME}/.pico-sdk/ninja/v1.12.1:${env:PATH}"
+    },
+    "raspberry-pi-pico.cmakeAutoConfigure": true,
+    "raspberry-pi-pico.useCmakeTools": false,
+    "raspberry-pi-pico.cmakePath": "${HOME}/.pico-sdk/cmake/v3.28.6/bin/cmake",
+    "raspberry-pi-pico.ninjaPath": "${HOME}/.pico-sdk/ninja/v1.12.1/ninja",
+    "raspberry-pi-pico.python3Path": "${HOME}/.pico-sdk/python/3.12.1/python.exe"
 }
