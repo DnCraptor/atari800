@@ -1,16 +1,17 @@
 #include "graphics.h"
-#include "hardware/clocks.h"
-#include "stdbool.h"
-#include "hardware/structs/pll.h"
-#include "hardware/structs/systick.h"
+#include "vga.h"
+#include <hardware/clocks.h>
+#include <stdbool.h>
+#include <hardware/structs/pll.h>
+#include <hardware/structs/systick.h>
 
-#include "hardware/dma.h"
-#include "hardware/irq.h"
+#include <hardware/dma.h>
+#include <hardware/irq.h>
 #include <string.h>
 #include <stdio.h>
-#include "hardware/pio.h"
-#include "pico/stdlib.h"
-#include "stdlib.h"
+#include <hardware/pio.h>
+#include <pico/stdlib.h>
+#include <stdlib.h>
 
 uint16_t pio_program_VGA_instructions[] = {
     //     .wrap_target

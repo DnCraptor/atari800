@@ -2,7 +2,7 @@
 #include <cstring>
 #include <hardware/clocks.h>
 #include <hardware/flash.h>
-#include <hardware/structs/vreg_and_chip_reset.h>
+#include <hardware/vreg.h>
 #include <pico/bootrom.h>
 #include <pico/time.h>
 #include <pico/multicore.h>
@@ -758,9 +758,13 @@ inline static void init_wii() {
 }
 
 int main() {
-    hw_set_bits(&vreg_and_chip_reset_hw->vreg, VREG_AND_CHIP_RESET_VREG_VSEL_BITS);
+#ifdef VREG_VOLTAGE_1_40
+    vreg_set_voltage(VREG_VOLTAGE_1_40);
+#else
+    vreg_set_voltage(VREG_VOLTAGE_1_30);
+#endif
     sleep_ms(10);
-    set_sys_clock_khz(378 * KHZ, true);
+    set_sys_clock_khz(376 * KHZ, true);
     stdio_init_all();
     keyboard_init();
     keyboard_send(0xFF);

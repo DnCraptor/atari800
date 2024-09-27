@@ -22,6 +22,9 @@ extern "C" {
 #include "font8x8.h"
 #include "font8x16.h"
 
+#define TEXTMODE_COLS 80
+#define TEXTMODE_ROWS 30
+
 enum graphics_mode_t {
     TEXTMODE_DEFAULT,
     GRAPHICSMODE_DEFAULT,
