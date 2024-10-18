@@ -1,5 +1,6 @@
 #include <cstdlib>
 #include <cstring>
+#include <hardware/watchdog.h>
 #include <hardware/clocks.h>
 #include <hardware/flash.h>
 #include <hardware/structs/vreg_and_chip_reset.h>
@@ -240,7 +241,10 @@ bool __time_critical_func(handleScancode)(const uint32_t ps2scancode) {
                 input_map.keychar = 127;
                 delPressed = true;
                 if (input_map.alt && input_map.control) {
-                    Atari800_Coldstart();
+                    f_unlink("/.firmware");
+                    watchdog_enable(1, true);
+                    while (true);
+///                    Atari800_Coldstart();
                 }
                 break;
             }

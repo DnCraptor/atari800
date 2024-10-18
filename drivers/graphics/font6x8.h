@@ -1,6 +1,6 @@
 #pragma once
 
-#include <pico/platform.h>
+#include <pico.h>
 
 static uint8_t __in_flash() __aligned(4096) font_6x8[] = {
 0x1F ,0x11 ,0x11 ,0x11 ,0x11 ,0x11 ,0x1F ,0x00 ,//(0x00)0  
