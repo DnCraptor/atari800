@@ -205,3 +205,4 @@ target_compile_definitions(${PROJECT_NAME} PRIVATE
         HAVE_OPENDIR=1
 )
 
+pico_set_linker_script(${PROJECT_NAME} "${CMAKE_SOURCE_DIR}/memmap.ld")
