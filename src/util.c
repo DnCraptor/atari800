@@ -23,16 +23,21 @@
 */
 
 #include "config.h"
+
+#ifdef HAVR_FF_WRAP_H
+#include <ff_wrap.h>
+#else
+#include <stdlib.h>
 /* suppress -ansi -pedantic warning for fdopen: */
 #ifdef __STRICT_ANSI__
 #undef __STRICT_ANSI__
-
+#include <stdio.h>
 #define __STRICT_ANSI__ 1
 #else
-#include "ff.h"
-
+#include <stdio.h>
 #endif /* __STRICT_ANSI__ */
-#include <stdlib.h>
+#endif
+
 #include <string.h>
 #include <errno.h>
 #ifdef HAVE_SYS_STAT_H
@@ -297,35 +302,33 @@ double Util_round(double x)
 }
 #endif
 
-void *Util_malloc(size_t size, const char* from)
+void *Util_malloc(size_t size)
 {
-///	printf("Util_malloc(%d, '%s')", size, from);
 	void *ptr = malloc(size);
 	if (ptr == NULL) {
+		Atari800_ErrExit();
 		printf("Fatal error: out of memory\n");
-		Atari800_ErrExit(); // TODO: ??
 		exit(1);
 	}
 	return ptr;
 }
 
-void *Util_realloc(void *ptr, size_t size, const char* from)
+void *Util_realloc(void *ptr, size_t size)
 {
-	printf("Util_realloc(%d, '%s')", size, from);
 	ptr = realloc(ptr, size);
 	if (ptr == NULL) {
-		printf("Fatal error: out of memory\n");
 		Atari800_ErrExit();
+		printf("Fatal error: out of memory\n");
 		exit(1);
 	}
 	return ptr;
 }
 
-char *Util_strdup(const char *s, const char* from)
+char *Util_strdup(const char *s)
 {
 	/* don't use strdup(): it is unavailable on WinCE */
 	size_t size = strlen(s) + 1;
-	char *ptr = (char *) Util_malloc(size, from);
+	char *ptr = (char *) Util_malloc(size);
 	memcpy(ptr, s, size); /* faster than strcpy(ptr, s) */
 	return ptr;
 }
@@ -441,9 +444,8 @@ int Util_findnextfilename(const char *format, int *no_last, int no_max, char *bu
 
 int Util_fileexists(const char *filename)
 {
-	FIL f;
-	FIL *fp = &f;
-	fp = fopen(fp, filename, "rb");
+	FILE *fp;
+	fp = fopen(filename, "rb");
 	if (fp == NULL)
 		return FALSE;
 	fclose(fp);
@@ -491,15 +493,16 @@ int Util_direxists(const char *filename)
 #endif /* defined(HAVE_STAT) */
 
 
-int Util_flen(FIL *fp)
+int Util_flen(FILE *fp)
 {
-	return (int) f_size(fp);
+	fseek(fp, 0, SEEK_END);
+	return (int) ftell(fp);
 }
 
 /* Creates a file that does not exist and fills in filename with its name.
    filename must point to FILENAME_MAX characters buffer which doesn't need
    to be initialized. */
-FIL *Util_uniqopen(char *filename, const char *mode)
+FILE *Util_uniqopen(char *filename, const char *mode)
 {
 	/* We cannot simply call tmpfile(), because we don't want the file
 	   to be deleted when we close it, and we need the filename. */
@@ -522,10 +525,8 @@ FIL *Util_uniqopen(char *filename, const char *mode)
 	int no;
 	for (no = 0; no < 1000000; no++) {
 		snprintf(filename, FILENAME_MAX, "a8%06d", no);
-		if (!Util_fileexists(filename)) {
-			FIL * fp = Util_malloc(sizeof(FIL), filename);
-			return fopen(fp, filename, FA_READ);
-		}
+		if (!Util_fileexists(filename))
+			return fopen(filename, mode);
 	}
 	return NULL;
 #endif
@@ -584,13 +585,11 @@ double Util_time(void)
 
 void Util_sleep(double s)
 {
+	if (s > 0) {
 #ifdef SUPPORTS_PLATFORM_SLEEP
 	PLATFORM_Sleep(s);
 #else /* !SUPPORTS_PLATFORM_SLEEP */
-	if (s > 0) {
-#ifdef HAVE_WINDOWS_H
-		Sleep((DWORD) (s * 1e3));
-#elif defined(DJGPP)
+#if defined(DJGPP)
 		/* DJGPP has usleep and select, but they don't work that good */
 		/* XXX: find out why */
 		double curtime = Util_time();
@@ -618,11 +617,9 @@ void Util_sleep(double s)
 		double curtime = Util_time();
 		while ((curtime + s) > Util_time());
 #endif
-	}
 #endif /* !SUPPORTS_PLATFORM_SLEEP */
+	}
 }
-
-static const char* d = "\\atari800";
 
 char *Util_getcwd(char *buf, size_t size)
 {
@@ -632,8 +629,7 @@ char *Util_getcwd(char *buf, size_t size)
 		buf[1] = '\0';
 	}
 #else
-    strncpy(buf, d, size);
-	printf("Util_getcwd: '%s'", buf);
+	strcpy(buf, "/atari800");
 #endif
 	return buf;
 }

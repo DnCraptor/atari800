@@ -25,6 +25,14 @@
 #define _POSIX_C_SOURCE 200112L /* for snprintf */
 
 #include "config.h"
+
+#ifdef HAVR_FF_WRAP_H
+#include <ff_wrap.h>
+#else
+#include <stdlib.h>
+#include <stdio.h>
+#endif
+
 #include <stdlib.h>
 #include <string.h>
 
@@ -41,8 +49,15 @@
 #include "file_export.h"
 #endif
 
-UBYTE __aligned(4) __screen[Screen_HEIGHT * Screen_WIDTH] = { 0 };
-UBYTE *Screen_atari = &__screen[0];
+ULONG *Screen_atari = NULL;
+#ifdef DIRTYRECT
+UBYTE *Screen_dirty = NULL;
+#endif
+#ifdef BITPL_SCR
+ULONG *Screen_atari_b = NULL;
+ULONG *Screen_atari1 = NULL;
+ULONG *Screen_atari2 = NULL;
+#endif
 
 /* The area that can been seen is Screen_visible_x1 <= x < Screen_visible_x2,
    Screen_visible_y1 <= y < Screen_visible_y2.
@@ -77,29 +92,81 @@ static int screenshot_no_max = 0;
 int Screen_show_multimedia_stats = TRUE;
 #endif
 
-int Screen_Initialise(int *argc, char *argv[]) {
-	printf("Screen_Initialise");
+int Screen_Initialise(int *argc, char *argv[])
+{
 	int i;
 	int j;
 	int help_only = FALSE;
+
 	for (i = j = 1; i < *argc; i++) {
-		if (strcmp(argv[i], "-showspeed") == 0) {
+#ifdef SCREENSHOTS
+		int i_a = (i + 1 < *argc);		/* is argument available? */
+		int a_m = FALSE;			/* error, argument missing! */
+#endif
+
+		if (0) {}
+#ifdef SCREENSHOTS
+		else if (strcmp(argv[i], "-screenshots") == 0) {
+			if (i_a)
+				screenshot_no_max = Util_filenamepattern(argv[++i], screenshot_filename_format, FILENAME_MAX, DEFAULT_SCREENSHOT_FILENAME_FORMAT);
+			else a_m = TRUE;
+		}
+#endif
+#if defined(AUDIO_RECORDING) || defined(VIDEO_RECORDING)
+		else if (strcmp(argv[i], "-showstats") == 0) {
+			Screen_show_multimedia_stats = TRUE;
+		}
+		else if (strcmp(argv[i], "-no-showstats") == 0) {
+			Screen_show_multimedia_stats = FALSE;
+		}
+#endif
+		else if (strcmp(argv[i], "-showspeed") == 0) {
 			Screen_show_atari_speed = TRUE;
 		}
 		else {
 			if (strcmp(argv[i], "-help") == 0) {
 				help_only = TRUE;
+#ifdef SCREENSHOTS
+				Log_print("\t-screenshots <p> Set filename pattern for screenshots");
+#endif
+#if defined(AUDIO_RECORDING) || defined(VIDEO_RECORDING)
+				Log_print("\t-showstats       Show recording stats of video or audio");
+				Log_print("\t-no-showstats    Don't show recording stats of video or audio");
+#endif
 				Log_print("\t-showspeed       Show percentage of actual speed");
 			}
 			argv[j++] = argv[i];
 		}
+
+#ifdef SCREENSHOTS
+		if (a_m) {
+			Log_print("Missing argument for '%s'", argv[i]);
+			return FALSE;
+		}
+#endif
 	}
 	*argc = j;
+
 	/* don't bother mallocing Screen_atari with just "-help" */
 	if (help_only)
 		return TRUE;
-	/* Clear the screen. */
-	memset(__screen, 0, Screen_HEIGHT * Screen_WIDTH);
+
+	if (Screen_atari == NULL) { /* platform-specific code can initialize it */
+		Screen_atari = (ULONG *) Util_malloc(Screen_HEIGHT * Screen_WIDTH);
+		/* Clear the screen. */
+		memset(Screen_atari, 0, Screen_HEIGHT * Screen_WIDTH);
+#ifdef DIRTYRECT
+		Screen_dirty = (UBYTE *) Util_malloc(Screen_HEIGHT * Screen_WIDTH / 8);
+		Screen_EntireDirty();
+#endif
+#ifdef BITPL_SCR
+		Screen_atari_b = (ULONG *) Util_malloc(Screen_HEIGHT * Screen_WIDTH);
+		memset(Screen_atari_b, 0, Screen_HEIGHT * Screen_WIDTH);
+		Screen_atari1 = Screen_atari;
+		Screen_atari2 = Screen_atari_b;
+#endif
+	}
+
 	return TRUE;
 }
 
@@ -113,16 +180,23 @@ int Screen_ReadConfig(char *string, char *ptr)
 		return (Screen_show_sector_counter = Util_sscanbool(ptr)) != -1;
 	else if (strcmp(string, "SCREEN_SHOW_1200XL_LEDS") == 0)
 		return (Screen_show_1200_leds = Util_sscanbool(ptr)) != -1;
+#if defined(AUDIO_RECORDING) || defined(VIDEO_RECORDING)
+	else if (strcmp(string, "SCREEN_SHOW_MULTIMEDIA_STATS") == 0)
+		return (Screen_show_multimedia_stats = Util_sscanbool(ptr)) != -1;
+#endif
 	else return FALSE;
 	return TRUE;
 }
 
-void Screen_WriteConfig(FIL *fp)
+void Screen_WriteConfig(FILE *fp)
 {
 	fprintf(fp, "SCREEN_SHOW_SPEED=%d\n", Screen_show_atari_speed);
 	fprintf(fp, "SCREEN_SHOW_IO_ACTIVITY=%d\n", Screen_show_disk_led);
 	fprintf(fp, "SCREEN_SHOW_IO_COUNTER=%d\n", Screen_show_sector_counter);
 	fprintf(fp, "SCREEN_SHOW_1200XL_LEDS=%d\n", Screen_show_1200_leds);
+#if defined(AUDIO_RECORDING) || defined(VIDEO_RECORDING)
+	fprintf(fp, "SCREEN_SHOW_MULTIMEDIA_STATS=%d\n", Screen_show_multimedia_stats);
+#endif
 }
 
 #define SMALLFONT_WIDTH    5
@@ -175,7 +249,7 @@ void Screen_WriteConfig(FIL *fp)
 
 static void SmallFont_DrawChar(UBYTE *screen, int ch, UBYTE color1, UBYTE color2)
 {
-	static const uint8_t font[SMALLFONT_COUNT][SMALLFONT_HEIGHT] = {
+	static const UBYTE font[SMALLFONT_COUNT][SMALLFONT_HEIGHT] = {
 		{
 			SMALLFONT_____,
 			SMALLFONT__X__,
@@ -654,5 +728,183 @@ void Screen_Draw1200LED(void)
 	}
 }
 
-void Screen_EntireDirty(void) {
+#if defined(AUDIO_RECORDING) || defined(VIDEO_RECORDING)
+/* Returns screen address for placing the next character on the left of the
+   drawn number. */
+static UBYTE *SmallFont_DrawFloat(UBYTE *screen, float f, int num_decimal_places, UBYTE color1, UBYTE color2)
+{
+	int n;
+	int i;
+
+	for (i = 0; i < num_decimal_places; i++) {
+		f *= 10;
+	}
+	n = (int)f;
+	if (num_decimal_places == 0) {
+		screen = SmallFont_DrawInt(screen, n, color1, color2);
+	}
+	else {
+		do {
+			SmallFont_DrawChar(screen, n % 10, color1, color2);
+			screen -= SMALLFONT_WIDTH;
+			n /= 10;
+			num_decimal_places--;
+			if (num_decimal_places == 0) {
+				SmallFont_DrawChar(screen, SMALLFONT_DOT, color1, color2);
+				screen -= SMALLFONT_WIDTH;
+			}
+		} while (n > 0);
+	}
+	return screen;
+}
+
+static UBYTE *SmallFont_DrawString(UBYTE *screen, char *s, UBYTE color1, UBYTE color2)
+{
+	char cin;
+	char cout;
+
+	while (*s) {
+		cin = *s++;
+		if ((cin >= '0') && (cin <= '9')) {
+			cout = cin - '0';
+		}
+		else if ((cin >= 'A') && (cin <= 'Z')) {
+			cout = cin - 'A' + SMALLFONT_A;
+		}
+		else if ((cin >= 'a') && (cin <= 'z')) {
+			cout = cin - 'a' + SMALLFONT_A;
+		}
+		else if (cin == '_') {
+			cout = SMALLFONT_UNDER;
+		}
+		else {
+			cout = SMALLFONT_SPACE;
+		}
+		SmallFont_DrawChar(screen, cout, color1, color2);
+		screen += SMALLFONT_WIDTH;
+	}
+	return screen;
+}
+
+void Screen_DrawMultimediaStats(void)
+{
+	if (Screen_show_multimedia_stats) {
+		int elapsed_time;
+		int size;
+		int num;
+		float f;
+		int size_char;
+		int decimal_digits;
+		char *media_description;
+		UBYTE *screen;
+
+		if (File_Export_GetRecordingStats(&elapsed_time, &size, &media_description)) {
+			num = 10 + strlen(media_description) + 2 + 7 + 2 + 6;
+			screen = (UBYTE *) Screen_atari + Screen_visible_x1 + (Screen_visible_x2 - Screen_visible_x1) / 2 - (num * SMALLFONT_WIDTH) / 2 + (Screen_visible_y2 - SMALLFONT_HEIGHT) * Screen_WIDTH;
+
+			screen = SmallFont_DrawString(screen, "RECORDING ", 0x0f, 0x34);
+			screen = SmallFont_DrawString(screen, media_description, 0x0f, 0x34);
+			screen = SmallFont_DrawString(screen, "  ", 0x0f, 0x34);
+
+			num = elapsed_time / 60 / 60;
+			SmallFont_DrawInt(screen, num, 0x0f, 0x34);
+			screen += SMALLFONT_WIDTH;
+			SmallFont_DrawChar(screen, SMALLFONT_COLON, 0x0f, 0x34);
+			screen += SMALLFONT_WIDTH * 2;
+			num = (elapsed_time / 60) % 60;
+			if (num < 10) {
+				SmallFont_DrawInt(screen - SMALLFONT_WIDTH, 0, 0x0f, 0x34);
+			}
+			SmallFont_DrawInt(screen, num, 0x0f, 0x34);
+			screen += SMALLFONT_WIDTH;
+			SmallFont_DrawChar(screen, SMALLFONT_COLON, 0x0f, 0x34);
+			screen += SMALLFONT_WIDTH * 2;
+			num = elapsed_time % 60;
+			if (num < 10) {
+				SmallFont_DrawInt(screen - SMALLFONT_WIDTH, 0, 0x0f, 0x34);
+			}
+			SmallFont_DrawInt(screen, num, 0x0f, 0x34);
+			screen = SmallFont_DrawString(screen + SMALLFONT_WIDTH, "     ", 0x0f, 0x34);
+
+			if (size < 1024) {
+				/* draw 9999KB */
+				SmallFont_DrawInt(screen, size, 0x0f, 0x34);
+				size_char = SMALLFONT_K;
+			}
+			else {
+				f = size / 1024.0;
+				if (size < 10 * 1024) {
+					/* draw "9.99MB" */
+					decimal_digits = 2;
+				}
+				else if (size < 100 * 1024) {
+					/* draw "99.9MB" */
+					decimal_digits = 1;
+				}
+				else {
+					/* draw "9999MB" */
+					decimal_digits = 0;
+				}
+				SmallFont_DrawFloat(screen, f, decimal_digits, 0x0f, 0x34);
+				size_char = SMALLFONT_M;
+			}
+			screen += SMALLFONT_WIDTH;
+			SmallFont_DrawChar(screen, size_char, 0x0f, 0x34);
+			screen += SMALLFONT_WIDTH;
+			SmallFont_DrawChar(screen, SMALLFONT_B, 0x0f, 0x34);
+		}
+	}
+}
+#endif /* defined(AUDIO_RECORDING) || defined(VIDEO_RECORDING) */
+
+#ifdef SCREENSHOTS
+int Screen_SaveScreenshot(const char *filename, int interlaced)
+{
+	int result;
+	ULONG *main_screen_atari;
+	UBYTE *ptr1;
+	UBYTE *ptr2;
+
+	if (!File_Export_ImageTypeSupported(filename)) {
+		Log_print("Unsupported image type for file: %s", filename);
+		return FALSE;
+	}
+	main_screen_atari = Screen_atari;
+	ptr1 = (UBYTE *) Screen_atari;
+	if (interlaced) {
+		Screen_atari = (ULONG *) Util_malloc(Screen_WIDTH * Screen_HEIGHT);
+		ptr2 = (UBYTE *) Screen_atari;
+		ANTIC_Frame(TRUE); /* draw on Screen_atari */
+	}
+	else {
+		ptr2 = NULL;
+	}
+	result = File_Export_SaveScreen(filename, ptr1, ptr2);
+	if (!result) {
+		Log_print("Failed saving to file: %s", filename);
+	}
+	if (interlaced) {
+		free(Screen_atari);
+		Screen_atari = main_screen_atari;
+	}
+	return result;
+}
+
+void Screen_SaveNextScreenshot(int interlaced)
+{
+	char filename[FILENAME_MAX];
+	if (!screenshot_no_max) {
+		screenshot_no_max = Util_filenamepattern(DEFAULT_SCREENSHOT_FILENAME_FORMAT, screenshot_filename_format, FILENAME_MAX, NULL);
+	}
+	Util_findnextfilename(screenshot_filename_format, &screenshot_no_last, screenshot_no_max, filename, sizeof(filename), TRUE);
+	Screen_SaveScreenshot(filename, interlaced);
+}
+#endif /* !SCREENSHOTS */
+
+void Screen_EntireDirty(void)
+{
+#ifdef DIRTYRECT
+	if (Screen_dirty)
+		memset(Screen_dirty, 1, Screen_WIDTH * Screen_HEIGHT / 8);
+#endif /* DIRTYRECT */
 }

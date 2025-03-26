@@ -59,11 +59,13 @@
 #include "votraxsnd.h"
 #endif
 
-#include "POKEY_poly17_lookup.h"
-
 #ifdef POKEY_UPDATE
 void pokey_update(void);
 #endif
+
+#include "poly9tbl.h"
+#include "poly17tbl.h"
+#include "POKEY_poly17_lookup.h"
 
 UBYTE POKEY_KBCODE;
 UBYTE POKEY_SERIN;
@@ -85,8 +87,8 @@ int POKEY_Base_mult[POKEY_MAXPOKEYS];		/* selects either 64Khz or 15Khz clock mu
 UBYTE POKEY_POT_input[8] = {228, 228, 228, 228, 228, 228, 228, 228};
 static int pot_scanline;
 
-UBYTE POKEY_poly9_lookup[511];
-
+UBYTE POKEY_poly9_lookup[POKEY_POLY9_SIZE];
+extern const unsigned char POKEY_poly17_lookup[16385];
 static ULONG random_scanline_counter;
 
 ULONG POKEY_GetRandomCounter(void)
@@ -144,9 +146,6 @@ UBYTE POKEY_GetByte(UWORD addr, int no_side_effects)
 		byte = POKEY_SERIN;
 #ifdef DEBUG3
 		printf("SERIO: SERIN read, bytevalue %02x\n", POKEY_SERIN);
-#endif
-#ifdef SERIO_SOUND
-		POKEYSND_UpdateSerio(0,byte);
 #endif
 		break;
 	case POKEY_OFFSET_IRQST:
@@ -286,9 +285,6 @@ void POKEY_PutByte(UWORD addr, UBYTE byte)
 				POKEY_DELAYED_XMTDONE_IRQ = 0;
 			}
 		};
-#ifdef SERIO_SOUND
-		POKEYSND_UpdateSerio(1, byte);
-#endif
 		break;
 	case POKEY_OFFSET_STIMER:
 		POKEY_DivNIRQ[POKEY_CHAN1] = POKEY_DivNMax[POKEY_CHAN1];
@@ -372,7 +368,6 @@ void POKEY_PutByte(UWORD addr, UBYTE byte)
 
 int POKEY_Initialise(int *argc, char *argv[])
 {
-	printf("POKEY_Initialise");
 	int i;
 	ULONG reg;
 
@@ -409,38 +404,12 @@ int POKEY_Initialise(int *argc, char *argv[])
 		reg = ((((reg >> 5) ^ reg) & 1) << 8) + (reg >> 1);
 		POKEY_poly9_lookup[i] = (UBYTE) reg;
 	}
-#ifdef POKEY_poly17_lookup.h_regenerate
-	/* initialise poly17_lookup */
+	/* initialise poly17_lookup 
 	reg = 0x1ffff;
-	FIL f;
-	UINT bw;
-	char tmp[64];
-	const char * str = "const UBYTE __in_flash() __aligned(4096) POKEY_poly17_lookup[16385] = {\n";
-	f_open(&f, "\\POKEY_poly17_lookup.h", FA_CREATE_ALWAYS | FA_WRITE);
-	f_write(&f, str, strlen(str), &bw);
 	for (i = 0; i < 16385; i++) {
-		
 		reg = ((((reg >> 5) ^ reg) & 0xff) << 9) + (reg >> 8);
-		UBYTE b = (UBYTE) (reg >> 1);
-		/*POKEY_poly17_lookup[i] = b;*/
-
-		if (i && !(i % 16)) {
-			sprintf(tmp, " // 0x%08X\n", i - 16);
-			f_write(&f, tmp, strlen(tmp), &bw);
-		}
-		if (i == 0) {
-			str = "  ";
-		} else {
-			str = ", ";
-		}
-		f_write(&f, str, strlen(str), &bw);
-		sprintf(tmp, "0x%02X", b);
-		f_write(&f, tmp, strlen(tmp), &bw);
-	}
-	str = "};\n";
-	f_write(&f, str, strlen(str), &bw);
-	f_close(&f);
-#endif
+		POKEY_poly17_lookup[i] = (UBYTE) (reg >> 1);
+	}*/
 
 #ifndef BASIC
 	if (INPUT_Playingback()) {
@@ -488,10 +457,6 @@ void POKEY_Scanline(void)
 	pokey_update();
 #endif
 
-#ifdef VOL_ONLY_SOUND
-	POKEYSND_UpdateVolOnly();
-#endif
-
 #ifndef BASIC
 	INPUT_Scanline();	/* Handle Amiga and ST mice. */
 						/* It's not a part of POKEY emulation, */
@@ -504,11 +469,9 @@ void POKEY_Scanline(void)
 			POKEY_DELAYED_SERIN_IRQ = 1;
 	}
 
-	if ((POKEY_SKCTL & 0x03) == 0) {
+	if ((POKEY_SKCTL & 0x03) == 0)
 		/* Don't process timers when POKEY is in reset mode. */
-	///	printf("POKEY_Scanline (POKEY_SKCTL & 0x03) == 0");
 		return;
-	}
 
 	if (pot_scanline < 228)
 		pot_scanline++;
@@ -597,7 +560,6 @@ void POKEY_Scanline(void)
 			CPU_GenerateIRQ();
 		}
 	}
-	///printf("POKEY_Scanline DONE");
 }
 
 /*****************************************************************************/
@@ -679,7 +641,7 @@ void POKEY_StateSave(void)
 	int shift_key = 0;
 	int keypressed = 0;
 
-	///STATESAV_TAG(pokey);
+	STATESAV_TAG(pokey);
 	StateSav_SaveUBYTE(&POKEY_KBCODE, 1);
 	StateSav_SaveUBYTE(&POKEY_IRQST, 1);
 	StateSav_SaveUBYTE(&POKEY_IRQEN, 1);

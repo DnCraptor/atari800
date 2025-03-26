@@ -23,7 +23,14 @@
 */
 
 #include "config.h"
+
+#ifdef HAVR_FF_WRAP_H
+#include <ff_wrap.h>
+#else
 #include <stdlib.h>
+#include <stdio.h>
+#endif
+
 #include <string.h>
 
 #include "atari.h"
@@ -75,35 +82,27 @@ map_save save_map[2] = {
 
 #include "roms/ATARIBAS_ROM.h"
 #include "roms/ATARIOSB_ROM.h"
-#include "roms/ATARIXL_ROM.h"
-///UBYTE MEMORY_basic[8192];
-///UBYTE MEMORY_os[16384];
-///UBYTE MEMORY_xegame[8192];
+///#include "roms/ATARIXL_ROM.h" TODO:
+//UBYTE MEMORY_basic[8192];
+//UBYTE MEMORY_os[16384];
+UBYTE MEMORY_xegame[8192]; /// TODO:
 
 int MEMORY_xe_bank = 0;
 int MEMORY_selftest_enabled = 0;
 
-///static UBYTE under_atarixl_os[16384];
-#include "psram_spi.h"
-const size_t under_atarixl_os_base = 0;
-const size_t under_atarixl_os_size = 16384;
-///static UBYTE under_cart809F[8192];
-const size_t under_cart809F_base = under_atarixl_os_base + under_atarixl_os_size;
-const size_t under_cart809F_size = 8192;
-///static UBYTE under_cartA0BF[8192];
-const size_t under_cartA0BF_base = under_cart809F_base + under_cart809F_size;
-const size_t under_cartA0BF_size = 8192;
-/* RAM shadowed by Self-Test in the XE bank seen by ANTIC, when ANTIC/CPU
-   separate XE access is active. */
-///static UBYTE antic_bank_under_selftest[0x800];
-const size_t antic_bank_under_selftest_base = under_cartA0BF_base + under_cartA0BF_size;
-const size_t antic_bank_under_selftest_size = 0x800;
+static UBYTE under_atarixl_os[16384];
+static UBYTE under_cart809F[8192];
+static UBYTE under_cartA0BF[8192];
 
 static int cart809F_enabled = FALSE;
 int MEMORY_cartA0BF_enabled = FALSE;
 
 static UBYTE *atarixe_memory = NULL;
 static ULONG atarixe_memory_size = 0;
+
+/* RAM shadowed by Self-Test in the XE bank seen by ANTIC, when ANTIC/CPU
+   separate XE access is active. */
+static UBYTE antic_bank_under_selftest[0x800];
 
 int MEMORY_have_basic = FALSE; /* Atari BASIC image has been successfully read (Atari 800 only) */
 
@@ -132,7 +131,7 @@ static void alloc_axlon_memory(void){
 		int size = MEMORY_axlon_num_banks * 0x4000;
 		if (axlon_ram == NULL || axlon_current_bankmask != MEMORY_axlon_num_banks - 1) {
 			axlon_current_bankmask = MEMORY_axlon_num_banks - 1;
-			axlon_ram = (UBYTE *)Util_realloc(axlon_ram, size, "alloc_axlon_memory axlon_ram (realloc)");
+			axlon_ram = (UBYTE *)Util_realloc(axlon_ram, size);
 		}
 		memset(axlon_ram, 0, size);
 	} else {
@@ -149,7 +148,7 @@ static void alloc_mosaic_memory(void){
 		int size = MEMORY_mosaic_num_banks * 0x1000;
 		if (mosaic_ram == NULL || mosaic_current_num_banks != MEMORY_mosaic_num_banks) {
 			mosaic_current_num_banks = MEMORY_mosaic_num_banks;
-			mosaic_ram = (UBYTE *)Util_realloc(mosaic_ram, size, "alloc_mosaic_memory mosaic_ram (realloc)");
+			mosaic_ram = (UBYTE *)Util_realloc(mosaic_ram, size);
 		}
 		memset(mosaic_ram, 0, size);
 	} else {
@@ -170,7 +169,7 @@ static void AllocXEMemory(void)
 		if (size != atarixe_memory_size) {
 			if (atarixe_memory != NULL)
 				free(atarixe_memory);
-			atarixe_memory = (UBYTE *) Util_malloc(size, "AllocXEMemory");
+			atarixe_memory = (UBYTE *) Util_malloc(size);
 			atarixe_memory_size = size;
 			memset(atarixe_memory, 0, size);
 		}
@@ -188,7 +187,7 @@ static void AllocMapRAM(void)
 	if (MEMORY_enable_mapram && Atari800_machine_type == Atari800_MACHINE_XLXE
 	    && MEMORY_ram_size > 20) {
 		if (mapram_memory == NULL)
-			mapram_memory = (UBYTE *)Util_malloc(0x800, "AllocMapRAM");
+			mapram_memory = (UBYTE *)Util_malloc(0x800);
 	}
 	else if (mapram_memory != NULL) {
 		free(mapram_memory);
@@ -357,7 +356,7 @@ void MEMORY_StateSave(UBYTE SaveVerbose)
 	/* Axlon/Mosaic for 400/800 */
 	if (Atari800_machine_type == Atari800_MACHINE_800) {
 		StateSav_SaveINT(&MEMORY_axlon_num_banks, 1);
-		if (MEMORY_axlon_num_banks > 0) {
+		if (MEMORY_axlon_num_banks > 0){
 			StateSav_SaveINT(&axlon_curbank, 1);
 			StateSav_SaveINT(&MEMORY_axlon_0f_mirror, 1);
 			StateSav_SaveUBYTE(axlon_ram, MEMORY_axlon_num_banks * 0x4000);
@@ -372,9 +371,9 @@ void MEMORY_StateSave(UBYTE SaveVerbose)
 	/* Save amount of base RAM in kilobytes. */
 	temp = MEMORY_ram_size > 64 ? 64 : MEMORY_ram_size;
 	StateSav_SaveINT(&temp, 1);
-	///STATESAV_TAG(base_ram);
+	STATESAV_TAG(base_ram);
 	StateSav_SaveUBYTE(&MEMORY_mem[0], 65536);
-	///STATESAV_TAG(base_ram_attrib);
+	STATESAV_TAG(base_ram_attrib);
 #ifndef PAGED_ATTRIB
 	StateSav_SaveUBYTE(&MEMORY_attrib[0], 65536);
 #else
@@ -406,14 +405,15 @@ void MEMORY_StateSave(UBYTE SaveVerbose)
 #endif
 
 	if (Atari800_machine_type == Atari800_MACHINE_XLXE) {
-	///	if (SaveVerbose != 0)
-	///		StateSav_SaveUBYTE(&MEMORY_basic[0], 8192);
-		StateSav_Save2PSRAM(under_cartA0BF_base, under_cartA0BF_size);
-	///	if (SaveVerbose != 0)
-	///		StateSav_SaveUBYTE(&MEMORY_os[0], 16384);
-		StateSav_Save2PSRAM(under_atarixl_os_base, under_atarixl_os_size);
-	///	if (SaveVerbose != 0)
-	///		StateSav_SaveUBYTE(MEMORY_xegame, 0x2000);
+		if (SaveVerbose != 0)
+			StateSav_SaveUBYTE(&MEMORY_basic[0], 8192);
+		StateSav_SaveUBYTE(&under_cartA0BF[0], 8192);
+
+		if (SaveVerbose != 0)
+			StateSav_SaveUBYTE(&MEMORY_os[0], 16384);
+		StateSav_SaveUBYTE(&under_atarixl_os[0], 16384);
+		if (SaveVerbose != 0)
+			StateSav_SaveUBYTE(MEMORY_xegame, 0x2000);
 	}
 
 	/* Save amount of XE RAM in 16KB banks. */
@@ -433,8 +433,8 @@ void MEMORY_StateSave(UBYTE SaveVerbose)
 
 	if (MEMORY_ram_size > 64) {
 		StateSav_SaveUBYTE(&atarixe_memory[0], atarixe_memory_size);
-	///	if (ANTIC_xe_ptr != NULL && MEMORY_selftest_enabled)
-	///		StateSav_SaveUBYTE(antic_bank_under_selftest, 0x800);
+		if (ANTIC_xe_ptr != NULL && MEMORY_selftest_enabled)
+			StateSav_SaveUBYTE(antic_bank_under_selftest, 0x800);
 	}
 
 	/* Simius XL/XE MapRAM expansion */
@@ -586,14 +586,15 @@ void MEMORY_StateRead(UBYTE SaveVerbose, UBYTE StateVersion)
 #endif
 
 	if (Atari800_machine_type == Atari800_MACHINE_XLXE) {
-	///	if (SaveVerbose)
-	///		StateSav_ReadUBYTE(&MEMORY_basic[0], 8192);
-		StateSav_Read2PSRAM(under_cartA0BF_base, under_cartA0BF_size);
-	///	if (SaveVerbose)
-	///		StateSav_ReadUBYTE(&MEMORY_os[0], 16384);
-		StateSav_Read2PSRAM(under_atarixl_os_base, under_atarixl_os_size);
-	///	if (StateVersion >= 7 && SaveVerbose)
-	///		StateSav_ReadUBYTE(MEMORY_xegame, 0x2000);
+		if (SaveVerbose)
+			StateSav_ReadUBYTE(&MEMORY_basic[0], 8192);
+		StateSav_ReadUBYTE(&under_cartA0BF[0], 8192);
+
+		if (SaveVerbose)
+			StateSav_ReadUBYTE(&MEMORY_os[0], 16384);
+		StateSav_ReadUBYTE(&under_atarixl_os[0], 16384);
+		if (StateVersion >= 7 && SaveVerbose)
+			StateSav_ReadUBYTE(MEMORY_xegame, 0x2000);
 	}
 
 	if (StateVersion >= 7) {
@@ -674,9 +675,11 @@ void MEMORY_StateRead(UBYTE SaveVerbose, UBYTE StateVersion)
 				ANTIC_xe_ptr = NULL;
 				break;
 			}
-		///	if (ANTIC_xe_ptr != NULL && MEMORY_selftest_enabled)
+
+			if (ANTIC_xe_ptr != NULL && MEMORY_selftest_enabled)
 				/* Also read ANTIC-visible memory shadowed by Self Test. */
-		///		StateSav_ReadUBYTE(antic_bank_under_selftest, 0x800);
+				StateSav_ReadUBYTE(antic_bank_under_selftest, 0x800);
+
 		}
 	}
 
@@ -715,29 +718,21 @@ void MEMORY_CopyToMem(const UBYTE *from, UWORD to, int size)
    BASIC or XEGS game ROM contents. */
 static UBYTE const * builtin_cart(UBYTE portb)
 {
-	printf("builtin_cart(%02Xh)", portb);
 	/* Normally BASIC is enabled by clearing bit 1 of PORTB, but it's disabled
 	   when using 576K and 1088K memory expansions, where bit 1 is used for
 	   selecting extended memory bank number. */
 	if (Atari800_builtin_basic
 	    && (portb & 0x02) == 0
-	    && ((portb & 0x10) != 0 || (MEMORY_ram_size != 576 && MEMORY_ram_size != 1088))
-	) {
-		printf("MEMORY_basic: %08Xh", MEMORY_basic);
+	    && ((portb & 0x10) != 0 || (MEMORY_ram_size != 576 && MEMORY_ram_size != 1088)))
 		return MEMORY_basic;
-	}
 	/* The builtin XEGS game is disabled when BASIC is enabled. It is enabled
 	   by setting bit 6 of PORTB, but it's disabled when using 320K and larger
 	   XE memory expansions, where bit 6 is used for selecting extended memory
 	   bank number. */
 	if (Atari800_builtin_game
 	    && (portb & 0x40) == 0
-	    && ((portb & 0x10) != 0 || MEMORY_ram_size < 320)
-	) {
-		printf("MEMORY_xegame: %08Xh", MEMORY_xegame);
+	    && ((portb & 0x10) != 0 || MEMORY_ram_size < 320))
 		return MEMORY_xegame;
-	}
-	printf("builtin_cart(%02Xh) return NULL", portb);
 	return NULL;
 }
 
@@ -758,10 +753,7 @@ void MEMORY_HandlePORTB(UBYTE byte, UBYTE oldval)
 	if (mapram_selected && !new_mapram_selected) {
 		/* Restore RAM hidden by MapRAM. */
 		memcpy(mapram_memory, MEMORY_mem + 0x5000, 0x800);
-		for (size_t i = 0; i < 0x800; ++i) {
-			MEMORY_mem[0x5000 + i] = read8psram(under_atarixl_os_base + 0x1000 + i);
-		}
-		///memcpy(MEMORY_mem + 0x5000, under_atarixl_os + 0x1000, 0x800);
+		memcpy(MEMORY_mem + 0x5000, under_atarixl_os + 0x1000, 0x800);
 	}
 
 	/* Switch XE memory bank in 0x4000-0x7fff */
@@ -802,18 +794,10 @@ void MEMORY_HandlePORTB(UBYTE byte, UBYTE oldval)
 		        || antic_bank != new_antic_bank
 		        || (MEMORY_ram_size == MEMORY_RAM_320_COMPY_SHOP && (byte & 0x20) == 0))) {
 			/* Disable Self Test ROM */
-			for (size_t i = 0; i < 0x800; ++i) {
-				MEMORY_mem[0x5000 + i] = read8psram(under_atarixl_os_base + 0x1000 + i);
-			}
-			///memcpy(MEMORY_mem + 0x5000, under_atarixl_os + 0x1000, 0x800);
-			if (ANTIC_xe_ptr != NULL) {
+			memcpy(MEMORY_mem + 0x5000, under_atarixl_os + 0x1000, 0x800);
+			if (ANTIC_xe_ptr != NULL)
 				/* Also disable Self Test from XE bank accessed by ANTIC. */
-				UBYTE* to = atarixe_memory + (antic_bank << 14) + 0x1000;
-				for (size_t i = 0; i < 0x800; ++i) {
-					*to++ = read8psram(antic_bank_under_selftest_base + i);
-				}
-				///memcpy(to, antic_bank_under_selftest, 0x800);
-			}
+				memcpy(atarixe_memory + (antic_bank << 14) + 0x1000, antic_bank_under_selftest, 0x800);
 			MEMORY_SetRAM(0x5000, 0x57ff);
 			MEMORY_selftest_enabled = FALSE;
 		}
@@ -834,14 +818,8 @@ void MEMORY_HandlePORTB(UBYTE byte, UBYTE oldval)
 		if (byte & 0x01) {
 			/* Enable OS ROM */
 			if (MEMORY_ram_size > 48) {
-				for (size_t i = 0; i < 0x1000; ++i) {
-					write8psram(under_atarixl_os_base + i, MEMORY_mem[0xc000 + i]);
-				}
-				///memcpy(under_atarixl_os, MEMORY_mem + 0xc000, 0x1000);
-				for (size_t i = 0; i < 0x2800; ++i) {
-					write8psram(under_atarixl_os_base + 0x1800 + i, MEMORY_mem[0xd800 + i]);
-				}
-				///memcpy(under_atarixl_os + 0x1800, MEMORY_mem + 0xd800, 0x2800);
+				memcpy(under_atarixl_os, MEMORY_mem + 0xc000, 0x1000);
+				memcpy(under_atarixl_os + 0x1800, MEMORY_mem + 0xd800, 0x2800);
 				MEMORY_SetROM(0xc000, 0xcfff);
 				MEMORY_SetROM(0xd800, 0xffff);
 			}
@@ -852,14 +830,8 @@ void MEMORY_HandlePORTB(UBYTE byte, UBYTE oldval)
 		else {
 			/* Disable OS ROM */
 			if (MEMORY_ram_size > 48) {
-				for (size_t i = 0; i < 0x1000; ++i) {
-					MEMORY_mem[0xc000 + i] = read8psram(under_atarixl_os_base + i);
-				}
-				///memcpy(MEMORY_mem + 0xc000, under_atarixl_os, 0x1000);
-				for (size_t i = 0; i < 0x2800; ++i) {
-					MEMORY_mem[0xd800 + i] = read8psram(under_atarixl_os_base + 0x1800 + i);
-				}
-				///memcpy(MEMORY_mem + 0xd800, under_atarixl_os + 0x1800, 0x2800);
+				memcpy(MEMORY_mem + 0xc000, under_atarixl_os, 0x1000);
+				memcpy(MEMORY_mem + 0xd800, under_atarixl_os + 0x1800, 0x2800);
 				MEMORY_SetRAM(0xc000, 0xcfff);
 				MEMORY_SetRAM(0xd800, 0xffff);
 			} else {
@@ -869,18 +841,10 @@ void MEMORY_HandlePORTB(UBYTE byte, UBYTE oldval)
 			/* When OS ROM is disabled we also have to disable Self Test - Jindroush */
 			if (MEMORY_selftest_enabled) {
 				if (MEMORY_ram_size > 20) {
-					for (size_t i = 0; i < 0x800; ++i) {
-						MEMORY_mem[0x5000 + i] = read8psram(under_atarixl_os_base + 0x1000 + i);
-					}
-					///memcpy(MEMORY_mem + 0x5000, under_atarixl_os + 0x1000, 0x800);
-					if (ANTIC_xe_ptr != NULL) {
+					memcpy(MEMORY_mem + 0x5000, under_atarixl_os + 0x1000, 0x800);
+					if (ANTIC_xe_ptr != NULL)
 						/* Also disable Self Test from XE bank accessed by ANTIC. */
-						UBYTE* to = atarixe_memory + (antic_bank << 14) + 0x1000;
-						for (size_t i = 0; i < 0x800; ++i) {
-							*to++ = read8psram(antic_bank_under_selftest_base + i);
-						}
-						///memcpy(to, antic_bank_under_selftest, 0x800);
-					}
+						memcpy(atarixe_memory + (antic_bank << 14) + 0x1000, antic_bank_under_selftest, 0x800);
 					MEMORY_SetRAM(0x5000, 0x57ff);
 				}
 				else
@@ -896,18 +860,12 @@ void MEMORY_HandlePORTB(UBYTE byte, UBYTE oldval)
 		UBYTE const *builtin_cart_old = builtin_cart(oldval);
 		if (builtin_cart_old != builtin_cart_new) {
 			if (builtin_cart_old == NULL && MEMORY_ram_size > 40) { /* switching RAM out */
-				for (size_t i = 0; i < 0x2000; ++i) {
-					write8psram(under_cartA0BF_base + i, MEMORY_mem[0xa000 + i]);
-				}
-				///memcpy(under_cartA0BF, MEMORY_mem + 0xa000, 0x2000);
+				memcpy(under_cartA0BF, MEMORY_mem + 0xa000, 0x2000);
 				MEMORY_SetROM(0xa000, 0xbfff);
 			}
 			if (builtin_cart_new == NULL) { /* switching RAM in */
 				if (MEMORY_ram_size > 40) {
-					for (size_t i = 0; i < 0x2000; ++i) {
-						MEMORY_mem[0xa000 + i] = read8psram(under_cartA0BF_base + i);
-					}
-					///memcpy(MEMORY_mem + 0xa000, under_cartA0BF, 0x2000);
+					memcpy(MEMORY_mem + 0xa000, under_cartA0BF, 0x2000);
 					MEMORY_SetRAM(0xa000, 0xbfff);
 				}
 				else
@@ -923,18 +881,10 @@ void MEMORY_HandlePORTB(UBYTE byte, UBYTE oldval)
 		if (MEMORY_selftest_enabled) {
 			/* Disable Self Test ROM */
 			if (MEMORY_ram_size > 20) {
-				for (size_t i = 0; i < 0x800; ++i) {
-					MEMORY_mem[0x5000 + i] = read8psram(under_atarixl_os_base + 0x1000 + i);
-				}
-				///memcpy(MEMORY_mem + 0x5000, under_atarixl_os + 0x1000, 0x800);
-				if (ANTIC_xe_ptr != NULL) {
+				memcpy(MEMORY_mem + 0x5000, under_atarixl_os + 0x1000, 0x800);
+				if (ANTIC_xe_ptr != NULL)
 					/* Also disable Self Test from XE bank accessed by ANTIC. */
-					UBYTE* to = atarixe_memory + (antic_bank << 14) + 0x1000;
-					for (size_t i = 0; i < 0x800; ++i) {
-						*to++ = read8psram(antic_bank_under_selftest_base + i);
-					}
-					///memcpy(to, antic_bank_under_selftest, 0x800);
-				}
+					memcpy(atarixe_memory + (antic_bank << 14) + 0x1000, antic_bank_under_selftest, 0x800);
 				MEMORY_SetRAM(0x5000, 0x57ff);
 			}
 			else
@@ -951,18 +901,10 @@ void MEMORY_HandlePORTB(UBYTE byte, UBYTE oldval)
 		&& !((byte & 0x10) == 0 && MEMORY_ram_size == 1088)) {
 			/* Enable Self Test ROM */
 			if (MEMORY_ram_size > 20) {
-				for (size_t i = 0; i < 0x800; ++i) {
-					write8psram(under_atarixl_os_base + 0x1000 + i, MEMORY_mem[0x5000 + i]);
-				}
-				///memcpy(under_atarixl_os + 0x1000, MEMORY_mem + 0x5000, 0x800);
-				if (ANTIC_xe_ptr != NULL) {
+				memcpy(under_atarixl_os + 0x1000, MEMORY_mem + 0x5000, 0x800);
+				if (ANTIC_xe_ptr != NULL)
 					/* Also backup RAM under Self Test from XE bank accessed by ANTIC. */
-					UBYTE* from = atarixe_memory + (antic_bank << 14) + 0x1000;
-					for (size_t i = 0; i < 0x800; ++i) {
-						write8psram(antic_bank_under_selftest_base + i, *from++);
-					}
-					///memcpy(antic_bank_under_selftest, from, 0x800);
-				}
+					memcpy(antic_bank_under_selftest, atarixe_memory + (antic_bank << 14) + 0x1000, 0x800);
 				MEMORY_SetROM(0x5000, 0x57ff);
 			}
 			memcpy(MEMORY_mem + 0x5000, MEMORY_os + 0x1000, 0x800);
@@ -973,10 +915,7 @@ void MEMORY_HandlePORTB(UBYTE byte, UBYTE oldval)
 		}
 		else if (!mapram_selected && new_mapram_selected) {
 			/* Enable MapRAM */
-			for (size_t i = 0; i < 0x800; ++i) {
-				write8psram(under_atarixl_os_base + 0x1000 + i, MEMORY_mem[0x5000 + i]);
-			}
-			///memcpy(under_atarixl_os + 0x1000, MEMORY_mem + 0x5000, 0x800);
+			memcpy(under_atarixl_os + 0x1000, MEMORY_mem + 0x5000, 0x800);
 			memcpy(MEMORY_mem + 0x5000, mapram_memory, 0x800);
 		}
 	}
@@ -1066,10 +1005,7 @@ void MEMORY_Cart809fDisable(void)
 {
 	if (cart809F_enabled) {
 		if (MEMORY_ram_size > 32) {
-			for(size_t i = 0; i < 0x2000; ++i) {
-				MEMORY_mem[0x8000 + i] = read8psram(under_cart809F_base + i);
-			}
-			///memcpy(MEMORY_mem + 0x8000, under_cart809F, 0x2000);
+			memcpy(MEMORY_mem + 0x8000, under_cart809F, 0x2000);
 			MEMORY_SetRAM(0x8000, 0x9fff);
 		}
 		else
@@ -1082,10 +1018,7 @@ void MEMORY_Cart809fEnable(void)
 {
 	if (!cart809F_enabled) {
 		if (MEMORY_ram_size > 32) {
-			for(size_t i = 0; i < 0x2000; ++i) {
-				write8psram(under_cart809F_base + i, MEMORY_mem[0x8000 + i]);
-			}
-			///memcpy(under_cart809F, MEMORY_mem + 0x8000, 0x2000);
+			memcpy(under_cart809F, MEMORY_mem + 0x8000, 0x2000);
 			MEMORY_SetROM(0x8000, 0x9fff);
 		}
 		cart809F_enabled = TRUE;
@@ -1100,10 +1033,7 @@ void MEMORY_CartA0bfDisable(void)
 		UBYTE const *builtin = builtin_cart(PIA_PORTB | PIA_PORTB_mask);
 		if (builtin == NULL) { /* switch RAM in */
 			if (MEMORY_ram_size > 40) {
-				for (size_t i = 0; i < 0x2000; ++i) {
-					MEMORY_mem[0xa000 + i] = read8psram(under_cartA0BF_base + i);
-				}
-				///memcpy(MEMORY_mem + 0xa000, under_cartA0BF, 0x2000);
+				memcpy(MEMORY_mem + 0xa000, under_cartA0BF, 0x2000);
 				MEMORY_SetRAM(0xa000, 0xbfff);
 			}
 			else
@@ -1127,10 +1057,7 @@ void MEMORY_CartA0bfEnable(void)
 		/* or accessing extended 576K or 1088K memory */
 		if (MEMORY_ram_size > 40 && builtin_cart(PIA_PORTB | PIA_PORTB_mask) == NULL) {
 			/* Back-up 0xa000-0xbfff RAM */
-			for (size_t i = 0; i < 0x2000; ++i) {
-				write8psram(under_cartA0BF_base + i, MEMORY_mem[0xa000 + i]);
-			}
-			///memcpy(under_cartA0BF, MEMORY_mem + 0xa000, 0x2000);
+			memcpy(under_cartA0BF, MEMORY_mem + 0xa000, 0x2000);
 			MEMORY_SetROM(0xa000, 0xbfff);
 		}
 		MEMORY_cartA0BF_enabled = TRUE;
@@ -1138,39 +1065,15 @@ void MEMORY_CartA0bfEnable(void)
 			GTIA_TRIG[3] = 1;
 	}
 }
-#ifdef charset.h_regenerate
+
 void MEMORY_GetCharset(UBYTE *cs)
 {
 	/* copy font, but change screencode order to ATASCII order */
 	memcpy(cs, ROM_altirra_5200_os + 0x200, 0x100); /* control chars */
 	memcpy(cs + 0x100, ROM_altirra_5200_os, 0x200); /* !"#$..., uppercase letters */
 	memcpy(cs + 0x300, ROM_altirra_5200_os + 0x300, 0x100); /* lowercase letters */
-
-	FIL f;
-	UINT bw;
-	char tmp[64];
-	const char * str = "const UBYTE __in_flash() __aligned(1024) charset[1024] = {\n";
-	f_open(&f, "\\charset.h", FA_CREATE_ALWAYS | FA_WRITE);
-	f_write(&f, str, strlen(str), &bw);
-	for(int i = 0; i < 1024; i++) {
-		if (i && !(i % 16)) {
-			sprintf(tmp, " // 0x%08X\n", i - 16);
-			f_write(&f, tmp, strlen(tmp), &bw);
-		}
-		if (i == 0) {
-			str = "  ";
-		} else {
-			str = ", ";
-		}
-		f_write(&f, str, strlen(str), &bw);
-		sprintf(tmp, "0x%02X", (unsigned char)cs[i] & 0xFF);
-		f_write(&f, tmp, strlen(tmp), &bw);
-	}
-	str = "};\n";
-	f_write(&f, str, strlen(str), &bw);
-	f_close(&f);
 }
-#endif
+
 #ifndef PAGED_MEM
 UBYTE MEMORY_HwGetByte(UWORD addr, int no_side_effects)
 {

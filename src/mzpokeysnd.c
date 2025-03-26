@@ -74,9 +74,8 @@ static int num_cur_pokeys = 0;
 /* Filter */
 static int pokey_frq; /* Hz - for easier resampling */
 static int filter_size;
-
 #include "filter_data.h"
-///static double * filter_data = (double*)polyDtbl;//[SND_FILTER_SIZE];
+///static double filter_data[SND_FILTER_SIZE];
 static int audible_frq;
 
 static const int pokey_frq_ideal =  1789790; /* Hz - True */
@@ -99,10 +98,9 @@ static int snd_quality = 0;
 /* Poly tables */
 static int poly4tbl[15];
 static int poly5tbl[31];
+extern const unsigned char poly17tbl[131071];
+extern const unsigned char poly9tbl[511];
 
-#include <pico/platform.h>
-#include "poly9tbl.h"
-#include "poly17tbl.h"
 
 struct stPokeyState;
 
@@ -116,10 +114,8 @@ typedef double qev_t;
 typedef unsigned char qev_t;
 #endif
 
-#ifdef SYNCHRONIZED_SOUND
 static double ticks_per_sample;
 static double samp_pos;
-#endif /* SYNCHRONIZED_SOUND */
 
 /* State variables for single Pokey Chip */
 typedef struct stPokeyState
@@ -466,7 +462,6 @@ static double read_resam_all(PokeyState* ps)
     return sum;
 }
 
-#ifdef SYNCHRONIZED_SOUND
 /* linear interpolation of filter data */
 static double interp_filter_data(int pos, double frac)
 {
@@ -519,7 +514,6 @@ static double interp_read_resam_all(PokeyState* ps, double frac)
 
     return sum;
 }
-#endif  /* SYNCHRONIZED_SOUND */
 
 static void add_change(PokeyState* ps, qev_t a)
 {
@@ -615,77 +609,31 @@ static void build_poly5(void)
 
 static void build_poly17(void)
 {
-#ifdef poly17tbl.h_regenerate
-	/* initialise poly17tbl */
+    /**
 	unsigned int c;
 	unsigned int i;
 	unsigned int poly17 = 1;
-	FIL f;
-	UINT bw;
-	char tmp[64];
-	const char * str = "const UBYTE __in_flash() __aligned(4096) poly17tbl[131071] = {\n";
-	f_open(&f, "\\poly17tbl.h", FA_CREATE_ALWAYS | FA_WRITE);
-	f_write(&f, str, strlen(str), &bw);
+
 	for(i = 0; i < 131071; i++) {
-		if (i && !(i % 16)) {
-			sprintf(tmp, " // 0x%08X\n", i - 16);
-			f_write(&f, tmp, strlen(tmp), &bw);
-		}
-		if (i == 0) {
-			str = "  ";
-		} else {
-			str = ", ";
-		}
-		f_write(&f, str, strlen(str), &bw);
-		sprintf(tmp, "0x%02X", (unsigned char)poly17 & 0xFF);
-		f_write(&f, tmp, strlen(tmp), &bw);
-        
-        //poly17tbl[i] = (unsigned char) poly17;
+		poly17tbl[i] = (unsigned char) poly17;
 		c = ((poly17 >> 11) ^ (poly17 >> 16)) & 1;
 		poly17 = ((poly17 << 1) & 131071) + c;
-
 	}
-	str = "};\n";
-	f_write(&f, str, strlen(str), &bw);
-	f_close(&f);
-#endif
+        */
 }
 
-static void build_poly9(void) {
-#ifdef poly9tbl.h_regenerate
-	/* initialise poly9tbl */
+static void build_poly9(void)
+{
+    /*
 	unsigned int c;
 	unsigned int i;
 	unsigned int poly9 = 1;
-	FIL f;
-	UINT bw;
-	char tmp[64];
-	const char * str = "const UBYTE __in_flash() __aligned(4) poly9tbl[511] = {\n";
-	f_open(&f, "\\poly9tbl.h", FA_CREATE_ALWAYS | FA_WRITE);
-	f_write(&f, str, strlen(str), &bw);
+
 	for(i = 0; i < 511; i++) {
-		if (i && !(i % 16)) {
-			sprintf(tmp, " // 0x%08X\n", i - 16);
-			f_write(&f, tmp, strlen(tmp), &bw);
-		}
-		if (i == 0) {
-			str = "  ";
-		} else {
-			str = ", ";
-		}
-		f_write(&f, str, strlen(str), &bw);
-		sprintf(tmp, "0x%02X", (unsigned char)poly9 & 0xFF);
-		f_write(&f, tmp, strlen(tmp), &bw);
-        
-		//poly9tbl[i] = (unsigned char) poly9;
+		poly9tbl[i] = (unsigned char) poly9;
 		c = ((poly9 >> 3) ^ (poly9 >> 8)) & 1;
 		poly9 = ((poly9 << 1) & 511) + c;
-
-	}
-	str = "};\n";
-	f_write(&f, str, strlen(str), &bw);
-	f_close(&f);
-#endif
+	}*/
 }
 
 static void advance_polies(PokeyState* ps, int tacts)
@@ -1005,16 +953,10 @@ static void advance_ticks(PokeyState* ps, int ticks)
     {
         ps->forcero = 0;
 #ifdef NONLINEAR_MIXING
-#ifdef SYNCHRONIZED_SOUND
         outvol_new = pokeymix[ps->outvol_0 + ps->outvol_1 + ps->outvol_2 + ps->outvol_3 + ps->speaker];
 #else
-        outvol_new = pokeymix[ps->outvol_0 + ps->outvol_1 + ps->outvol_2 + ps->outvol_3];
-#endif /* SYNCHRONIZED_SOUND */
-#else
         outvol_new = ps->outvol_0 + ps->outvol_1 + ps->outvol_2 + ps->outvol_3;
-#ifdef SYNCHRONIZED_SOUND
         outvol_new += ps->speaker;
-#endif /* SYNCHRONIZED_SOUND */
 #endif /* NONLINEAR_MIXING */
         if(outvol_new != ps->outvol_all)
         {
@@ -1177,16 +1119,10 @@ static void advance_ticks(PokeyState* ps, int ticks)
             }
 
 #ifdef NONLINEAR_MIXING
-#ifdef SYNCHRONIZED_SOUND
             outvol_new = pokeymix[ps->outvol_0 + ps->outvol_1 + ps->outvol_2 + ps->outvol_3 + ps->speaker];
 #else
-            outvol_new = pokeymix[ps->outvol_0 + ps->outvol_1 + ps->outvol_2 + ps->outvol_3];
-#endif /* SYNCHRONIZED_SOUND */
-#else
             outvol_new = ps->outvol_0 + ps->outvol_1 + ps->outvol_2 + ps->outvol_3;
-#ifdef SYNCHRONIZED_SOUND
             outvol_new += ps->speaker;
-#endif /* SYNCHRONIZED_SOUND */
 #endif /* NONLINEAR_MIXING */
             if(outvol_new != ps->outvol_all)
             {
@@ -1210,49 +1146,54 @@ static double generate_sample(PokeyState* ps)
  filter table generator by Krzysztof Nikiel
  ******************************************/
 
-static const int __in_flash() __aligned(4) orders[] = { 600, 800, 1000, 1200 };
-static const struct {
-        int stop;		/* stopband ripple */
-        double weight;	/* stopband weight */
-        double twidth[sizeof(orders)/sizeof(orders[0])];
-} __in_flash() __aligned(4) paramtab[] = {
-    { 70, 90,  {4.9e-3, 3.45e-3, 2.65e-3, 2.2e-3} },
-    { 55, 25,  {3.4e-3, 2.7e-3,  2.05e-3, 1.7e-3} },
-    { 40, 6.0, {2.6e-3, 1.8e-3,  1.5e-3,  1.2e-3} },
-    { -1, 0,   {0,      0,       0,       0} }
-};
-static const double __in_flash() __aligned(8) passtab[] = { 0.5, 0.6, 0.7 };
-
 static int remez_filter_table(double resamp_rate, /* output_rate/input_rate */
-                              double *cutoff,
-                              int quality
-) {
+                              double *cutoff, int quality)
+{
 #ifndef filter_data.h_regenerate
     return sizeof(filter_data) / sizeof(filter_data[0]);
 #else
-    printf("remez_filter_table");
-    filter_data = (double*)Screen_atari;
-    int i;
-    int ripple = 0, order = 0;
-    int size;
-    double weights[2], desired[2], bands[4];
-    static const int interlevel = 5;
-    double step = 1.0 / interlevel;
-    *cutoff = 0.95 * 0.5 * resamp_rate;
-    if (quality >= (int) (sizeof(passtab) / sizeof(passtab[0])))
-        quality = (int) (sizeof(passtab) / sizeof(passtab[0])) - 1;
-    for (ripple = 0; paramtab[ripple].stop > 0; ripple++) {
-        for (order = 0; order < (int) (sizeof(orders)/sizeof(orders[0])); order++) {
-            if ((*cutoff - paramtab[ripple].twidth[order]) > passtab[quality] * 0.5 * resamp_rate) {
-	            printf("transition width OK");
-	            goto found;
-            }
-        }
+  int i;
+  static const int orders[] = {600, 800, 1000, 1200};
+  static const struct {
+    int stop;		/* stopband ripple */
+    double weight;	/* stopband weight */
+    double twidth[sizeof(orders)/sizeof(orders[0])];
+  } paramtab[] =
+  {
+    {70, 90, {4.9e-3, 3.45e-3, 2.65e-3, 2.2e-3}},
+    {55, 25, {3.4e-3, 2.7e-3, 2.05e-3, 1.7e-3}},
+    {40, 6.0, {2.6e-3, 1.8e-3, 1.5e-3, 1.2e-3}},
+    {-1, 0, {0, 0, 0, 0}}
+  };
+  static const double passtab[] = {0.5, 0.6, 0.7};
+  int ripple = 0, order = 0;
+  int size;
+  double weights[2], desired[2], bands[4];
+  static const int interlevel = 5;
+  double step = 1.0 / interlevel;
+
+  *cutoff = 0.95 * 0.5 * resamp_rate;
+
+  if (quality >= (int) (sizeof(passtab) / sizeof(passtab[0])))
+    quality = (int) (sizeof(passtab) / sizeof(passtab[0])) - 1;
+
+  for (ripple = 0; paramtab[ripple].stop > 0; ripple++)
+  {
+    for (order = 0; order < (int) (sizeof(orders)/sizeof(orders[0])); order++)
+    {
+      if ((*cutoff - paramtab[ripple].twidth[order])
+	  > passtab[quality] * 0.5 * resamp_rate)
+	/* transition width OK */
+	goto found;
     }
-    printf("not found -- use shortest transition");
-    ripple--;
-    order--;
+  }
+
+  /* not found -- use shortest transition */
+  ripple--;
+  order--;
+
 found:
+
 #if 0
   printf("order: %d, cutoff: %g\tstopband:%d\ttranswidth:%f\n",
          orders[order],
@@ -1261,77 +1202,59 @@ found:
 	 1789790 * paramtab[ripple].twidth[order]);
   exit(1);
 #endif
-    printf("order: %d; ripple: %d", order, ripple);
-    size = orders[order] + 1;
-    if (size > SND_FILTER_SIZE) {
-        printf("static table too short %d", size);
-        return 0;
+
+  size = orders[order] + 1;
+
+  if (size > SND_FILTER_SIZE) /* static table too short */
+    return 0;
+
+  desired[0] = 1;
+  desired[1] = 0;
+
+  weights[0] = 1;
+  weights[1] = paramtab[ripple].weight;
+
+  bands[0] = 0;
+  bands[2] = *cutoff;
+  bands[1] = bands[2] - paramtab[ripple].twidth[order];
+  bands[3] = 0.5;
+
+  bands[1] *= (double)interlevel;
+  bands[2] *= (double)interlevel;
+  REMEZ_CreateFilter(filter_data, (size / interlevel) + 1, 2, bands, desired, weights, REMEZ_BANDPASS);
+  for (i = size - interlevel; i >= 0; i -= interlevel)
+  {
+    int s;
+    double h1 = filter_data[i/interlevel];
+    double h2 = filter_data[i/interlevel+1];
+
+    for (s = 0; s < interlevel; s++)
+    {
+      double d = (double)s * step;
+      filter_data[i+s] = (h1*(1.0 - d) + h2 * d) * step;
     }
-    printf("orders[%d] + 1 = %d", order, size);
-    desired[0] = 1;
-    desired[1] = 0;
-    weights[0] = 1;
-    weights[1] = paramtab[ripple].weight;
-    bands[0] = 0;
-    bands[2] = *cutoff;
-    bands[1] = bands[2] - paramtab[ripple].twidth[order];
-    bands[3] = 0.5;
-    bands[1] *= (double)interlevel;
-    bands[2] *= (double)interlevel;
-    REMEZ_CreateFilter(filter_data, (size / interlevel) + 1, 2, bands, desired, weights, REMEZ_BANDPASS,
-                       filter_data + (size * sizeof(filter_data[0]))
-    );
-    for (i = size - interlevel; i >= 0; i -= interlevel) {
-        int s;
-        double h1 = filter_data[i/interlevel];
-        double h2 = filter_data[i/interlevel+1];
-        for (s = 0; s < interlevel; s++) {
-            double d = (double)s * step;
-            filter_data[i+s] = (h1*(1.0 - d) + h2 * d) * step;
-        }
-    }
-    /* compute reversed cumulative sum table */
-    for (i = size - 2; i >= 0; i--) {
-        filter_data[i] += filter_data[i + 1];
-    }
-	char tmp[1024];
-	FIL f; UINT bw;
-	FRESULT fr = f_open(&f, "\\filter_data.h", FA_WRITE | FA_CREATE_ALWAYS);
-	const char * str = "const double __in_flash() __aligned(8) filter_data[%d] = {\n";
-	sprintf(tmp, str, size);
-	f_write(&f, tmp, strlen(tmp), &bw);
-	for (int i = 0; i < size; ++i) {
-		if (i && !(i % 16)) {
-			sprintf(tmp, " // 0x%d\n", i - 16);
-			f_write(&f, tmp, strlen(tmp), &bw);
-		}
-		if (i == 0) {
-			str = "  ";
-		} else {
-			str = ", ";
-		}
-		f_write(&f, str, strlen(str), &bw);
-		sprintf(tmp, "%.15f", filter_data[i]);
-		f_write(&f, tmp, strlen(tmp), &bw);
-	}
-	sprintf(tmp, "};\n"); f_write(&f, tmp, strlen(tmp), &bw);
-	f_close(&f);
-    filter_data = (double*)polyDtbl;
-    return size;
+  }
+
+  /* compute reversed cumulative sum table */
+  for (i = size - 2; i >= 0; i--)
+    filter_data[i] += filter_data[i + 1];
+
+#if 0
+  for (i = 0; i < size; i++)
+    printf("%.15f,\n", filter_data[i]);
+  fflush(stdout);
+  exit(1);
+#endif
+
+  return size;
 #endif
 }
 
 static void mzpokeysnd_process_8(void* sndbuffer, int sndn);
 static void mzpokeysnd_process_16(void* sndbuffer, int sndn);
 static void Update_pokey_sound_mz(UWORD addr, UBYTE val, UBYTE chip, UBYTE gain);
-#ifdef SERIO_SOUND
-static void Update_serio_sound_mz(int out, UBYTE data);
-#endif
 #ifdef CONSOLE_SOUND
 static void Update_consol_sound_mz( int set );
-#endif
-#ifdef VOL_ONLY_SOUND
-static void Update_vol_only_sound_mz( void );
 #endif
 
 /*****************************************************************************/
@@ -1349,7 +1272,6 @@ static void Update_vol_only_sound_mz( void );
 /*                                                                           */
 /*****************************************************************************/
 
-#ifdef SYNCHRONIZED_SOUND
 static void generate_sync(unsigned int num_ticks);
 
 static void init_syncsound(void)
@@ -1360,7 +1282,6 @@ static void init_syncsound(void)
     samp_pos = 0.0;
     POKEYSND_GenerateSync = generate_sync;
 }
-#endif /* SYNCHRONIZED_SOUND */
 
 int MZPOKEYSND_Init(ULONG freq17, int playback_freq, UBYTE num_pokeys,
                         int flags, int quality
@@ -1374,19 +1295,9 @@ int MZPOKEYSND_Init(ULONG freq17, int playback_freq, UBYTE num_pokeys,
     snd_quality = quality;
 
     POKEYSND_Update_ptr = Update_pokey_sound_mz;
-#ifdef SERIO_SOUND
-    POKEYSND_UpdateSerio = Update_serio_sound_mz;
-#endif
 #ifdef CONSOLE_SOUND
     POKEYSND_UpdateConsol_ptr = Update_consol_sound_mz;
 #endif
-#ifdef VOL_ONLY_SOUND
-    POKEYSND_UpdateVolOnly = Update_vol_only_sound_mz;
-#endif
-
-#ifdef VOL_ONLY_SOUND
-	POKEYSND_samp_freq=playback_freq;
-#endif  /* VOL_ONLY_SOUND */
 
 	POKEYSND_Process_ptr = (flags & POKEYSND_BIT16) ? mzpokeysnd_process_16 : mzpokeysnd_process_8;
 
@@ -1465,9 +1376,11 @@ int MZPOKEYSND_Init(ULONG freq17, int playback_freq, UBYTE num_pokeys,
         break;
 #endif
     default:
-        pokey_frq = (int)(((double)pokey_frq_ideal/POKEYSND_playback_freq) + 0.5) * POKEYSND_playback_freq;
-	    filter_size = remez_filter_table((double)POKEYSND_playback_freq/pokey_frq, &cutoff, quality);
-	    audible_frq = (int ) (cutoff * pokey_frq);
+        pokey_frq = (int)(((double)pokey_frq_ideal/POKEYSND_playback_freq) + 0.5)
+          * POKEYSND_playback_freq;
+	filter_size = remez_filter_table((double)POKEYSND_playback_freq/pokey_frq,
+					 &cutoff, quality);
+	audible_frq = (int ) (cutoff * pokey_frq);
     }
 
     build_poly4();
@@ -1484,11 +1397,10 @@ int MZPOKEYSND_Init(ULONG freq17, int playback_freq, UBYTE num_pokeys,
 	}
 	num_cur_pokeys = num_pokeys;
 
-#ifdef SYNCHRONIZED_SOUND
 	init_syncsound();
-#endif
-    volume.s8 = POKEYSND_volume * 0xff / 256.0;
-    volume.s16 = POKEYSND_volume * 0xffff / 256.0;
+	volume.s8 = POKEYSND_volume * 0xff / 256.0;
+	volume.s16 = POKEYSND_volume * 0xffff / 256.0;
+
 	return 0; /* OK */
 }
 
@@ -2389,32 +2301,8 @@ static void mzpokeysnd_process_8(void* sndbuffer, int sndn)
        we assume even sndn */
     while(nsam >= (int) num_cur_pokeys)
     {
-#ifdef VOL_ONLY_SOUND
-        if( POKEYSND_sampbuf_rptr!=POKEYSND_sampbuf_ptr )
-            { int l;
-            if( POKEYSND_sampbuf_cnt[POKEYSND_sampbuf_rptr]>0 )
-                POKEYSND_sampbuf_cnt[POKEYSND_sampbuf_rptr]-=1280;
-            while(  (l=POKEYSND_sampbuf_cnt[POKEYSND_sampbuf_rptr])<=0 )
-                {	POKEYSND_sampout=POKEYSND_sampbuf_val[POKEYSND_sampbuf_rptr];
-                        POKEYSND_sampbuf_rptr++;
-                        if( POKEYSND_sampbuf_rptr>=POKEYSND_SAMPBUF_MAX )
-                                POKEYSND_sampbuf_rptr=0;
-                        if( POKEYSND_sampbuf_rptr!=POKEYSND_sampbuf_ptr )
-                            {
-                            POKEYSND_sampbuf_cnt[POKEYSND_sampbuf_rptr]+=l;
-                            }
-                        else	break;
-                }
-            }
-#endif
-
-#ifdef VOL_ONLY_SOUND
-        buffer[0] = (UBYTE)floor((generate_sample(pokey_states) + POKEYSND_sampout)
-         * (255.0 / 2 / MAX_SAMPLE / 4 * M_PI * 0.95) + 128 + 0.5 + 0.5 * rand() / RAND_MAX - 0.25);
-#else
         buffer[0] = (UBYTE)floor(generate_sample(pokey_states)
          * (255.0 / 2 / MAX_SAMPLE / 4 * M_PI * 0.95) + 128 + 0.5 + 0.5 * rand() / RAND_MAX - 0.25);
-#endif
         for(i=1; i<num_cur_pokeys; i++)
         {
             buffer[i] = (UBYTE)floor(generate_sample(pokey_states + i)
@@ -2438,31 +2326,8 @@ static void mzpokeysnd_process_16(void* sndbuffer, int sndn)
        we assume even sndn */
     while(nsam >= (int) num_cur_pokeys)
     {
-#ifdef VOL_ONLY_SOUND
-        if( POKEYSND_sampbuf_rptr!=POKEYSND_sampbuf_ptr )
-            { int l;
-            if( POKEYSND_sampbuf_cnt[POKEYSND_sampbuf_rptr]>0 )
-                POKEYSND_sampbuf_cnt[POKEYSND_sampbuf_rptr]-=1280;
-            while(  (l=POKEYSND_sampbuf_cnt[POKEYSND_sampbuf_rptr])<=0 )
-                {	POKEYSND_sampout=POKEYSND_sampbuf_val[POKEYSND_sampbuf_rptr];
-                        POKEYSND_sampbuf_rptr++;
-                        if( POKEYSND_sampbuf_rptr>=POKEYSND_SAMPBUF_MAX )
-                                POKEYSND_sampbuf_rptr=0;
-                        if( POKEYSND_sampbuf_rptr!=POKEYSND_sampbuf_ptr )
-                            {
-                            POKEYSND_sampbuf_cnt[POKEYSND_sampbuf_rptr]+=l;
-                            }
-                        else	break;
-                }
-            }
-#endif
-#ifdef VOL_ONLY_SOUND
-        buffer[0] = (SWORD)floor((generate_sample(pokey_states) + POKEYSND_sampout)
-         * (65535.0 / 2 / MAX_SAMPLE / 4 * M_PI * 0.95) + 0.5 + 0.5 * rand() / RAND_MAX - 0.25);
-#else
         buffer[0] = (SWORD)floor(generate_sample(pokey_states)
          * (65535.0 / 2 / MAX_SAMPLE / 4 * M_PI * 0.95) + 0.5 + 0.5 * rand() / RAND_MAX - 0.25);
-#endif
         for(i=1; i<num_cur_pokeys; i++)
         {
             buffer[i] = (SWORD)floor(generate_sample(pokey_states + i)
@@ -2473,7 +2338,6 @@ static void mzpokeysnd_process_16(void* sndbuffer, int sndn)
     }
 }
 
-#ifdef SYNCHRONIZED_SOUND
 static void generate_sync(unsigned int num_ticks)
 {
 	double new_samp_pos;
@@ -2524,98 +2388,14 @@ static void generate_sync(unsigned int num_ticks)
 			advance_ticks(pokey_states + i, num_ticks);
 	}
 }
-#endif /* SYNCHRONIZED_SOUND */
-
-#ifdef SERIO_SOUND
-static void Update_serio_sound_mz( int out, UBYTE data )
-{
-#ifdef VOL_ONLY_SOUND
-   int bits,pv,future;
-        if (!POKEYSND_serio_sound_enabled) return;
-
-	pv=0;
-	future=0;
-	bits= (data<<1) | 0x200;
-	while( bits )
-	{
-		POKEYSND_sampbuf_lastval-=pv;
-		pv=(bits&0x01)*pokey_states[0].vol3;
-		POKEYSND_sampbuf_lastval+=pv;
-
-	POKEYSND_sampbuf_val[POKEYSND_sampbuf_ptr]=POKEYSND_sampbuf_lastval;
-	POKEYSND_sampbuf_cnt[POKEYSND_sampbuf_ptr]=
-		(ANTIC_CPU_CLOCK+future-POKEYSND_sampbuf_last)*128*POKEYSND_samp_freq/178979;
-	POKEYSND_sampbuf_last=ANTIC_CPU_CLOCK+future;
-	POKEYSND_sampbuf_ptr++;
-	if( POKEYSND_sampbuf_ptr>=POKEYSND_SAMPBUF_MAX )
-		POKEYSND_sampbuf_ptr=0;
-	if( POKEYSND_sampbuf_ptr==POKEYSND_sampbuf_rptr )
-	{	POKEYSND_sampbuf_rptr++;
-		if( POKEYSND_sampbuf_rptr>=POKEYSND_SAMPBUF_MAX )
-			POKEYSND_sampbuf_rptr=0;
-	}
-			/* 1789790/19200 = 93 */
-		future+=93;	/* ~ 19200 bit/s - FIXME!!! set speed form AUDF [2] ??? */
-		bits>>=1;
-	}
-	POKEYSND_sampbuf_lastval-=pv;
-#endif  /* VOL_ONLY_SOUND */
-}
-#endif /* SERIO_SOUND */
 
 #ifdef CONSOLE_SOUND
 static void Update_consol_sound_mz( int set )
 {
-#ifdef SYNCHRONIZED_SOUND
 	if (set) { /* The set variable is 0 only in VOL_ONLY_SOUND routines */
 		pokey_states[0].speaker = GTIA_speaker*CONSOLE_VOL;
 		pokey_states[0].forcero = 1; /* first chip */
 	}
-#elif defined(VOL_ONLY_SOUND)
-	static int prev_atari_speaker=0;
-	static unsigned int prev_cpu_clock=0;
-	int d;
-
-	if( !set && POKEYSND_samp_consol_val==0 )	return;
-	POKEYSND_sampbuf_lastval-=POKEYSND_samp_consol_val;
-	if( prev_atari_speaker!=GTIA_speaker )
-	{	POKEYSND_samp_consol_val=GTIA_speaker*8*4;	/* gain */
-		prev_cpu_clock=ANTIC_CPU_CLOCK;
-	}
-	else if( !set )
-	{	d=ANTIC_CPU_CLOCK - prev_cpu_clock;
-		if( d<114 )
-		{	POKEYSND_sampbuf_lastval+=POKEYSND_samp_consol_val;   return;	}
-		while( d>=114 /* CPUL */ )
-		{	POKEYSND_samp_consol_val=POKEYSND_samp_consol_val*99/100;
-			d-=114;
-		}
-		prev_cpu_clock=ANTIC_CPU_CLOCK-d;
-	}
-	POKEYSND_sampbuf_lastval+=POKEYSND_samp_consol_val;
-	prev_atari_speaker=GTIA_speaker;
-
-	POKEYSND_sampbuf_val[POKEYSND_sampbuf_ptr]=POKEYSND_sampbuf_lastval;
-	POKEYSND_sampbuf_cnt[POKEYSND_sampbuf_ptr]=
-		(ANTIC_CPU_CLOCK-POKEYSND_sampbuf_last)*128*POKEYSND_samp_freq/178979;
-	POKEYSND_sampbuf_last=ANTIC_CPU_CLOCK;
-	POKEYSND_sampbuf_ptr++;
-	if( POKEYSND_sampbuf_ptr>=POKEYSND_SAMPBUF_MAX )
-		POKEYSND_sampbuf_ptr=0;
-	if( POKEYSND_sampbuf_ptr==POKEYSND_sampbuf_rptr )
-	{	POKEYSND_sampbuf_rptr++;
-		if( POKEYSND_sampbuf_rptr>=POKEYSND_SAMPBUF_MAX )
-			POKEYSND_sampbuf_rptr=0;
-	}
-#endif  /* !SYNCHRONIZED_SOUND && VOL_ONLY_SOUND */
 }
 #endif
 
-#ifdef VOL_ONLY_SOUND
-static void Update_vol_only_sound_mz( void )
-{
-#ifdef CONSOLE_SOUND
-	POKEYSND_UpdateConsol(0);	/* mmm */
-#endif /* CONSOLE_SOUND */
-}
-#endif

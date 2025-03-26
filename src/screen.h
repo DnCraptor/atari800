@@ -1,7 +1,12 @@
 #ifndef SCREEN_H_
 #define SCREEN_H_
 
-#include "ff.h"
+#ifdef HAVR_FF_WRAP_H
+#include <ff_wrap.h>
+#else
+#include <stdlib.h>
+#include <stdio.h>
+#endif
 
 #include "atari.h"  /* UBYTE */
 
@@ -11,7 +16,7 @@ extern UBYTE *Screen_dirty;
 #endif /* CLIENTUPDATE */
 #endif /* DIRTYRECT */
 
-extern uint8_t *Screen_atari;
+extern ULONG *Screen_atari;
 
 /* Dimensions of Screen_atari.
    Screen_atari is Screen_WIDTH * Screen_HEIGHT bytes.
@@ -20,9 +25,6 @@ extern uint8_t *Screen_atari;
    You should never display anything outside the middle 336 columns. */
 #define Screen_WIDTH  384
 #define Screen_HEIGHT 240
-
-//#define Screen_WIDTH  2
-//#define Screen_HEIGHT 2
 
 #ifdef BITPL_SCR
 extern ULONG *Screen_atari_b;
@@ -50,7 +52,7 @@ extern int Screen_show_multimedia_stats;
 
 int Screen_Initialise(int *argc, char *argv[]);
 int Screen_ReadConfig(char *string, char *ptr);
-void Screen_WriteConfig(FIL *fp);
+void Screen_WriteConfig(FILE *fp);
 void Screen_DrawAtariSpeed(double);
 void Screen_DrawDiskLED(void);
 void Screen_Draw1200LED(void);

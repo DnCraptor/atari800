@@ -1,42 +1,105 @@
-#include "ui.h"
-#include "cfg.h"
-#include "log.h"
-#include "esc.h"
-#include "util.h"
+/*
+ * cfg.c - Emulator Configuration
+ *
+ * Copyright (c) 1995-1998 David Firth
+ * Copyright (c) 1998-2014 Atari800 development team (see DOC/CREDITS)
+ *
+ * This file is part of the Atari800 emulator project which emulates
+ * the Atari 400, 800, 800XL, 130XE, and 5200 8-bit computers.
+ *
+ * Atari800 is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * Atari800 is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Atari800; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+*/
+#include "config.h"
+#include "artifact.h"
 #include "atari.h"
-#include "debug.h"
-#include "memory.h"
-#include "sysrom.h"
-#include "sound.h"
+
+#ifdef HAVR_FF_WRAP_H
+#include <ff_wrap.h>
+#else
+#include <stdlib.h>
+#endif
+
+#include "cartridge.h"
+#include "cassette.h"
 #include "binload.h"
+#include "cfg.h"
 #include "devices.h"
+#include "esc.h"
+#include "log.h"
+#include "memory.h"
+#include "pbi.h"
+#include "rtime.h"
+#include "sysrom.h"
+#ifdef XEP80_EMULATION
+#include "xep80.h"
+#endif
+#ifdef AF80
+#include "af80.h"
+#endif
+#ifdef BIT3
+#include "bit3.h"
+#endif
+#include "platform.h"
 #include "pokeysnd.h"
+#include "ui.h"
+#include "util.h"
+#if !defined(BASIC) && !defined(CURSES_BASIC)
+#include "colours.h"
+#include "screen.h"
+#endif
+#ifdef NTSC_FILTER
+#include "filter_ntsc.h"
+#endif
+#if SUPPORTS_CHANGE_VIDEOMODE
+#include "videomode.h"
+#endif
+#ifdef SOUND
+#include "sound.h"
+#endif
+#if defined(HAVE_LIBPNG) || defined(HAVE_LIBZ) || defined(AUDIO_RECORDING) || defined(VIDEO_RECORDING)
+#include "file_export.h"
+#endif
 
 int CFG_save_on_exit = FALSE;
-
-int CFG_MatchTextParameter(char const *param, char const * const cfg_strings[], int cfg_strings_size)
-{
-	int i;
-	for (i = 0; i < cfg_strings_size; i ++) {
-		if (Util_stricmp(param, cfg_strings[i]) == 0) {
-			return i;
-		}
-	}
-	/* Unrecognised value */
-	return -1;
-}
-
-static char rtconfig_filename[FILENAME_MAX];
 
 /* If another default path config path is defined use it
    otherwise use the default one */
 #ifndef DEFAULT_CFG_NAME
-#define DEFAULT_CFG_NAME "\\atari800\\atari800.cfg"
+#define DEFAULT_CFG_NAME ".atari800.cfg"
 #endif
 
-int CFG_LoadConfig(const char *alternate_config_filename) {
-	printf("CFG_LoadConfig(%s)", alternate_config_filename);
+#ifndef SYSTEM_WIDE_CFG_FILE
+#define SYSTEM_WIDE_CFG_FILE "/etc/atari800.cfg"
+#endif
+
+static char rtconfig_filename[FILENAME_MAX];
+
+int CFG_LoadConfig(const char *alternate_config_filename)
+{
+	FILE *fp;
+	const char *fname = rtconfig_filename;
+	char string[256];
+#ifndef BASIC
+	int was_obsolete_dir = FALSE;
+#endif
+
+#ifdef SUPPORTS_PLATFORM_CONFIGINIT
 	PLATFORM_ConfigInit();
+#endif
+
+	/* if alternate config filename is passed then use it */
 	if (alternate_config_filename != NULL && *alternate_config_filename > 0) {
 		Util_strlcpy(rtconfig_filename, alternate_config_filename, FILENAME_MAX);
 	}
@@ -46,18 +109,29 @@ int CFG_LoadConfig(const char *alternate_config_filename) {
 		if (home != NULL)
 			Util_catpath(rtconfig_filename, home, DEFAULT_CFG_NAME);
 		else
-			Util_strlcpy(rtconfig_filename, DEFAULT_CFG_NAME, FILENAME_MAX);
+			strcpy(rtconfig_filename, DEFAULT_CFG_NAME);
 	}
-	FIL f;
-	if (f_open(&f, rtconfig_filename, FA_READ) != FR_OK) {
+
+	fp = fopen(fname, "r");
+	if (fp == NULL) {
 		Log_print("User config file '%s' not found.", rtconfig_filename);
-		return 0;
+
+#ifdef SYSTEM_WIDE_CFG_FILE
+		/* try system wide config file */
+		fname = SYSTEM_WIDE_CFG_FILE;
+		Log_print("Trying system wide config file: %s", fname);
+		fp = fopen(fname, "r");
+#endif
+		if (fp == NULL) {
+			Log_print("No configuration file found, will create fresh one from scratch:");
+			return FALSE;
+		}
 	}
-	FIL * fp = &f;
-	char string[1024] = { 0 };
-	if (fgets(string, sizeof(string), fp) != 0) {
-		Log_print("Using Atari800 config file: %s\nCreated by %s", rtconfig_filename, string);
+
+	if (fgets(string, sizeof(string), fp) != NULL) {
+		Log_print("Using Atari800 config file: %s\nCreated by %s", fname, string);
 	}
+
 	while (fgets(string, sizeof(string), fp)) {
 		char *ptr;
 		Util_chomp(string);
@@ -71,29 +145,37 @@ int CFG_LoadConfig(const char *alternate_config_filename) {
 			*ptr++ = '\0';
 			Util_trim(string);
 			Util_trim(ptr);
+
 			if (SYSROM_ReadConfig(string, ptr)) {
-				// ??
 			}
+#ifdef BASIC
+			else if (strcmp(string, "ATARI_FILES_DIR") == 0
+				  || strcmp(string, "SAVED_FILES_DIR") == 0
+				  || strcmp(string, "DISK_DIR") == 0 || strcmp(string, "ROM_DIR") == 0
+				  || strcmp(string, "EXE_DIR") == 0 || strcmp(string, "STATE_DIR") == 0)
+				/* do nothing */;
+#else
 			else if (strcmp(string, "ATARI_FILES_DIR") == 0) {
-				if (UI_n_atari_files_dir >= UI_MAX_DIRECTORIES) {
+				if (UI_n_atari_files_dir >= UI_MAX_DIRECTORIES)
 					Log_print("All ATARI_FILES_DIR slots used!");
-				} else
+				else
 					Util_strlcpy(UI_atari_files_dir[UI_n_atari_files_dir++], ptr, FILENAME_MAX);
 			}
 			else if (strcmp(string, "SAVED_FILES_DIR") == 0) {
-				if (UI_n_saved_files_dir >= UI_MAX_DIRECTORIES) {
+				if (UI_n_saved_files_dir >= UI_MAX_DIRECTORIES)
 					Log_print("All SAVED_FILES_DIR slots used!");
-				} else
+				else
 					Util_strlcpy(UI_saved_files_dir[UI_n_saved_files_dir++], ptr, FILENAME_MAX);
 			}
-			else if (strcmp(string, "SHOW_HIDDEN_FILES") == 0) {
+			else if (strcmp(string, "SHOW_HIDDEN_FILES") == 0)
 				UI_show_hidden_files = Util_sscanbool(ptr);
-			} else if (strcmp(string, "DISK_DIR") == 0 || strcmp(string, "ROM_DIR") == 0
+			else if (strcmp(string, "DISK_DIR") == 0 || strcmp(string, "ROM_DIR") == 0
 				  || strcmp(string, "EXE_DIR") == 0 || strcmp(string, "STATE_DIR") == 0) {
 				/* ignore blank and "." values */
-		///		if (ptr[0] != '\0' && (ptr[0] != '.' || ptr[1] != '\0'))
-		///			was_obsolete_dir = TRUE;
+				if (ptr[0] != '\0' && (ptr[0] != '.' || ptr[1] != '\0'))
+					was_obsolete_dir = TRUE;
 			}
+#endif
 			else if (strcmp(string, "H1_DIR") == 0)
 				Util_strlcpy(Devices_atari_h_dir[0], ptr, FILENAME_MAX);
 			else if (strcmp(string, "H2_DIR") == 0)
@@ -106,16 +188,19 @@ int CFG_LoadConfig(const char *alternate_config_filename) {
 				Devices_h_read_only = Util_sscandec(ptr);
 			else if (strcmp(string, "HD_DEVICE_NAME") == 0)
 				Devices_h_device_name = *ptr;
+
 			else if (strcmp(string, "PRINT_COMMAND") == 0) {
 				if (!Devices_SetPrintCommand(ptr))
 					Log_print("Unsafe PRINT_COMMAND ignored");
 			}
+
 			else if (strcmp(string, "ACCURATE_SKIPPED_FRAMES") == 0)
 				Atari800_collisions_in_skipped_frames = Util_sscanbool(ptr);
 			else if (strcmp(string, "SCREEN_REFRESH_RATIO") == 0)
 				Atari800_refresh_rate = Util_sscandec(ptr);
 			else if (strcmp(string, "DISABLE_BASIC") == 0)
 				Atari800_disable_basic = Util_sscanbool(ptr);
+
 			else if (strcmp(string, "ENABLE_SIO_PATCH") == 0) {
 				ESC_enable_sio_patch = Util_sscanbool(ptr);
 			}
@@ -140,19 +225,12 @@ int CFG_LoadConfig(const char *alternate_config_filename) {
 			else if (strcmp(string, "STEREO_POKEY") == 0) {
 #ifdef STEREO_SOUND
 				POKEYSND_stereo_enabled = Util_sscanbool(ptr);
-#ifdef SOUND_THIN_API
 				Sound_desired.channels = POKEYSND_stereo_enabled ? 2 : 1;
-#endif /* SOUND_THIN_API */
 #endif /* STEREO_SOUND */
 			}
 			else if (strcmp(string, "SPEAKER_SOUND") == 0) {
 #ifdef CONSOLE_SOUND
 				POKEYSND_console_sound_enabled = Util_sscanbool(ptr);
-#endif
-			}
-			else if (strcmp(string, "SERIO_SOUND") == 0) {
-#ifdef SERIO_SOUND
-				POKEYSND_serio_sound_enabled = Util_sscanbool(ptr);
 #endif
 			}
 			else if (strcmp(string, "MACHINE_TYPE") == 0) {
@@ -169,7 +247,7 @@ int CFG_LoadConfig(const char *alternate_config_filename) {
 					Log_print("Invalid machine type: %s", ptr);
 			}
 			else if (strcmp(string, "RAM_SIZE") == 0) {
-		/**		if (strcmp(ptr, "320 (RAMBO)") == 0)
+				if (strcmp(ptr, "320 (RAMBO)") == 0)
 					MEMORY_ram_size = MEMORY_RAM_320_RAMBO;
 				else if (strcmp(ptr, "320 (COMPY SHOP)") == 0)
 					MEMORY_ram_size = MEMORY_RAM_320_COMPY_SHOP;
@@ -179,7 +257,7 @@ int CFG_LoadConfig(const char *alternate_config_filename) {
 						MEMORY_ram_size = size;
 					else
 						Log_print("Invalid RAM size: %s", ptr);
-				}*/
+				}
 			}
 			else if (strcmp(string, "DEFAULT_TV_MODE") == 0) {
 				if (strcmp(ptr, "PAL") == 0)
@@ -257,10 +335,10 @@ int CFG_LoadConfig(const char *alternate_config_filename) {
 			else if (VIDEOMODE_ReadConfig(string, ptr)) {
 			}
 #endif
-#if defined(SOUND) && defined(SOUND_THIN_API)
+#ifdef SOUND
 			else if (Sound_ReadConfig(string, ptr)) {
 			}
-#endif /* defined(SOUND) && defined(SOUND_THIN_API) */
+#endif /* SOUND */
 #if defined(HAVE_LIBPNG) || defined(HAVE_LIBZ) || defined(AUDIO_RECORDING) || defined(VIDEO_RECORDING)
 			else if (File_Export_ReadConfig(string, ptr)) {
 			}
@@ -279,20 +357,28 @@ int CFG_LoadConfig(const char *alternate_config_filename) {
 			Log_print("Ignored config line: %s", string);
 		}
 	}
-	f_close(&f);
-	return 1;
+
+	fclose(fp);
+#ifndef BASIC
+	if (was_obsolete_dir) {
+		Log_print(
+			"DISK_DIR, ROM_DIR, EXE_DIR and STATE_DIR configuration options\n"
+			"are no longer supported. Please use ATARI_FILES_DIR\n"
+			"and SAVED_FILES_DIR in your Atari800 configuration file.");
+	}
+#endif
+	return TRUE;
 }
 
 int CFG_WriteConfig(void)
 {
-	FIL f;
-	FIL *fp = &f;
+	FILE *fp;
 	int i;
 	static const char * const machine_type_string[Atari800_MACHINE_SIZE] = {
 		"400/800", "XL/XE", "5200"
 	};
 
-	fp = fopen(fp, rtconfig_filename, FA_WRITE | FA_CREATE_ALWAYS);
+	fp = fopen(rtconfig_filename, "w");
 	if (fp == NULL) {
 		perror(rtconfig_filename);
 		Log_print("Cannot write to config file: %s", rtconfig_filename);
@@ -360,9 +446,6 @@ int CFG_WriteConfig(void)
 #ifdef CONSOLE_SOUND
 	fprintf(fp, "SPEAKER_SOUND=%d\n", POKEYSND_console_sound_enabled);
 #endif
-#ifdef SERIO_SOUND
-	fprintf(fp, "SERIO_SOUND=%d\n", POKEYSND_serio_sound_enabled);
-#endif
 #endif /* SOUND */
 	fprintf(fp, "BUILTIN_BASIC=%d\n", Atari800_builtin_basic);
 	fprintf(fp, "KEYBOARD_LEDS=%d\n", Atari800_keyboard_leds);
@@ -396,9 +479,9 @@ int CFG_WriteConfig(void)
 #if SUPPORTS_CHANGE_VIDEOMODE
 	VIDEOMODE_WriteConfig(fp);
 #endif
-#if defined(SOUND) && defined(SOUND_THIN_API)
+#ifdef SOUND
 	Sound_WriteConfig(fp);
-#endif /* defined(SOUND) && defined(SOUND_THIN_API) */
+#endif /* SOUND */
 #if defined(HAVE_LIBPNG) || defined(HAVE_LIBZ) || defined(AUDIO_RECORDING) || defined(VIDEO_RECORDING)
 	File_Export_WriteConfig(fp);
 #endif
@@ -409,3 +492,17 @@ int CFG_WriteConfig(void)
 	return TRUE;
 }
 
+int CFG_MatchTextParameter(char const *param, char const * const cfg_strings[], int cfg_strings_size)
+{
+	int i;
+	for (i = 0; i < cfg_strings_size; i ++) {
+		if (Util_stricmp(param, cfg_strings[i]) == 0)
+			return i;
+	}
+	/* Unrecognised value */
+	return -1;
+}
+
+/*
+vim:ts=4:sw=4:
+*/

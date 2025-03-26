@@ -28,7 +28,14 @@
 #include "log.h"
 #include "memory.h"
 #include "cpu.h"
+
+#ifdef HAVR_FF_WRAP_H
+#include <ff_wrap.h>
+#else
 #include <stdlib.h>
+#include <stdio.h>
+#endif
+
 
 static UBYTE *af80_rom = NULL;
 static char af80_rom_filename[FILENAME_MAX];
@@ -138,7 +145,7 @@ int AF80_Initialise(int *argc, char *argv[])
 
 	if (AF80_enabled) {
 		Log_print("Austin Franklin 80 enabled");
-		af80_rom = (UBYTE *)Util_malloc(0x1000, "AF80_Initialise af80_rom");
+		af80_rom = (UBYTE *)Util_malloc(0x1000);
 		if (!Atari800_LoadImage(af80_rom_filename, af80_rom, 0x1000)) {
 			free(af80_rom);
 			af80_rom = NULL;
@@ -149,7 +156,7 @@ int AF80_Initialise(int *argc, char *argv[])
 		else {
 			Log_print("loaded Austin Franklin rom image");
 		}
-		af80_charset = (UBYTE *)Util_malloc(0x1000, "AF80_Initialise af80_charset");
+		af80_charset = (UBYTE *)Util_malloc(0x1000);
 		if (!Atari800_LoadImage(af80_charset_filename, af80_charset, 0x1000)) {
 			free(af80_charset);
 			free(af80_rom);
@@ -161,8 +168,8 @@ int AF80_Initialise(int *argc, char *argv[])
 		else {
 			Log_print("loaded Austin Franklin charset image");
 		}
-		af80_screen = (UBYTE *)Util_malloc(0x800, "AF80_Initialise af80_screen");
-		af80_attrib = (UBYTE *)Util_malloc(0x800, "AF80_Initialise af80_attrib");
+		af80_screen = (UBYTE *)Util_malloc(0x800);
+		af80_attrib = (UBYTE *)Util_malloc(0x800);
 		AF80_Reset();
 
 		/* swap palette */
@@ -202,7 +209,7 @@ int AF80_ReadConfig(char *string, char *ptr)
 	return TRUE; /* matched something */
 }
 
-void AF80_WriteConfig(FIL *fp)
+void AF80_WriteConfig(FILE *fp)
 {
 	fprintf(fp, "AF80_ROM=%s\n", af80_rom_filename);
 	fprintf(fp, "AF80_CHARSET=%s\n", af80_charset_filename);

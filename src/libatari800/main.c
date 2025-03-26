@@ -22,8 +22,9 @@
  * along with Atari800; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
-
+#if 0
 #include "config.h"
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -39,12 +40,10 @@
 #include "screen.h"
 #include "../sound.h"
 #include "util.h"
-///#include "videomode.h"
+#include "videomode.h"
 #include "sio.h"
 #include "cartridge.h"
-#ifndef BASIC
-///#include "ui.h"
-#endif
+#include "ui.h"
 #include "cfg.h"
 #include "libatari800/main.h"
 #include "libatari800/init.h"
@@ -70,14 +69,13 @@ int PLATFORM_Configure(char *option, char *parameters)
 	return LIBATARI800_ReadConfig(option, parameters);
 }
 
-void PLATFORM_ConfigSave(FIL *fp)
+void PLATFORM_ConfigSave(FILE *fp)
 {
 	;
 }
 
 int PLATFORM_Initialise(int *argc, char *argv[])
 {
-	printf("PLATFORM_Initialise");
 	int i, j;
 	int help_only = FALSE;
 
@@ -103,20 +101,17 @@ int PLATFORM_Initialise(int *argc, char *argv[])
 	return TRUE;
 }
 
-#ifdef LIB_UI
+
 void LIBATARI800_Frame(void)
 {
 	switch (INPUT_key_code) {
 	case AKEY_COLDSTART:
-		printf("Atari800_Coldstart");
 		Atari800_Coldstart();
 		break;
 	case AKEY_WARMSTART:
-		printf("Atari800_Warmstart");
 		Atari800_Warmstart();
 		break;
 	case AKEY_UI:
-		printf("PLATFORM_Exit");
 		PLATFORM_Exit(TRUE);  /* run monitor */
 		break;
 	default:
@@ -132,37 +127,39 @@ void LIBATARI800_Frame(void)
 	Devices_Frame();
 	INPUT_Frame();
 	GTIA_Frame();
-	//printf("ANTIC_Frame");
 	ANTIC_Frame(TRUE);
-	//printf("INPUT_DrawMousePointer");
 	INPUT_DrawMousePointer();
-	//printf("Screen_DrawAtariSpeed");
 	Screen_DrawAtariSpeed(Util_time());
-	//printf("Screen_DrawDiskLED");
 	Screen_DrawDiskLED();
-	//printf("Screen_Draw1200LED");
 	Screen_Draw1200LED();
-	//printf("POKEY_Frame");
 	POKEY_Frame();
-	//printf("Sound_Update");
 	Sound_Update();
-	//printf("Atari800_nframes: %d", Atari800_nframes);
 	Atari800_nframes++;
 }
-#endif
+
 
 /* Stub routines to replace text-based UI */
 
-int UI_SelectCartTypeM(int k) {
+int UI_SelectCartType(int k) {
 	libatari800_error_code = LIBATARI800_UNIDENTIFIED_CART_TYPE;
 	return CARTRIDGE_NONE;
 }
 
-int UI_InitialiseM(int *argc, char *argv[]) {
+int UI_Initialise(int *argc, char *argv[]) {
 	return TRUE;
 }
 
-void UI_RunM(void) {
+void UI_Run(void) {
 	;
 }
 
+int UI_is_active;
+int UI_alt_function;
+int UI_current_function;
+char UI_atari_files_dir[UI_MAX_DIRECTORIES][FILENAME_MAX];
+char UI_saved_files_dir[UI_MAX_DIRECTORIES][FILENAME_MAX];
+int UI_n_atari_files_dir;
+int UI_n_saved_files_dir;
+int UI_show_hidden_files = FALSE;
+
+#endif

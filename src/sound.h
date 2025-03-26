@@ -1,8 +1,6 @@
 #ifndef SOUND_H_
 #define SOUND_H_
 
-#include "ff.h"
-
 #include "config.h"
 #include "atari.h"
 
@@ -11,11 +9,7 @@ void Sound_Exit(void);
 void Sound_Update(void);
 void Sound_Pause(void);
 void Sound_Continue(void);
-#ifdef SUPPORTS_SOUND_REINIT
-void Sound_Reinit(void);
-#endif /* SUPPORTS_SOUND_REINIT */
 
-#ifdef SOUND_THIN_API
 /* Nomenclature used:
    Sample - a single portion of one channel of audio signal. Sample size equals
    1 byte for 8-bit audio and 2 bytes for 16-bit audio.
@@ -27,6 +21,10 @@ void Sound_Reinit(void);
 typedef struct Sound_setup_t {
 	/* Sound sample rate - number of frames per second: 1000..65535. */
 	unsigned int freq;
+	/* Number of bytes per each sample, also determines sample format:
+	   1 = unsigned 8-bit format.
+	   2 = signed 16-bit system-endian format. */
+	int sample_size;
 	/* Number of audio channels: 1 = mono, 2 = stereo. */
 	unsigned int channels;
 	/* Length of the hardware audio buffer in milliseconds. */
@@ -53,7 +51,6 @@ extern Sound_setup_t Sound_out;
 /* Indicates whether sound output is enabled. Don't change it directly - use
    Sound_Setup to enable sound, and Sound_Exit to disable it. */
 extern int Sound_enabled;
-extern int paused;
 
 /* Enables hardware audio output with parameters based on those stored in
    Sound_desired. Stores the parameters of the actual opened output in
@@ -74,9 +71,8 @@ void Sound_Callback(UBYTE *buffer, unsigned int size);
 
 /* Read/write to configuration file. */
 int Sound_ReadConfig(char *option, char *ptr);
-void Sound_WriteConfig(FIL *fp);
+void Sound_WriteConfig(FILE *fp);
 
-#ifdef SYNCHRONIZED_SOUND
 /* Sound latency in ms. Don't change directly - use Sound_SetLatency instead. */
 extern unsigned int Sound_latency;
 
@@ -86,13 +82,10 @@ void Sound_SetLatency(unsigned int latency);
  * so that if the sound buffer is too full or too empty. The emulation
  * slows down or speeds up to match the actual speed of sound output. */
 double Sound_AdjustSpeed(void);
-#endif /* SYNCHRONIZED_SOUND */
 
 /* Helper function for use when hardware audio buffer size is required to
    equal a power of 2. Returns a power of 2 that is not lower than NUM
    (0 <= NUM < UINT_MAX). */
 unsigned int Sound_NextPow2(unsigned int num);
-
-#endif /* SOUND_THIN_API */
 
 #endif /* SOUND_H_ */

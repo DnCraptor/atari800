@@ -2,6 +2,14 @@
 #define SIO_H_
 
 #include "config.h"
+
+#ifdef HAVR_FF_WRAP_H
+#include <ff_wrap.h>
+#else
+#include <stdlib.h>
+#include <stdio.h>
+#endif
+
 #include "atari.h"
 
 #define SIO_MAX_DRIVES 8

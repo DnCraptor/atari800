@@ -33,36 +33,42 @@
 #include "statesav.h"
 #include "util.h"
 #ifndef BASIC
-///#include "ui.h"
+#include "ui.h"
 #endif /* BASIC */
 #ifdef HAVE_LIBZ
 #include <zlib.h>
 #endif
 
-#include "ff.h"
+#ifdef HAVR_FF_WRAP_H
+#include <ff_wrap.h>
+#else
+#include <stdlib.h>
+#include <stdio.h>
+#endif
+
 
 int AFILE_DetectFileType(const char *filename)
 {
 	UBYTE header[4];
-	UINT file_length;
-	FIL f;
-	if (f_open(&f, filename, FA_READ) != FR_OK)
+	int file_length;
+	FILE *fp = fopen(filename, "rb");
+	if (fp == NULL)
 		return AFILE_ERROR;
-	if (f_read(&f, header, 4, &file_length) != FR_OK) {
-		f_close(&f);
+	if (fread(header, 1, 4, fp) != 4) {
+		fclose(fp);
 		return AFILE_ERROR;
 	}
 	switch (header[0]) {
 	case 0:
 		if (header[1] == 0 && (header[2] != 0 || header[3] != 0) /* && file_length < 37 * 1024 */) {
-			f_close(&f);
+			fclose(fp);
 			return AFILE_BAS;
 		}
 		break;
 	case 0x1f:
 		if (header[1] == 0x8b) {
 #ifndef HAVE_LIBZ
-			f_close(&f);
+			fclose(fp);
 			Log_print("\"%s\" is a compressed file.", filename);
 			Log_print("This executable does not support compressed files. You can uncompress this file");
 			Log_print("with an external program that supports gzip (*.gz) files (e.g. gunzip)");
@@ -98,47 +104,47 @@ int AFILE_DetectFileType(const char *filename)
 	case '8':
 	case '9':
 		if ((header[1] >= '0' && header[1] <= '9') || header[1] == ' ') {
-			f_close(&f);
+			fclose(fp);
 			return AFILE_LST;
 		}
 		break;
 	case 'A':
 		if (header[1] == 'T' && header[2] == 'A' && header[3] == 'R') {
-			f_close(&f);
+			fclose(fp);
 			return AFILE_STATE;
 		}
 		if (header[1] == 'T' && header[2] == '8' && header[3] == 'X') {
-			f_close(&f);
+			fclose(fp);
 			return AFILE_ATX;
 		}
 		break;
 	case 'C':
 		if (header[1] == 'A' && header[2] == 'R' && header[3] == 'T') {
-			f_close(&f);
+			fclose(fp);
 			return AFILE_CART;
 		}
 		break;
 	case 0x96:
 		if (header[1] == 0x02) {
-			f_close(&f);
+			fclose(fp);
 			return AFILE_ATR;
 		}
 		break;
 	case 0xf9:
 	case 0xfa:
-		f_close(&f);
+		fclose(fp);
 		return AFILE_DCM;
 	case 0xff:
 		if (header[1] == 0xff && (header[2] != 0xff || header[3] != 0xff)) {
-			f_close(&f);
+			fclose(fp);
 			return AFILE_XEX;
 		}
 		break;
 	default:
 		break;
 	}
-	file_length = f_size(&f);
-	f_close(&f);
+	file_length = Util_flen(fp);
+	fclose(fp);
 	/* Detect .pro images */
 	/* # of sectors is in header */
 	if ((file_length-16)%(128+12) == 0 &&
@@ -163,10 +169,9 @@ int AFILE_DetectFileType(const char *filename)
 	return AFILE_ERROR;
 }
 
-int AFILE_OpenFile(const char *filename, int reboot, int diskno, int readonly) {
-	printf("AFILE_OpenFile '%s' reboot: %d; diskno: %d; readonly: %d", filename, reboot, diskno, readonly);
+int AFILE_OpenFile(const char *filename, int reboot, int diskno, int readonly)
+{
 	int type = AFILE_DetectFileType(filename);
-	printf("AFILE_OpenFile '%s' type: %d", filename, type);
 	switch (type) {
 	case AFILE_ATR:
 	case AFILE_ATX:
@@ -189,7 +194,6 @@ int AFILE_OpenFile(const char *filename, int reboot, int diskno, int readonly) {
 	case AFILE_CART:
 	case AFILE_ROM:
 		{
-			printf("AFILE_OpenFile '%s' type: %d CART/ROM", filename, type);
 			int r;
 			if (reboot)
 				r = CARTRIDGE_InsertAutoReboot(filename);
@@ -224,7 +228,7 @@ int AFILE_OpenFile(const char *filename, int reboot, int diskno, int readonly) {
 		Log_print("State files are not supported in BASIC version");
 		return AFILE_ERROR;
 #else
-		if (!StateSav_ReadAtariState(filename, FA_READ))
+		if (!StateSav_ReadAtariState(filename, "rb"))
 			return AFILE_ERROR;
 		/* Don't press Start nor Option */
 		GTIA_consol_override = 0;
@@ -233,6 +237,5 @@ int AFILE_OpenFile(const char *filename, int reboot, int diskno, int readonly) {
 	default:
 		break;
 	}
-	printf("AFILE_OpenFile '%s' type: %d DONE", filename, type);
 	return type;
 }

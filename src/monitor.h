@@ -3,8 +3,14 @@
 
 #include "config.h"
 
+#ifdef HAVR_FF_WRAP_H
+#include <ff_wrap.h>
+#else
+#include <stdlib.h>
+#include <stdio.h>
+#endif
+
 #include "atari.h"
-#include "ff.h"
 
 int MONITOR_Run(void);
 
@@ -29,7 +35,7 @@ extern int MONITOR_ret_nesting;
 extern const UBYTE MONITOR_optype6502[256];
 
 void MONITOR_Exit(void);
-void MONITOR_ShowState(FIL *fp, UWORD pc, UBYTE a, UBYTE x, UBYTE y, UBYTE s,
+void MONITOR_ShowState(FILE *fp, UWORD pc, UBYTE a, UBYTE x, UBYTE y, UBYTE s,
                 char n, char v, char z, char c);
 
 #ifdef MONITOR_BREAKPOINTS

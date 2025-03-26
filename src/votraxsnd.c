@@ -21,7 +21,13 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
+#ifdef HAVR_FF_WRAP_H
+#include <ff_wrap.h>
+#else
 #include <stdlib.h>
+#include <stdio.h>
+#endif
+
 #include "atari.h"
 #include "util.h"
 #include "votraxsnd.h"
@@ -49,9 +55,6 @@ static int votrax_sync_samples;
 static int dsprate;
 static int num_pokeys;
 static int samples_per_frame;
-/*if SYNCHRONIZED_SOUND is not used and the sound generation runs in a
- * separate thread, then these variables are accessed in two different
- * threads: */
 static int votrax_written = FALSE;
 static int votrax_written_byte = 0x3f;
 
@@ -122,9 +125,9 @@ void VOTRAXSND_Init(int playback_freq, int n_pokeys, int b16)
 	temp_votrax_buffer_size = (int)(VTRX_BLOCK_SIZE*ratio + 10); /* +10 .. little extra? */
 #endif
 	free(temp_votrax_buffer);
-	temp_votrax_buffer = (SWORD *)Util_malloc(temp_votrax_buffer_size*sizeof(SWORD), "VOTRAXSND_Init");
+	temp_votrax_buffer = (SWORD *)Util_malloc(temp_votrax_buffer_size*sizeof(SWORD));
 	free(votrax_buffer);
-	votrax_buffer = (SWORD *)Util_malloc(VTRX_BLOCK_SIZE*sizeof(SWORD), "VOTRAXSND_Init");
+	votrax_buffer = (SWORD *)Util_malloc(VTRX_BLOCK_SIZE*sizeof(SWORD));
 
 	VOTRAXSND_busy = FALSE;
 	votrax_sync_samples = 0;

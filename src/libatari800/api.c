@@ -24,7 +24,14 @@
 */
 
 #include "config.h"
+
+#ifdef HAVR_FF_WRAP_H
+#include <ff_wrap.h>
+#else
 #include <stdlib.h>
+#include <stdio.h>
+#endif
+
 #include <string.h>
 
 /* Atari800 includes */
@@ -101,7 +108,7 @@ int libatari800_init(int argc, char **argv) {
 	}
 	if ((argc == 0) || ((argc > 0) && argv[0] && (!Util_striendswith(argv[0], "atari800")))) {
 		argv_alloced = argc + 1;
-		argv_ptr = Util_malloc(sizeof(char *) * argv_alloced, "libatari800_init argv_ptr");
+		argv_ptr = (Util_malloc(sizeof(char *) * argv_alloced));
 		argv_ptr[0] = NULL;
 		for (i = 0; i < argc; i++) {
 			argv_ptr[i + 1] = argv[i];
@@ -111,12 +118,12 @@ int libatari800_init(int argc, char **argv) {
 	else {
 		argv_ptr = argv;
 	}
+
 	CPU_cim_encountered = 0;
 	libatari800_error_code = 0;
 	Atari800_nframes = 0;
 	MEMORY_selftest_enabled = 0;
 	status = Atari800_Initialise(&argc, argv_ptr);
-	printf("Atari800_Initialise returns %d", status);
 	if (status) {
 		Log_flushlog();
 	}
@@ -207,12 +214,9 @@ void libatari800_clear_input_array(input_template_t *input)
  */
 int libatari800_next_frame(input_template_t *input)
 {
-	//printf("libatari800_next_frame");
 	LIBATARI800_Input_array = input;
 	INPUT_key_code = PLATFORM_Keyboard();
-	//printf("PLATFORM_Keyboard: %04Xh", INPUT_key_code);
 	LIBATARI800_Mouse();
-	//printf("LIBATARI800_Mouse PASSED");
 #ifdef HAVE_SETJMP
 	if ((libatari800_error_code = setjmp(libatari800_cpu_crash))) {
 		/* called from within CPU_GO to indicate crash */
@@ -222,21 +226,15 @@ int libatari800_next_frame(input_template_t *input)
 #endif /* HAVE_SETJMP */
 	{
 		/* normal operation */
-		//LIBATARI800_Frame();
-        Atari800_Frame();
-
-		//printf("LIBATARI800_Frame PASSED");
+		LIBATARI800_Frame();
 		if (CPU_cim_encountered) {
 			libatari800_error_code = LIBATARI800_CPU_CRASH;
-			printf("LIBATARI800_CPU_CRASH");
 		}
 		else if (ANTIC_dlist == 0) {
 			libatari800_error_code = LIBATARI800_DLIST_ERROR;
-		///	printf("LIBATARI800_DLIST_ERROR");
 		}
 	}
 	PLATFORM_DisplayScreen();
-	//printf("PLATFORM_DisplayScreen PASSED");
 	return !libatari800_error_code;
 }
 
@@ -320,9 +318,9 @@ UBYTE *libatari800_get_main_memory_ptr()
  * @returns pointer to the beginning of the 92160 bytes of data holding the
  * emulated screen.
  */
-uint8_t *libatari800_get_screen_ptr()
+UBYTE *libatari800_get_screen_ptr()
 {
-	return (uint8_t *)Screen_atari;
+	return (UBYTE *)Screen_atari;
 }
 
 
@@ -355,6 +353,7 @@ UBYTE *libatari800_get_sound_buffer()
 int libatari800_get_sound_buffer_len() {
 	return (int)sound_array_fill;
 }
+
 
 /** Return the maximum size of the sound buffer.
  *
@@ -391,8 +390,9 @@ int libatari800_get_num_sound_channels() {
  * @retval 2 16-bit audio
  */
 int libatari800_get_sound_sample_size() {
-	return 1;
+	return Sound_out.sample_size;
 }
+
 
 /** Return the video frame rate
  *
@@ -456,15 +456,14 @@ int libatari800_get_frame_number() {
  *
  * @param state pointer to an already allocated \a emulator_state_t structure
  */
-#if 0
 void libatari800_get_current_state(emulator_state_t *state)
 {
-	printf("libatari800_get_current_state");
 	LIBATARI800_StateSave(state->state, &state->tags);
 	state->flags.selftest_enabled = MEMORY_selftest_enabled;
 	state->flags.nframes = (ULONG)Atari800_nframes;
 	state->flags.sample_residual = (ULONG)(0xffffffff * sample_residual);
 }
+
 
 /** Restore the state of the emulator
  *
@@ -484,7 +483,7 @@ void libatari800_restore_state(emulator_state_t *state)
 	Atari800_nframes = state->flags.nframes;
 	sample_residual = (double)state->flags.sample_residual / (double)0xffffffff;
 }
-#endif
+
 
 /** Free resources used by the emulator.
  *

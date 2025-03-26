@@ -28,13 +28,17 @@
 #include "log.h"
 #include "util.h"
 #include <string.h>
-#include "ff.h"
-#define fprintf(F, ...) { char b[256]; snprintf(b, 256, __VA_ARGS__); UINT bw; f_write(&F, b, strlen(b), &bw); }
-#define fputc(c, F) { char _c = c; UINT wr; f_write(&F, &_c, 1, &wr); }
+
+#ifdef HAVR_FF_WRAP_H
+#include <ff_wrap.h>
+#else
+#include <stdlib.h>
+#include <stdio.h>
+#endif
 
 static int enabled, counter, interval;
 static char *filename = "pokeyrec.dat", *fmt = "%c";
-static FIL f;
+static FILE *fp;
 #ifdef STEREO_SOUND
 static int stereo;
 #endif
@@ -42,10 +46,10 @@ static int stereo;
 static void output_pokey_values(int pokeynr) {
     int i;
     for (i=0; i<4; i++) {
-        fprintf(f, fmt, POKEY_AUDF[(pokeynr*4)+i]);
-        fprintf(f, fmt, POKEY_AUDC[(pokeynr*4)+i]);
+        fprintf(fp, fmt, POKEY_AUDF[(pokeynr*4)+i]);
+        fprintf(fp, fmt, POKEY_AUDC[(pokeynr*4)+i]);
     }
-    fprintf(f, fmt, POKEY_AUDCTL[pokeynr]);
+    fprintf(fp, fmt, POKEY_AUDCTL[pokeynr]);
 }
 
 void POKEYREC_Recorder(void) {
@@ -58,7 +62,7 @@ void POKEYREC_Recorder(void) {
         if (stereo) output_pokey_values(1);
 #endif
         if (fmt[1] != 'c')
-            fputc('\n', f);
+            fputc('\n', fp);
     }
 }
 
@@ -83,7 +87,7 @@ int POKEYREC_Initialise(int *argc, char *argv[]) {
             fmt = "%02x";
         } else if (!strcmp(argv[i], "-pokeyrec-file")) {
             if (!available) goto missing_argument;
-            filename = Util_strdup(argv[++i], "POKEYREC_Initialise filename");
+            filename = Util_strdup(argv[++i]);
 #ifdef STEREO_SOUND
         } else if (!strcmp(argv[i], "-pokeyrec-stereo")) {
             stereo = 1;
@@ -113,11 +117,12 @@ int POKEYREC_Initialise(int *argc, char *argv[]) {
     *argc = j;
 
     if (enabled) {
-        if (f_open(&f, filename, FA_WRITE | FA_CREATE_ALWAYS) != FR_OK) {
+        if (!(fp = fopen(filename, "wb"))) {
             Log_print("Unable to open '%s' for writing", filename);
             return FALSE;
         }
     }
+
     return TRUE;
 
 missing_argument:
@@ -126,5 +131,5 @@ missing_argument:
 }
 
 void POKEYREC_Exit(void) {
-    f_close(&f);
+    if (fp) fclose(fp);
 }

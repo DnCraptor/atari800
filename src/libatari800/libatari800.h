@@ -100,8 +100,8 @@ typedef struct {
     UBYTE keycode;
     UBYTE special;
     UBYTE shift;
-    UBYTE alt;
     UBYTE control;
+    UBYTE alt;
     UBYTE start;
     UBYTE select;
     UBYTE option;
@@ -119,6 +119,8 @@ typedef struct {
     UBYTE mouse_mode;
 } input_template_t;
 
+
+#define STATESAV_MAX_SIZE 210000
 
 /* byte offsets into output_template.state array of groups of data
    to prevent the need for a full parsing of the save state data to
@@ -142,6 +144,18 @@ typedef struct {
     ULONG nframes;
     ULONG sample_residual;
 } statesav_flags_t;
+
+typedef struct {
+    union {
+        statesav_tags_t tags;
+        UBYTE tags_storage[128];
+    };
+    union {
+        statesav_flags_t flags;
+        UBYTE flags_storage[128];
+    };
+    UBYTE state[STATESAV_MAX_SIZE];
+} emulator_state_t;
 
 typedef struct {
     UBYTE A;
@@ -275,10 +289,6 @@ UBYTE *libatari800_get_sound_buffer();
 
 int libatari800_get_sound_buffer_len();
 
-int libatari800_get_sound_buffer_idx();
-
-void libatari800_set_sound_buffer_idx(int i);
-
 int libatari800_get_sound_buffer_allocated_size();
 
 int libatari800_get_sound_frequency();
@@ -290,6 +300,10 @@ int libatari800_get_sound_sample_size();
 float libatari800_get_fps();
 
 int libatari800_get_frame_number();
+
+void libatari800_get_current_state(emulator_state_t *state);
+
+void libatari800_restore_state(emulator_state_t *state);
 
 void libatari800_exit();
 

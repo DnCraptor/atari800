@@ -2,13 +2,21 @@
 #define PLATFORM_H_
 
 #include "config.h"
+
+#ifdef HAVR_FF_WRAP_H
+#include <ff_wrap.h>
+#else
+#include <stdlib.h>
+#include <stdio.h>
+#endif
+
 #include "atari.h"
 #if SUPPORTS_CHANGE_VIDEOMODE
 #include "videomode.h"
 #endif
-#if defined(SOUND) && defined(SOUND_THIN_API)
+#ifdef SOUND
 #include "sound.h"
-#endif /* defined(SOUND) && defined(SOUND_THIN_API) */
+#endif /* SOUND */
 
 /* This include file defines prototypes for platform-specific functions. */
 
@@ -70,10 +78,6 @@ void PLATFORM_ToggleKbdJoystickEnabled(int num);
 int PLATFORM_GetRawKey(void);
 #endif /* GUI_SDL */
 
-#ifdef DIRECTX
-int PLATFORM_GetKeyName(void);
-#endif
-
 #if SUPPORTS_CHANGE_VIDEOMODE
 /* Returns whether the platform-specific code support the given display mode, MODE,
    with/without stretching and with/without rotation. */
@@ -109,7 +113,7 @@ void PLATFORM_GetPixelFormat(PLATFORM_pixel_format_t *format);/* Can be 8, 16, 3
 void PLATFORM_MapRGB(void *dest, int const *palette, int size);
 #endif /* PLATFORM_MAP_PALETTE */
 
-#if defined(SOUND) && defined(SOUND_THIN_API)
+#ifdef SOUND
 /* PLATFORM_SoundSetup opens the hardware sound output with settings
    defined in *setup. If the code decides so, the actual setup with which
    audio output is opened may differ from the provided settings. In such case
@@ -169,6 +173,6 @@ void PLATFORM_SoundWrite(UBYTE const *buffer, unsigned int size);
 #define PLATFORM_SoundUnlock() {}
 
 #endif /* !SOUND_CALLBACK */
-#endif /* defined(SOUND) && defined(SOUND_THIN_API) */
+#endif /* SOUND */
 
 #endif /* PLATFORM_H_ */

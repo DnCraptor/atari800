@@ -34,16 +34,17 @@
 #include "platform.h"
 #include "pokey.h"
 #include "libatari800/statesav.h"
-#include "ui.h"
 
 static int lastkey = -1, key_control = 0;
 
 input_template_t *LIBATARI800_Input_array = NULL;
 
-int PLATFORM_Keyboard(void) {
+
+int PLATFORM_Keyboard(void)
+{
 	int shiftctrl = 0;
 	int keycode = 0;
-	//printf("PLATFORM_Keyboard");
+
 	input_template_t *input = LIBATARI800_Input_array;
 
 	lastkey = input->keychar;
@@ -78,6 +79,8 @@ int PLATFORM_Keyboard(void) {
 		INPUT_key_consol &= ~INPUT_CONSOL_SELECT;
 	if (input->start)
 		INPUT_key_consol &= ~INPUT_CONSOL_START;
+
+	/// custom block (TODO: other way?)
 	if (input->keychar == 255) return AKEY_UI;
 	if (input->keychar == 250) return AKEY_HELP;
 	if (input->keychar == 254) return AKEY_UP;
@@ -433,10 +436,10 @@ int PLATFORM_PORT(int num)
 	input_template_t *input = LIBATARI800_Input_array;
 
 	if (num == 0) {
-		return ((input->joy0 & 0x0F) + ((input->joy1 & 0x0F) << 4)) ^ 0xff;
+		return (input->joy0 + (input->joy1 << 4)) ^ 0xff;
 	}
 	else if (num == 1) {
-		return ((input->joy2 & 0x0F) + ((input->joy3 & 0x0F) << 4)) ^ 0xff;
+		return (input->joy2 + (input->joy3 << 4)) ^ 0xff;
 	}
 	return 0xff;
 }

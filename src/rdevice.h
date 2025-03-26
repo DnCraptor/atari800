@@ -1,9 +1,8 @@
 /*
- * libatari800/video.c - Atari800 as a library - saving the emulator's state to a file
+ * rdevice.h - Atari850 emulation header file
  *
- * Copyright (c) 2001-2002 Jacek Poplawski
- * Copyright (C) 2001-2010 Atari800 development team (see DOC/CREDITS)
- * Copyright (c) 2016-2019 Rob McMullen
+ * Copyright (c) ???? Tom Hunt, Chris Martin
+ * Copyright (c) 2003,2008 Atari800 development team (see DOC/CREDITS)
  *
  * This file is part of the Atari800 emulator project which emulates
  * the Atari 400, 800, 800XL, 130XE, and 5200 8-bit computers.
@@ -23,23 +22,20 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
-#include <string.h>
+#ifndef RDEVICE_H_
+#define RDEVICE_H_
 
-#include "platform.h"
-#include "libatari800/statesav.h"
-#include "libatari800/init.h"
+extern void RDevice_OPEN(void);
+extern void RDevice_CLOS(void);
+extern void RDevice_READ(void);
+extern void RDevice_WRIT(void);
+extern void RDevice_STAT(void);
+extern void RDevice_SPEC(void);
+extern void RDevice_INIT(void);
 
-UBYTE *LIBATARI800_StateSav_buffer = NULL;
-statesav_tags_t *LIBATARI800_StateSav_tags = NULL;
+extern int RDevice_serial_enabled;
+extern char RDevice_serial_device[];
 
+extern void RDevice_Exit(void);
 
-void LIBATARI800_StateSave(UBYTE *buffer, statesav_tags_t *tags) {
-    LIBATARI800_StateSav_buffer = buffer;
-    LIBATARI800_StateSav_tags = tags;
-	StateSav_SaveAtariState(NULL, NULL, 0);
-}
-
-void LIBATARI800_StateLoad(UBYTE *buffer) {
-    LIBATARI800_StateSav_buffer = buffer;
-	StateSav_ReadAtariState(NULL, NULL);
-}
+#endif /* RDEVICE_H_ */

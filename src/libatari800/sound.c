@@ -24,7 +24,13 @@
 */
 
 #include "config.h"
+
+#ifdef HAVR_FF_WRAP_H
+#include <ff_wrap.h>
+#else
 #include <stdlib.h>
+#endif
+
 #include <string.h>
 #include <math.h>
 
@@ -35,7 +41,12 @@
 #include "sound.h"
 #include "util.h"
 
+#ifdef SOUND
+
+UBYTE *LIBATARI800_Sound_array;
+
 unsigned int sound_array_fill = 0;
+
 unsigned int sound_hw_buffer_size = 0;
 
 /* difference between an integer sample rate and the floating point sample rate, used
@@ -54,11 +65,11 @@ int PLATFORM_SoundSetup(Sound_setup_t *setup)
 	samples_per_video_frame = setup->freq / refresh_rate;
 	setup->buffer_frames = (int)(ceil(samples_per_video_frame));
 
-	sound_hw_buffer_size = setup->buffer_frames * setup->channels;
+	sound_hw_buffer_size = setup->buffer_frames * setup->sample_size * setup->channels;
 	if (sound_hw_buffer_size == 0)
 	        return FALSE;
 
-	LIBATARI800_Sound_array = Util_malloc(sound_hw_buffer_size, "PLATFORM_SoundSetup");
+	LIBATARI800_Sound_array = Util_malloc(sound_hw_buffer_size);
 
 	sample_diff = (double)setup->buffer_frames - samples_per_video_frame;
 	sample_residual = 0;
@@ -94,8 +105,19 @@ unsigned int PLATFORM_SoundAvailable(void)
 	sample_residual += sample_diff;
 	if (sample_residual > 1.0) {
 		sample_residual -= 1.0;
-		buf_size -= Sound_out.channels;
+		buf_size -= Sound_out.sample_size * Sound_out.channels;
 	}
+
 	sound_array_fill = 0;
 	return buf_size;
 }
+/*
+void PLATFORM_SoundWrite(UBYTE const *buffer, unsigned int size)
+{
+	memcpy(LIBATARI800_Sound_array, buffer, size);
+	sound_array_fill = size;
+}
+*/
+
+#endif
+

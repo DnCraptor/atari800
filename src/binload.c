@@ -23,6 +23,15 @@
 */
 
 #include "config.h"
+
+#ifdef HAVR_FF_WRAP_H
+#include <ff_wrap.h>
+#else
+#include <stdlib.h>
+#include <stdio.h>
+#endif
+
+
 #include "atari.h"
 #include "binload.h"
 #include "cpu.h"
@@ -35,8 +44,7 @@
 int BINLOAD_start_binloading = FALSE;
 int BINLOAD_loading_basic = 0;
 int BINLOAD_slow_xex_loading = FALSE;
-FIL BINLOAD_bin_file;
-int BINLOAD_bin_file_open = FALSE;
+FILE *BINLOAD_bin_file = NULL;
 
 /* These variables are for slow XEX loading only. */
 
@@ -53,16 +61,12 @@ static int segfinished = TRUE;
 int BINLOAD_pause_loading;
 
 /* Read a word from file */
-static int read_word(void) {
-	if (!BINLOAD_bin_file_open) {
-		Log_print("binload: not open BIN file");
-		return -1;
-	}
+static int read_word(void)
+{
 	UBYTE buf[2];
-	UINT br;
-	if (f_read(&BINLOAD_bin_file, buf, 2, &br) != FR_OK) {
-		f_close(&BINLOAD_bin_file);
-		BINLOAD_bin_file_open = FALSE;
+	if (fread(buf, 1, 2, BINLOAD_bin_file) != 2) {
+		fclose(BINLOAD_bin_file);
+		BINLOAD_bin_file = NULL;
 		if (BINLOAD_start_binloading) {
 			BINLOAD_start_binloading = FALSE;
 			Log_print("binload: not valid BIN file");
@@ -77,6 +81,8 @@ static int read_word(void) {
 /* Start or continue loading */
 static void loader_cont(void)
 {
+	if (BINLOAD_bin_file == NULL)
+		return;
 	if (BINLOAD_start_binloading) {
 		MEMORY_dPutByte(0x244, 0);
 		MEMORY_dPutByte(0x09, 1);
@@ -124,10 +130,10 @@ static void loader_cont(void)
 				instr_elapsed = 0;
 				BINLOAD_wait_active = FALSE;
 			}
-			byte = _fgetc(&BINLOAD_bin_file);
+			byte = fgetc(BINLOAD_bin_file);
 			if (byte == EOF) {
-				f_close(&BINLOAD_bin_file);
-				BINLOAD_bin_file_open = FALSE;
+				fclose(BINLOAD_bin_file);
+				BINLOAD_bin_file = NULL;
 				CPU_regPC = MEMORY_dGetWordAligned(0x2e0);
 				if (MEMORY_dGetByte(0x2e3) != 0xd7) {
 					/* run INIT routine which RTSes directly to RUN routine */
@@ -178,11 +184,10 @@ int BINLOAD_LoaderStart(UBYTE *buffer)
 /* Load BIN file, returns TRUE if ok */
 int BINLOAD_Loader(const char *filename)
 {
-	printf("BINLOAD_Loader '%s'", filename);
 	UBYTE buf[2];
-	if (BINLOAD_bin_file_open) {		/* close previously open file */
-		f_close(&BINLOAD_bin_file);
-		BINLOAD_bin_file_open = FALSE;
+	if (BINLOAD_bin_file != NULL) {		/* close previously open file */
+		fclose(BINLOAD_bin_file);
+		BINLOAD_bin_file = NULL;
 		BINLOAD_loading_basic = 0;
 	}
 	if (Atari800_machine_type == Atari800_MACHINE_5200) {
@@ -192,16 +197,15 @@ int BINLOAD_Loader(const char *filename)
 #endif
 		return FALSE;
 	}
-	if (f_open(&BINLOAD_bin_file, filename, FA_READ) != FR_OK) {	/* open */
+	BINLOAD_bin_file = fopen(filename, "rb");
+	if (BINLOAD_bin_file == NULL) {	/* open */
 		Log_print("binload: can't open \"%s\"", filename);
 		return FALSE;
 	}
-	BINLOAD_bin_file_open = TRUE;
 	/* Avoid "BOOT ERROR" when loading a BASIC program */
 	if (SIO_drive_status[0] == SIO_NO_DISK)
 		SIO_DisableDrive(1);
-	UINT rb;
-	if (fread(&BINLOAD_bin_file, buf, 2, &rb) == FR_OK) {
+	if (fread(buf, 1, 2, BINLOAD_bin_file) == 2) {
 		if (buf[0] == 0xff && buf[1] == 0xff) {
 			BINLOAD_start_binloading = TRUE; /* force SIO to call BINLOAD_LoaderStart at boot */
 			Atari800_Coldstart();             /* reboot */
@@ -220,8 +224,8 @@ int BINLOAD_Loader(const char *filename)
 			return TRUE;
 		}
 	}
-	f_close(&BINLOAD_bin_file);
-	BINLOAD_bin_file_open = FALSE;
+	fclose(BINLOAD_bin_file);
+	BINLOAD_bin_file = NULL;
 	Log_print("binload: \"%s\" not recognized as a DOS or BASIC program", filename);
 	return FALSE;
 }

@@ -25,10 +25,15 @@
 #define _POSIX_C_SOURCE 200112L /* for snprintf */
 
 #include "config.h"
-#include "ff.h"
+
+#ifdef HAVR_FF_WRAP_H
+#include <ff_wrap.h>
+#else
+#include <stdlib.h>
+#include <stdio.h>
+#endif
 
 #include <string.h>
-#include <stdlib.h>
 #ifdef HAVE_UNISTD_H
 #include <unistd.h>
 #endif
@@ -39,7 +44,7 @@
 #ifdef GWINSZ_IN_SYS_IOCTL
 # include <sys/ioctl.h>
 #endif
-#include "binload.h"
+
 #include "antic.h"
 #include "atari.h"
 #include "cpu.h"
@@ -720,9 +725,8 @@ static void safe_gets(char *buffer, size_t size, char const *prompt)
 		}
 	}
 #else
-/// TODO:
-///	fputs(prompt, stdout);
-///	if (fgets(buffer, size, stdin) == NULL)
+	fputs(prompt, stdout);
+	if (fgets(buffer, size, stdin) == NULL)
 		buffer[0] = 0;
 #endif
 	Util_chomp(buffer);
@@ -862,9 +866,9 @@ static void get_uword(UWORD *val)
 static void get_ubyte(UBYTE *val)
 {
 	UWORD uword;
-	if (!get_hex(&uword) || uword > 0xff) {
+	if (!get_hex(&uword) || uword > 0xff)
 		printf("Invalid argument!\n");
-	} else
+	else
 		*val = (UBYTE) uword;
 }
 
@@ -897,7 +901,7 @@ static int get_attrib_range(UWORD *addr1, UWORD *addr2)
 	return FALSE;
 }
 
-static UWORD show_instruction(FIL *fp, UWORD pc)
+static UWORD show_instruction(FILE *fp, UWORD pc)
 {
 	UWORD addr = pc;
 	UBYTE insn;
@@ -913,13 +917,13 @@ static UWORD show_instruction(FIL *fp, UWORD pc)
 		if (*p == '1') {
 			value = MEMORY_SafeGetByte(pc);
 			pc++;
-			fprintf(fp, nchars, "%04X: %02X %02X     " /*"%Xcyc  "*/ "%.*s$%02X%s",
+			nchars = fprintf(fp, "%04X: %02X %02X     " /*"%Xcyc  "*/ "%.*s$%02X%s",
 			                 addr, insn, value, /*cycles[insn],*/ (int) (p - mnemonic), mnemonic, value, p + 1);
 			break;
 		}
 		if (*p == '2') {
 			value = MEMORY_SafeGetByte(pc) + (MEMORY_SafeGetByte(pc + 1) << 8);
-			fprintf(fp, nchars, "%04X: %02X %02X %02X  " /*"%Xcyc  "*/ "%.*s$%04X%s",
+			nchars = fprintf(fp, "%04X: %02X %02X %02X  " /*"%Xcyc  "*/ "%.*s$%04X%s",
 			                 addr, insn, value & 0xff, value >> 8, /*cycles[insn],*/ (int) (p - mnemonic), mnemonic, value, p + 1);
 			pc += 2;
 			break;
@@ -928,7 +932,7 @@ static UWORD show_instruction(FIL *fp, UWORD pc)
 			UBYTE op = MEMORY_SafeGetByte(pc);
 			pc++;
 			value = (UWORD) (pc + (SBYTE) op);
-			fprintf(fp, nchars, "%04X: %02X %02X     " /*"3cyc  "*/ "%.4s$%04X", addr, insn, op, mnemonic, value);
+			nchars = fprintf(fp, "%04X: %02X %02X     " /*"3cyc  "*/ "%.4s$%04X", addr, insn, op, mnemonic, value);
 			break;
 		}
 	}
@@ -961,7 +965,7 @@ void MONITOR_Exit(void)
 	}
 }
 
-void MONITOR_ShowState(FIL *fp, UWORD pc, UBYTE a, UBYTE x, UBYTE y, UBYTE s,
+void MONITOR_ShowState(FILE *fp, UWORD pc, UBYTE a, UBYTE x, UBYTE y, UBYTE s,
                 char n, char v, char z, char c)
 {
 	fprintf(fp, "%3d %3d A=%02X X=%02X Y=%02X S=%02X P=%c%c*-%c%c%c%c PC=",
@@ -1590,15 +1594,14 @@ static void step_over(void)
 static void monitor_bline(void)
 {
 	get_dec(&ANTIC_break_ypos);
-	if (ANTIC_break_ypos >= 1008 && ANTIC_break_ypos <= 1247) {
+	if (ANTIC_break_ypos >= 1008 && ANTIC_break_ypos <= 1247)
 		printf("Blinking scanline %d\n", ANTIC_break_ypos - 1000);
 #ifdef MONITOR_BREAK
 	else if (ANTIC_break_ypos >= 0 && ANTIC_break_ypos <= 311)
 		printf("Breakpoint set at scanline %d\n", ANTIC_break_ypos);
 #endif
-	} else {
+	else
 		printf("BLINE disabled\n");
-	}
 }
 #endif
 
@@ -2184,9 +2187,8 @@ static void monitor_read_from_file(UWORD *addr)
 		UWORD nbytes;
 		if (xex) /* load xex file; no init nor run performed */
 		{
-			FIL f;
-			FRESULT fr = f_open(&f, filename, FA_READ);
-			if (fr != FR_OK) {
+			FILE *f = fopen(filename, "rb");
+			if (f == NULL) {
 				perror(filename);
 				return;
 			}
@@ -2197,11 +2199,11 @@ static void monitor_read_from_file(UWORD *addr)
 					int byte;
 
 					do {
-						byte = _fgetc(&f);
+						byte=fgetc(f);
 						if (byte==EOF) { break; }
 						fromaddr=byte&0xff;
 
-						byte = _fgetc(&f);
+						byte=fgetc(f);
 						if (byte==EOF) { printf("Bad xex file\n"); break; }
 						fromaddr|=((byte&0xff)<<8);
 
@@ -2209,26 +2211,26 @@ static void monitor_read_from_file(UWORD *addr)
 
 					if (byte==EOF) break;
 
-					byte = _fgetc(&f);
+					byte=fgetc(f);
 					if (byte==EOF) { printf("Bad xex file\n"); break; }
 					toaddr=byte&0xff;
 
-					byte = _fgetc(&f);
+					byte=fgetc(f);
 					if (byte==EOF) { printf("Bad xex file\n"); break; }
 					toaddr|=((byte&0xff)<<8);
 
 					*addr=fromaddr; /* sets to last load addr */
 					if ((int)toaddr-(int)fromaddr<0) { printf("Bad xex file\n"); break; }
 					nbytes=toaddr-fromaddr+1;
-					UINT rb;
+
 					/* if not full block, error */
-					if (f_read(&f, &MEMORY_mem[*addr], nbytes, &rb) != FR_OK) {
+					if (fread(&MEMORY_mem[*addr], nbytes, 1, f) == 0) {
 						printf("Bad xex file\n");
 						break;
 					}
 					printf("Read dos block: %04X-%04X, %04X bytes. \n",fromaddr,toaddr, nbytes);
 				}
-				f_close(&f);
+				fclose(f);
 			}
 			return;
 		}
@@ -2239,18 +2241,17 @@ static void monitor_read_from_file(UWORD *addr)
 					nbytes=0x10000-*addr;
 
 				if (*addr + nbytes <= 0x10000) {
-					FIL f;
-					FRESULT fr = f_open(&f, filename, FA_READ);
-					if (fr != FR_OK) {
+
+					FILE *f = fopen(filename, "rb");
+					if (f == NULL) {
 						perror(filename);
 						return;
 					}
 					else {
-						UINT rb;
 						/* read as many bytes as given or available */
-						if (f_read(&f, &MEMORY_mem[*addr], nbytes, &rb) != FR_OK)
+						if ((nbytes=fread(&MEMORY_mem[*addr], 1, nbytes, f)) == 0)
 							printf("Could not read bytes\n");
-						f_close(&f);
+						fclose(f);
 					}
 					printf("Read %d bytes at %04X-%04X\n",nbytes,*addr,*addr+nbytes-1);
 					return;
@@ -2284,7 +2285,7 @@ static void monitor_write_to_file(void)
 	if (get_hex2(&addr1, &addr2) && addr1 <= addr2) {
 		size_t wbytes = 0;
 		const char *filename;
-		FIL f;
+		FILE *f;
 		filename = get_token();
 
 		/* XXX this logic doesn't allow us to give a filename that
@@ -2316,35 +2317,36 @@ static void monitor_write_to_file(void)
 			f = popen(filename, "w");
 		else
 #endif
-		FRESULT fr = f_open(&f, filename, FA_WRITE | FA_CREATE_ALWAYS);
-		if (fr != FR_OK) {
+			f = fopen(filename, "wb");
+
+		if (f == NULL) {
 			perror(filename);
 			return;
 		} else {
 			size_t nbytes = addr2 - addr1 + 1;
 
 			if(xex) {
-				fputc(0xff, &f); /* binary load FFFF header */
-				fputc(0xff, &f);
-				fputc(addr1 & 0xff, &f);
-				fputc(addr1 >> 8, &f);
-				fputc(addr2 & 0xff, &f);
-				fputc(addr2 >> 8, &f);
+				fputc(0xff, f); /* binary load FFFF header */
+				fputc(0xff, f);
+				fputc(addr1 & 0xff, f);
+				fputc(addr1 >> 8, f);
+				fputc(addr2 & 0xff, f);
+				fputc(addr2 >> 8, f);
 				wbytes += 6;
 			}
-			UINT wb;
-			if (f_write(&f, &MEMORY_mem[addr1], addr2 - addr1 + 1, &wb) != FR_OK)
+
+			if (fwrite(&MEMORY_mem[addr1], 1, addr2 - addr1 + 1, f) < nbytes)
 				perror(filename);
 
 			wbytes += nbytes;
 
 			if(xex && have_runaddr) {
-				fputc(0xe0, &f); /* start addr $02e0 = RUNAD */
-				fputc(0x02, &f);
-				fputc(0xe1, &f); /* end addr $02e1 */
-				fputc(0x02, &f);
-				fputc(runaddr & 0xff, &f);
-				fputc(runaddr >> 8, &f);
+				fputc(0xe0, f); /* start addr $02e0 = RUNAD */
+				fputc(0x02, f);
+				fputc(0xe1, f); /* end addr $02e1 */
+				fputc(0x02, f);
+				fputc(runaddr & 0xff, f);
+				fputc(runaddr >> 8, f);
 				wbytes += 6;
 			}
 		}
@@ -2354,17 +2356,16 @@ static void monitor_write_to_file(void)
 			pclose(f);
 		else
 #endif
-			f_close(&f);
+			fclose(f);
 
 		/* TODO: when migrating to C99, instead of %lu and cast use %zu. */
 		printf("Wrote %04X bytes to %s file '%s'",
 				(unsigned int)wbytes, xex ? "XEX" : "RAW", filename);
 		if(xex) {
-			if(!have_runaddr) {
+			if(!have_runaddr)
 				printf(" (no run address)");
-			} else {
+			else
 				printf(", run address %04x", runaddr);
-			}
 		}
 		putchar('\n');
 	} else {
@@ -2490,7 +2491,7 @@ static void trainer_start_search(void)
 
 	/* alloc needed memory at first use */
 	if (trainer_memory == NULL) {
-		trainer_memory = (UBYTE *)Util_malloc(65536*2, "trainer_start_search"); // TODO: !!!
+		trainer_memory = (UBYTE *)malloc(65536*2);
 		if (trainer_memory != NULL) {
 			trainer_flags = trainer_memory + 65536;
 		} else {
@@ -2954,9 +2955,9 @@ static void save_load_state(int save) {
 
 	if( (filename = get_token()) == NULL ) filename = "monitor.a8s";
 	if(save) {
-		result = StateSav_SaveAtariState(filename, FA_CREATE_ALWAYS | FA_WRITE | FA_READ, TRUE);
+		result = StateSav_SaveAtariState(filename, "wb", TRUE);
 	} else {
-		result = StateSav_ReadAtariState(filename, FA_READ);
+		result = StateSav_ReadAtariState(filename, "rb");
 		PLATFORM_Exit(FALSE);
 	}
 
@@ -4072,14 +4073,12 @@ int MONITOR_Run(void)
 			return FALSE;
 		} else if(t[0] == '*' || t[0] == '@') {
 			UWORD val;
-			if(parse_hex(t, &val)) {
+			if(parse_hex(t, &val))
 				printf("%s = $%04x\n", t, val);
-			} else {
+			else
 				printf("Invalid dereference\n");
-			}
-		} else {
+		} else
 			printf("Invalid command!\n");
-		}
 	}
 }
 

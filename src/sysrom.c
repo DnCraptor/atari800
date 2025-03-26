@@ -25,13 +25,16 @@
 #include "config.h"
 
 #include <ctype.h>
-///#ifdef HAVE_DIRENT_H
-///#include <dirent.h>
-///#endif
+#ifdef HAVE_DIRENT_H
+#include <dirent.h>
+#endif
 #include <stdarg.h>
-#include "ff.h"
-
 #include <string.h>
+#ifdef HAVR_FF_WRAP_H
+#include <ff_wrap.h>
+#else
+#include <stdio.h>
+#endif
 
 #include "sysrom.h"
 
@@ -41,16 +44,12 @@
 #include "memory.h"
 #include "util.h"
 
-#include "ff.h"
-
 #if EMUOS_ALTIRRA
 # include "roms/altirra_5200_os.h"
 # include "roms/altirraos_800.h"
 # include "roms/altirraos_xl.h"
 # include "roms/altirra_basic.h"
 #endif /* EMUOS_ALTIRRA */
-
-const unsigned char __in_flash() __aligned(4096) MEMORY_xegame[8192] = { 0 }; // TBA
 
 int SYSROM_os_versions[Atari800_MACHINE_SIZE] = { SYSROM_AUTO, SYSROM_AUTO, SYSROM_AUTO };
 int SYSROM_basic_version = SYSROM_AUTO;
@@ -89,11 +88,11 @@ enum { CRC_NULL = 0 };
 SYSROM_t SYSROM_roms[SYSROM_SIZE] = {
 	{ osa_ntsc_filename, 0x2800, 0xc1b3bb02, NULL, TRUE }, /* SYSROM_A_NTSC */
 	{ osa_pal_filename, 0x2800, 0x72b3fed4, NULL, TRUE }, /* SYSROM_A_PAL */
-	{ osb_ntsc_filename, 0x2800, 0x0e86d61d, MEMORY_os, FALSE }, /* SYSROM_B_NTSC */
+	{ osb_ntsc_filename, 0x2800, 0x0e86d61d, NULL, TRUE }, /* SYSROM_B_NTSC */
 	{ osaa00r10_filename, 0x4000, 0xc5c11546, NULL, TRUE }, /* SYSROM_AA00R10 */
 	{ osaa01r11_filename, 0x4000, 0x1a1d7b1b, NULL, TRUE }, /* SYSROM_AA01R11 */
 	{ osbb00r1_filename, 0x4000, 0x643bcc98, NULL, TRUE }, /* SYSROM_BB00R1 */
-	{ osbb01r2_filename, 0x4000, 0x1f9cd270, ATARIXL_ROM, FALSE }, /* SYSROM_BB01R2 */
+	{ osbb01r2_filename, 0x4000, 0x1f9cd270, NULL, TRUE }, /* SYSROM_BB01R2 */
 	{ osbb02r3_filename, 0x4000, 0x0d477aa1, NULL, TRUE }, /* SYSROM_BB02R3 */
 	{ osbb02r3v4_filename, 0x4000, 0xd425a9cf, NULL, TRUE }, /* SYSROM_BB02R3V4 */
 	{ oscc01r4_filename, 0x4000, 0x0e000b99, NULL, TRUE }, /* SYSROM_CC01R4 */
@@ -105,7 +104,7 @@ SYSROM_t SYSROM_roms[SYSROM_SIZE] = {
 	{ os5200b_filename, 0x0800, 0xc2ba2613, NULL, TRUE }, /* SYSROM_5200A */
 	{ basica_filename, 0x2000, 0x4bec4de2, NULL, TRUE }, /* SYSROM_BASIC_A */
 	{ basicb_filename, 0x2000, 0xf0202fb3, NULL, TRUE }, /* SYSROM_BASIC_B */
-	{ basicc_filename, 0x2000, 0x7d684184, MEMORY_basic, FALSE }, /* SYSROM_BASIC_C */
+	{ basicc_filename, 0x2000, 0x7d684184, NULL, TRUE }, /* SYSROM_BASIC_C */
 	{ xegame_filename, 0x2000, 0xbdca01fb, NULL, TRUE }, /* SYSROM_XEGAME */
 	{ os800_custom_filename, 0x2800, CRC_NULL, NULL, TRUE }, /* SYSROM_400800_CUSTOM */
 	{ osxl_custom_filename, 0x4000, CRC_NULL, NULL, TRUE }, /* SYSROM_XL_CUSTOM */
@@ -209,23 +208,23 @@ int SYSROM_SetPath(char const *filename, int num, ...)
 	int len;
 	ULONG crc;
 	int retval = SYSROM_OK;
-	FIL f;
-	FRESULT fr = f_open(&f, filename, FA_READ);
-	if (fr != FR_OK)
+	FILE *f = fopen(filename, "rb");
+
+	if (f == NULL)
 		return SYSROM_ERROR;
 
-	len = Util_flen(&f);
+	len = Util_flen(f);
 	/* Don't proceed to CRC computation if the file has invalid size. */
 	if (!IsLengthAllowed(len)) {
-		f_close(&f);
+		fclose(f);
 		return SYSROM_BADSIZE;
 	}
-	Util_rewind(&f);
-	if (!CRC32_FromFile(&f, &crc)) {
-		f_close(&f);
+	Util_rewind(f);
+	if (!CRC32_FromFile(f, &crc)) {
+		fclose(f);
 		return SYSROM_ERROR;
 	}
-	f_close(&f);
+	fclose(f);
 
 	va_start(ap, num);
 	while (num > 0) {
@@ -286,75 +285,78 @@ static int MatchByName(char const *filename, int len, int only_if_not_set)
 	return -1;
 }
 
-int SYSROM_FindInDir(char const *directory, int only_if_not_set) {
-	printf("SYSROM_FindInDir(\"%s\", %d)", directory, only_if_not_set);
-	DIR dir;
-	FILINFO fileInfo;
-	if (only_if_not_set && num_unset_roms == 0) {
-		printf("SYSROM_FindInDir(\"%s\", %d) num_unset_roms: %d", directory, only_if_not_set, num_unset_roms);
+int SYSROM_FindInDir(char const *directory, int only_if_not_set)
+{
+	DIR *dir;
+	struct dirent *entry;
+
+	if (only_if_not_set && num_unset_roms == 0)
 		/* No unset ROM paths left. */
 		return TRUE;
-	}
-	if (f_opendir(&dir, directory) != FR_OK) {
-		printf("SYSROM_FindInDir(\"%s\", %d) FAILED", directory, only_if_not_set);
+
+	if ((dir = opendir(directory)) == NULL)
 		return FALSE;
-	}
-	while (f_readdir(&dir, &fileInfo) == FR_OK && fileInfo.fname[0] != '\0') {
+
+	while ((entry = readdir(dir)) != NULL) {
 		char full_filename[FILENAME_MAX];
-		FIL file;
+		FILE *file;
 		int len;
 		int id;
 		ULONG crc;
 		int matched_crc = FALSE;
-		Util_catpath(full_filename, directory, fileInfo.fname);
-		if (f_open(&file, full_filename, FA_READ) != FR_OK)
+		Util_catpath(full_filename, directory, entry->d_name);
+		if ((file = fopen(full_filename, "rb")) == NULL)
 			/* Ignore non-readable files (e.g. directories). */
 			continue;
-		len = Util_flen(&file);
+
+		len = Util_flen(file);
 		/* Don't proceed to CRC computation if the file has invalid size. */
 		if (!IsLengthAllowed(len)){
-			f_close(&file);
+			fclose(file);
 			continue;
 		}
-		Util_rewind(&file);
-		if (!CRC32_FromFile(&file, &crc)) {
-			f_close(&file);
+		Util_rewind(file);
+
+		if (!CRC32_FromFile(file, &crc)) {
+			fclose(file);
 			continue;
 		}
-		f_close(&file);
+		fclose(file);
+
 		/* Match ROM image by CRC. */
 		for (id = 0; id < SYSROM_LOADABLE_SIZE; ++id) {
 			if ((!only_if_not_set || SYSROM_roms[id].unset)
 			    && SYSROM_roms[id].size == len
 			    && SYSROM_roms[id].crc32 != CRC_NULL && SYSROM_roms[id].crc32 == crc) {
-				strncpy(SYSROM_roms[id].filename, full_filename, FILENAME_MAX);
+				strcpy(SYSROM_roms[id].filename, full_filename);
 				ClearUnsetFlag(id);
 				matched_crc = TRUE;
 				break;
 			}
 		}
+
 		if (!matched_crc) {
 			/* Match custom ROM image by name. */
-			char *c = fileInfo.fname;
+			char *c = entry->d_name;
 			while (*c != 0) {
 				*c = (char)tolower(*c);
 				++c;
 			}
-			id = MatchByName(fileInfo.fname, len, only_if_not_set);
-			if (id >= 0) {
-				strncpy(SYSROM_roms[id].filename, full_filename, FILENAME_MAX);
+
+			id = MatchByName(entry->d_name, len, only_if_not_set);
+			if (id >= 0){
+				strcpy(SYSROM_roms[id].filename, full_filename);
 				ClearUnsetFlag(id);
 			}
 		}
 	}
-	f_closedir(&dir);
-	printf("SYSROM_FindInDir(\"%s\", %d) PASSED", directory, only_if_not_set);
+
+	closedir(dir);
 	return TRUE;
 }
 
 void SYSROM_SetDefaults(void)
 {
-	printf("SYSROM_SetDefaults");
 	int i;
 	for (i = 0; i < SYSROM_LOADABLE_SIZE; ++i)
 		SYSROM_roms[i].unset = FALSE;
@@ -412,25 +414,18 @@ static int const autochoose_order_xegame[] = { SYSROM_XEGAME, SYSROM_XEGAME_CUST
 
 static int AutoChooseROM(int const *order)
 {
-	printf("AutoChooseROM(%08Xh) *order: %d", order, *order);
 	do {
-		if (SYSROM_roms[*order].data != NULL) {
-			printf("AutoChooseROM(%08Xh) *order: %d data: %08Xh", order, *order, SYSROM_roms[*order].data);
+		if (SYSROM_roms[*order].data != NULL
+		    || SYSROM_roms[*order].filename[0] != '\0')
 			return *order;
-		}
-		if (SYSROM_roms[*order].filename[0] != '\0') {
-			printf("AutoChooseROM(%08Xh) *order: %d filename: '%s'", order, *order, SYSROM_roms[*order].filename);
-			return *order;
-		}
 	} while (*++order != -1);
-	printf("AutoChooseROM(%08Xh) returns -1", order);
 	return -1;
 }
 
 int SYSROM_AutoChooseOS(int machine_type, int ram_size, int tv_system)
 {
 	int const *order;
-	printf("SYSROM_AutoChooseOS(machine_type: %d, ram_size: %d, tv_system: %d)", machine_type, ram_size, tv_system);
+
 	switch (machine_type) {
 	case Atari800_MACHINE_800:
 		if (tv_system == Atari800_TV_NTSC)
@@ -461,24 +456,22 @@ int SYSROM_AutoChooseOS(int machine_type, int ram_size, int tv_system)
 		order = autochoose_order_5200;
 		break;
 	}
+
 	return AutoChooseROM(order);
 }
 
 int SYSROM_AutoChooseBASIC(void)
 {
-	printf("SYSROM_AutoChooseBASIC");
 	return AutoChooseROM(autochoose_order_basic);
 }
 
 int SYSROM_AutoChooseXEGame(void)
 {
-	printf("SYSROM_AutoChooseXEGame");
 	return AutoChooseROM(autochoose_order_xegame);
 }
 
 void SYSROM_ChooseROMs(int machine_type, int ram_size, int tv_system, int *os_version, int *basic_version, int *xegame_version)
 {
-	printf("SYSROM_ChooseROMs(%d, %d, %d)", machine_type, ram_size, tv_system);
 	int os_ver;
 	if (SYSROM_os_versions[machine_type] == SYSROM_AUTO)
 		os_ver = SYSROM_AutoChooseOS(machine_type, ram_size, tv_system);
@@ -519,13 +512,10 @@ void SYSROM_ChooseROMs(int machine_type, int ram_size, int tv_system, int *os_ve
 			xegame_ver = -1;
 		*xegame_version = xegame_ver;
 	}
-	printf("SYSROM_ChooseROMs(%d, %d, %d) os_version: %d, basic_version: %d, xegame_version: %d",
-	        machine_type, ram_size, tv_system, *os_version, *basic_version, *xegame_version);
 }
 
 int SYSROM_LoadImage(int id, UBYTE *buffer)
 {
-	printf("SYSROM_LoadImage(id: %d, to: %08Xh)", id, buffer);
 	if (buffer < 0x20000000) { // it is ROM
 		return TRUE;
 	}
@@ -558,7 +548,6 @@ static int MatchROMVersionParameter(char const *string, int const *allowed_vals,
 
 int SYSROM_ReadConfig(char *string, char *ptr)
 {
-	printf("SYSROM_ReadConfig('%s', '%s')", string, ptr);
 	int id = CFG_MatchTextParameter(string, cfg_strings, SYSROM_LOADABLE_SIZE);
 	if (id >= 0) {
 		/* For faster start, don't check if CRC matches. */
@@ -610,7 +599,7 @@ int SYSROM_ReadConfig(char *string, char *ptr)
 	return TRUE;
 }
 
-void SYSROM_WriteConfig(FIL *fp)
+void SYSROM_WriteConfig(FILE *fp)
 {
 	int id;
 	for (id = 0; id < SYSROM_LOADABLE_SIZE; ++id) {
@@ -626,7 +615,6 @@ void SYSROM_WriteConfig(FIL *fp)
 
 int SYSROM_Initialise(int *argc, char *argv[])
 {
-	printf("SYSROM_Initialise");
 	int i;
 	int j;
 

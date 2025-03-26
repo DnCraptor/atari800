@@ -1,48 +1,29 @@
-# == DO NEVER EDIT THE NEXT LINES for Raspberry Pi Pico VS Code Extension to work ==
+# == DO NOT EDIT THE FOLLOWING LINES for the Raspberry Pi Pico VS Code Extension to work ==
 if(WIN32)
     set(USERHOME $ENV{USERPROFILE})
 else()
     set(USERHOME $ENV{HOME})
 endif()
-set(sdkVersion 2.0.0)
-set(toolchainVersion 13_2_Rel1)
-set(picotoolVersion 2.0.0)
-set(picoVscode ${USERHOME}/.pico-sdk/cmake/pico-vscode.cmake)
-if (EXISTS ${picoVscode})
-    include(${picoVscode})
-endif()
-# ====================================================================================
-cmake_minimum_required(VERSION 3.13)
-
-set(CMAKE_C_STANDARD 11)
-set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-
-# Initialise pico_sdk from installed location
-# (note this can come from environment, CMake cache etc)
-
-# == DO NEVER EDIT THE NEXT LINES for Raspberry Pi Pico VS Code Extension to work ==
-if(WIN32)
-    set(USERHOME $ENV{USERPROFILE})
-else()
-    set(USERHOME $ENV{HOME})
-endif()
-set(sdkVersion 2.0.0)
-set(toolchainVersion 13_2_Rel1)
-set(picotoolVersion 2.0.0)
+set(sdkVersion 2.1.1)
+set(toolchainVersion 14_2_Rel1)
+set(picotoolVersion 2.1.1)
 set(picoVscode ${USERHOME}/.pico-sdk/cmake/pico-vscode.cmake)
 if (EXISTS ${picoVscode})
     include(${picoVscode})
 endif()
 # ====================================================================================
 set(PICO_BOARD pico2 CACHE STRING "Board type")
+cmake_minimum_required(VERSION 3.28)
 
 # Pull in Raspberry Pi Pico SDK (must be before project)
 include(pico_sdk_import.cmake)
 
+set(PACKAGE_VERSION "3.2.1")
+set(CPU_MHZ 378)
+
 SET(PROJECT_NAME pico2-atari800)
 set(FLASH_SIZE 4096)
-SET(BUILD_NAME "${PROJECT_NAME}-${FLASH_SIZE}K")
+SET(BUILD_NAME "${PROJECT_NAME}-VGA-PWM-${CPU_MHZ}-${PACKAGE_VERSION}")
 
 set(OUTPUT_DIR "${CMAKE_SOURCE_DIR}/bin/${CMAKE_BUILD_TYPE}")
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${OUTPUT_DIR}")
@@ -142,7 +123,8 @@ target_compile_options(${PROJECT_NAME} PUBLIC
 endif ()
 
 target_compile_definitions(${PROJECT_NAME} PRIVATE
-        PACKAGE_VERSION="3.2.0"
+        PACKAGE_VERSION="${PACKAGE_VERSION}"
+        CPU_MHZ=${CPU_MHZ}
 
         PICO_FLASH_SIZE_BYTES=16777216
 
@@ -198,6 +180,9 @@ target_compile_definitions(${PROJECT_NAME} PRIVATE
         SERIO_SOUND=1
         VOICEBOX=1
         SOUND_THIN_API=1
+        SOUND=1
+        
+        HAVR_FF_WRAP_H=1
 
         #MNGR_DEBUG=1
         #DEBUG2=1
@@ -205,4 +190,4 @@ target_compile_definitions(${PROJECT_NAME} PRIVATE
         HAVE_OPENDIR=1
 )
 
-pico_set_linker_script(${PROJECT_NAME} "${CMAKE_SOURCE_DIR}/memmap.ld")
+#pico_set_linker_script(${PROJECT_NAME} "${CMAKE_SOURCE_DIR}/memmap.ld")

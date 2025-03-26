@@ -3,6 +3,13 @@
 
 #include "config.h"
 
+#ifdef HAVR_FF_WRAP_H
+#include <ff_wrap.h>
+#else
+#include <stdlib.h>
+#include <stdio.h>
+#endif
+
 #include <string.h>
 #if HAVE_STRINGS_H
 #include <strings.h>
@@ -21,20 +28,6 @@
 /* Returns TRUE if the characters are equal or represent the same letter
    in different case. */
 int Util_chrieq(char c1, char c2);
-
-inline static int stricmp(const char* s1, const char* s2) {
-   size_t l1 = strlen(s1);
-   size_t l2 = strlen(s2);
-   if (l1 > l2) return 1;
-   if (l1 < l2) return -1;
-   for (size_t i = 0; i < l1; ++i) {
-      char c1 = tolower(s1[i]);
-      char c2 = tolower(s2[i]);
-      if (c1 > c2) return 1;
-      if (c2 < c2) return -1;
-   }
-   return 0;
-}
 
 #ifdef __STRICT_ANSI__
 /* Returns a positive integer if str1>str2, negative if str1<str2
@@ -119,13 +112,13 @@ double Util_round(double x);
 /* Memory management ----------------------------------------------------- */
 
 /* malloc() with out-of-memory checking. Never returns NULL. */
-void *Util_malloc(size_t size, const char* from);
+void *Util_malloc(size_t size);
 
 /* realloc() with out-of-memory checking. Never returns NULL. */
-void *Util_realloc(void *ptr, size_t size, const char* from);
+void *Util_realloc(void *ptr, size_t size);
 
 /* strdup() with out-of-memory checking. Never returns NULL. */
-char *Util_strdup(const char *s, const char* from);
+char *Util_strdup(const char *s);
 
 
 /* Filenames ------------------------------------------------------------- */
@@ -183,8 +176,12 @@ int Util_direxists(const char *filename);
 #ifdef HAVE_REWIND
 #define Util_rewind(fp) rewind(fp)
 #else
-#define Util_rewind(fp) f_lseek(fp, 0)
+#define Util_rewind(fp) fseek(fp, 0, SEEK_SET)
 #endif
+
+/* Returns the length of an open stream.
+   May change the current position. */
+int Util_flen(FILE *fp);
 
 /* Deletes a file, returns 0 on success, -1 on failure. */
 #ifdef HAVE_WINDOWS_H
@@ -195,10 +192,8 @@ int Util_unlink(const char *filename);
 #define HAVE_UTIL_UNLINK
 #endif /* defined(HAVE_UNLINK) */
 
-#include "ff.h"
-
 /* Creates a file that does not exist and fills in filename with its name. */
-FIL *Util_uniqopen(char *filename, const char *mode);
+FILE *Util_uniqopen(char *filename, const char *mode);
 
 /* Support for temporary files.
 
@@ -230,9 +225,9 @@ FIL *Util_uniqopen(char *filename, const char *mode);
 #else
 /* if we can't delete the created file, leave it to the user */
 #define Util_tmpbufdef(modifier, def)
-///#define Util_fopen(filename, mode, tmpbuf)  fopen(filename, mode)
-#define Util_tmpopen(tmpbuf)                Util_uniqopen(NULL, FA_CREATE_ALWAYS | FA_WRITE)
-#define Util_fclose(fp, tmpbuf)             f_close(fp)
+#define Util_fopen(filename, mode, tmpbuf)  fopen(filename, mode)
+#define Util_tmpopen(tmpbuf)                Util_uniqopen(NULL, "wb+")
+#define Util_fclose(fp, tmpbuf)             fclose(fp)
 #endif
 
 void Util_sleep(double s);
@@ -240,10 +235,5 @@ double Util_time(void);
 
 /* Get current working directory. */
 char *Util_getcwd(char *buf, size_t size);
-
-#include "ff.h"
-/* Returns the length of an open stream.
-   May change the current position. */
-int Util_flen(FIL *fp);
 
 #endif /* UTIL_H_ */

@@ -26,7 +26,14 @@
 
 #include "config.h"
 #include <string.h>
-#include <stdlib.h> /* free() */
+
+#ifdef HAVR_FF_WRAP_H
+#include <ff_wrap.h>
+#else
+#include <stdlib.h>
+#include <stdio.h>
+#endif
+
 
 #include "afile.h"
 #include "antic.h"
@@ -84,11 +91,6 @@
 #if defined(AUDIO_RECORDING) || defined(VIDEO_RECORDING)
 #include "file_export.h"
 #endif /* defined(SOUND) || defined(VIDEO_RECORDING) */
-#ifdef DIRECTX
-#include "win32\main.h"
-#include "win32\joystick.h"
-#include "win32\screen_win32.h"
-#endif /* DIRECTX */
 #if SUPPORTS_CHANGE_VIDEOMODE
 #include "videomode.h"
 #endif /* SUPPORTS_CHANGE_VIDEOMODE */
@@ -101,43 +103,6 @@
 #endif /* HAVE_OPENGL */
 #endif /* GUI_SDL */
 
-#ifdef DIRECTX
-/* Display Settings */
-extern RENDERMODE rendermode;
-extern FRAMEPARAMS frameparams;
-extern DISPLAYMODE displaymode;
-extern FSRESOLUTION fsresolution;
-extern SCREENMODE screenmode;
-extern ASPECTMODE scalingmethod;
-extern ASPECTRATIO aspectmode;
-extern CROP crop;
-extern OFFSET offset;
-extern BOOL usecustomfsresolution;
-extern BOOL hidecursor;
-extern BOOL lockaspect;
-extern BOOL showmenu;
-extern int windowscale;
-extern int fullscreenWidth;
-extern int fullscreenHeight;
-extern int origScreenWidth;
-extern int origScreenHeight;
-extern int origScreenDepth;
-
-/* Controller Settings */
-extern BOOL mapController1Buttons;
-extern BOOL mapController2Buttons;
-
-/* local variables */
-static char desktopreslabel[30];
-static char hcrop_label[4];
-static char vcrop_label[4];
-static char hshift_label[4];
-static char vshift_label[4];
-static char monitor_label[40];
-static char native_width_label[10];
-static char native_height_label[20];
-#endif /* DIRECTX */
-
 #ifdef _WIN32_WCE
 extern int smooth_filter;
 extern int filter_available;
@@ -149,7 +114,6 @@ extern void AboutPocketAtari(void);
 extern int db_mode;
 extern int screen_tv_mode;
 extern int emulate_paddles;
-extern int glob_snd_ena;
 extern void JoystickConfiguration(void);
 extern void ButtonConfiguration(void);
 extern void AboutAtariDC(void);
@@ -196,8 +160,8 @@ static void SetItemChecked(UI_tMenuItem *mip, int option, int checked)
 	FindMenuItem(mip, option)->flags = checked ? (UI_ITEM_CHECK | UI_ITEM_CHECKED) : UI_ITEM_CHECK;
 }
 
-static void FilenameMessage(const char *format, const char *filename) {
-	printf("FilenameMessage %s %s ", format, filename);
+static void FilenameMessage(const char *format, const char *filename)
+{
 	char msg[FILENAME_MAX + 30];
 	snprintf(msg, sizeof(msg), format, filename);
 	UI_driver->fMessage(msg, 1);
@@ -236,7 +200,7 @@ static void SystemSettings(void)
 		UI_MENU_ACTION(0, "Disabled"),
 		UI_MENU_ACTION(4, "1 64K RAM Select board (16 KB)"),
 		UI_MENU_ACTION(20, "2 64K RAM Select boards (80 KB)"),
-		UI_MENU_ACTION(36, "3 64K RAM Select boards (144 KB)"),
+///		UI_MENU_ACTION(36, "3 64K RAM Select boards (144 KB)"),
 		UI_MENU_ACTION(MOSAIC_OTHER, "Other"),
 		UI_MENU_END
 	};
@@ -256,11 +220,11 @@ static void SystemSettings(void)
 		UI_MENU_ACTION(48, "48 KB"),
 		UI_MENU_ACTION(64, "64 KB"),
 		UI_MENU_ACTION(128, "128 KB"),
-		UI_MENU_ACTION(192, "192 KB"),
-		UI_MENU_ACTION(MEMORY_RAM_320_RAMBO, "320 KB (Rambo)"),
-		UI_MENU_ACTION(MEMORY_RAM_320_COMPY_SHOP, "320 KB (Compy-Shop)"),
-		UI_MENU_ACTION(576, "576 KB"),
-		UI_MENU_ACTION(1088, "1088 KB"),
+///		UI_MENU_ACTION(192, "192 KB"),
+///		UI_MENU_ACTION(MEMORY_RAM_320_RAMBO, "320 KB (Rambo)"),
+///		UI_MENU_ACTION(MEMORY_RAM_320_COMPY_SHOP, "320 KB (Compy-Shop)"),
+///		UI_MENU_ACTION(576, "576 KB"),
+///		UI_MENU_ACTION(1088, "1088 KB"),
 		UI_MENU_END
 	};
 	static UI_tMenuItem os800_menu_array[] = {
@@ -676,7 +640,8 @@ static void SystemSettings(void)
 						int offset = 0;
 						int value = UI_driver->fSelectSlider("Select amount of Mosaic RAM",
 						                      MEMORY_mosaic_num_banks,
-						                      64, &MosaicSliderLabel, &offset);
+						                      22, ///64,
+											  &MosaicSliderLabel, &offset);
 						if (value != -1) {
 							MEMORY_mosaic_num_banks = value;
 						}
@@ -690,23 +655,26 @@ static void SystemSettings(void)
 				}
 			}
 			break;
-		case 8:
+		case 8: /// TODO: psram?
+		/**
 			if (Atari800_machine_type == Atari800_MACHINE_800) {
 				option2 = UI_driver->fSelect(NULL, UI_SELECT_POPUP, MEMORY_axlon_num_banks, axlon_ram_menu_array, NULL);
 				if (option2 >= 0) {
 					MEMORY_axlon_num_banks = option2;
 					if (option2 > 0)
-						/* Can't have both Mosaic and Axlon active together. */
+						/ * Can't have both Mosaic and Axlon active together. * /
 						MEMORY_mosaic_num_banks = 0;
 					need_initialise = TRUE;
 				}
 			}
+			*/
 			break;
 		case 9:
+		/**
 			if (Atari800_machine_type == Atari800_MACHINE_800) {
 				MEMORY_axlon_0f_mirror = !MEMORY_axlon_0f_mirror;
 				need_initialise = TRUE;
-			}
+			}*/
 			break;
 		case 10:
 			if (Atari800_machine_type == Atari800_MACHINE_XLXE)
@@ -749,7 +717,7 @@ static void SystemSettings(void)
 /* Inspired by LNG (lng.sourceforge.net) */
 /* Writes a blank ATR. The ATR must by formatted by an Atari DOS
    before files are written to it. */
-static void MakeBlankDisk(FIL *setFile)
+static void MakeBlankDisk(FILE *setFile)
 {
 /* 720, so it's a standard Single Density disk,
    which can be formatted by 2.x DOSes.
@@ -778,9 +746,6 @@ int UI_show_hidden_files = FALSE;
 
 static void DiskManagement(void)
 {
-	FIL f, f2;
-	FIL *fp = &f;
-	FIL *fp2 = &f2;
 	static char drive_array[8][5] = { " D1:", " D2:", " D3:", " D4:", " D5:", " D6:", " D7:", " D8:" };
 
 	static UI_tMenuItem menu_array[] = {
@@ -834,7 +799,7 @@ static void DiskManagement(void)
 		switch (dsknum) {
 		case 8:
 			if (UI_driver->fGetSaveFilename(set_filename, UI_saved_files_dir, UI_n_saved_files_dir)) {
-				fp = f_open(fp, set_filename, FA_WRITE) == FR_OK ? fp : NULL;
+				FILE *fp = fopen(set_filename, "w");
 				if (fp == NULL) {
 					CantSave(set_filename);
 					break;
@@ -847,7 +812,7 @@ static void DiskManagement(void)
 			break;
 		case 9:
 			if (UI_driver->fGetLoadFilename(set_filename, UI_saved_files_dir, UI_n_saved_files_dir)) {
-				fp = f_open(fp, set_filename, FA_READ) == FR_OK ? fp : NULL;
+				FILE *fp = fopen(set_filename, "r");
 				if (fp == NULL) {
 					CantLoad(set_filename);
 					break;
@@ -860,7 +825,7 @@ static void DiskManagement(void)
 							SIO_Mount(i + 1, filename, FALSE);
 					}
 				}
-				f_close(fp);
+				fclose(fp);
 			}
 			break;
 		case 10:
@@ -868,7 +833,7 @@ static void DiskManagement(void)
 			break;
 		case 11:
 			if (UI_driver->fGetSaveFilename(disk_filename, UI_atari_files_dir, UI_n_atari_files_dir)) {
-				fp = f_open(fp, disk_filename, FA_WRITE) == FR_OK ? fp : NULL;
+				FILE *fp = fopen(disk_filename, "wb");
 				if (fp == NULL) {
 					CantSave(disk_filename);
 					break;
@@ -881,7 +846,7 @@ static void DiskManagement(void)
 		case 12:
 			if (UI_driver->fGetLoadFilename(disk_filename, UI_atari_files_dir, UI_n_atari_files_dir)) {
 				char uncompr_filename[FILENAME_MAX];
-				fp = f_open(fp, disk_filename, FA_READ) == FR_OK ? fp : NULL;
+				FILE *fp = fopen(disk_filename, "rb");
 				const char *p;
 				if (fp == NULL) {
 					CantLoad(disk_filename);
@@ -928,7 +893,7 @@ static void DiskManagement(void)
 				case 0x1f:
 					fclose(fp);
 					if (UI_driver->fGetSaveFilename(uncompr_filename, UI_atari_files_dir, UI_n_atari_files_dir)) {
-						fp2 = f_open(fp2, uncompr_filename, FA_WRITE) == FR_OK ? fp2 : NULL;
+						FILE *fp2 = fopen(uncompr_filename, "wb");
 						int success;
 						if (fp2 == NULL) {
 							CantSave(uncompr_filename);
@@ -942,7 +907,7 @@ static void DiskManagement(void)
 				case 0xf9:
 				case 0xfa:
 					if (UI_driver->fGetSaveFilename(uncompr_filename, UI_atari_files_dir, UI_n_atari_files_dir)) {
-						fp2 = f_open(fp2, uncompr_filename, FA_WRITE) == FR_OK ? fp2 : NULL;
+						FILE *fp2 = fopen(uncompr_filename, "wb");
 						int success;
 						if (fp2 == NULL) {
 							fclose(fp);
@@ -1009,69 +974,62 @@ static void DiskManagement(void)
 	}
 }
 
-int UI_SelectCartType(int k) {
-	UI_tMenuItem *menu_array = (UI_tMenuItem*)Util_malloc(CARTRIDGE_TYPE_COUNT * sizeof(UI_tMenuItem), "UI_SelectCartType");
+int UI_SelectCartType(int k)
+{
+	UI_tMenuItem menu_array[CARTRIDGE_TYPE_COUNT] = { 0 };
 	int cart_entry;
 	int menu_entry = 0;
-	int option = 1;
-	printf("UI_SelectCartType(%d)", k);
+	int option = 0;
+
 	UI_driver->fInit();
-	printf("UI_SelectCartType(%d) fInit PASSED", k);
+
 	for (cart_entry = 1; cart_entry < CARTRIDGE_TYPE_COUNT; cart_entry++) {
-		///printf("UI_SelectCartType(%d) cart_entry: %d", k, cart_entry);
 		if (CARTRIDGES[cart_entry].kb == k) {
-			printf("UI_SelectCartType(%d) CARTRIDGES[%d].desc: %s", k, cart_entry, CARTRIDGES[cart_entry].description);
-			menu_array[menu_entry].prefix = NULL;
-			menu_array[menu_entry].suffix = NULL;
 			menu_array[menu_entry].flags = UI_ITEM_ACTION;
 			menu_array[menu_entry].retval = cart_entry;
 			menu_array[menu_entry].item = CARTRIDGES[cart_entry].description;
 			menu_entry++;
-	    }
+	    	}
 	}
-	printf("UI_SelectCartType(%d) menu_entry: %d", k, menu_entry);
-	if (menu_entry == 0) {
-		free(menu_array);
+		
+	if (menu_entry == 0)
 		return CARTRIDGE_NONE;
-	}
+
 	/* Terminate menu_array, but do it by hand */
 	menu_array[menu_entry].flags = UI_ITEM_END;
 
-	printf("UI_SelectCartType(%d) UI_driver->fSelect", k);
-	int seltype;
 	option = UI_driver->fSelect("Select Cartridge Type", 0, option, menu_array, NULL);
-	printf("UI_SelectCartType(%d) UI_driver->fSelect returns %s", k, option);
-	free(menu_array);
 	if (option > 0)
 		return option;
 
 	return CARTRIDGE_NONE;
 }
 
-int UI_SelectCartTypeBetween(int *types) {
-	UI_tMenuItem *menu_array = (UI_tMenuItem*)Util_malloc(CARTRIDGE_TYPE_COUNT * sizeof(UI_tMenuItem), "UI_SelectCartType");
+int UI_SelectCartTypeBetween(int *types)
+{
+	UI_tMenuItem menu_array[CARTRIDGE_TYPE_COUNT] = { 0 };
 	int cart_entry;
 	int menu_entry = 0;
 	int option = 0;
+
 	UI_driver->fInit();
+
 	for (cart_entry = 1; cart_entry < CARTRIDGE_TYPE_COUNT; cart_entry++) {
 		if (cart_entry == types[menu_entry]) {
-			menu_array[menu_entry].prefix = NULL;
-			menu_array[menu_entry].suffix = NULL;
 			menu_array[menu_entry].flags = UI_ITEM_ACTION;
 			menu_array[menu_entry].retval = cart_entry;
 			menu_array[menu_entry].item = CARTRIDGES[cart_entry].description;
 			menu_entry++;
-	    }
+	    	}
 	}
-	if (menu_entry == 0) {
-		free(menu_array);
+	
+	if (menu_entry == 0)
 		return CARTRIDGE_NONE;
-	}
+
 	/* Terminate menu_array, but do it by hand */
 	menu_array[menu_entry].flags = UI_ITEM_END;
+
 	option = UI_driver->fSelect("Select Cartridge Type", 0, option, menu_array, NULL);
-	free(menu_array);
 	if (option > 0)
 		return option;
 
@@ -1530,31 +1488,25 @@ static void VideoRecording(void)
 }
 #endif /* VIDEO_RECORDING */
 
-static int AutostartFile(void) {
-	static char filename[FILENAME_MAX] = { 0 };
-	printf("AutostartFile prev.: %s", filename);
+static int AutostartFile(void)
+{
+	static char filename[FILENAME_MAX];
 	if (UI_driver->fGetLoadFilename(filename, UI_atari_files_dir, UI_n_atari_files_dir)) {
 		int file_type = AFILE_OpenFile(filename, TRUE, 1, FALSE);
-		printf("AFILE_OpenFile file_type: %d", file_type);
 		if (file_type != 0) {
 			int rom_kb;
-			if ((file_type & 0xff) == AFILE_ROM && (rom_kb = (file_type & ~0xff) >> 8) != 0) {
-				printf("AFILE_OpenFile file_type: ROM %d KB", rom_kb);
+			if ((file_type & 0xff) == AFILE_ROM
+			    && (rom_kb = (file_type & ~0xff) >> 8) != 0) {
 				int cart_type = UI_SelectCartType(rom_kb);
-				printf("AFILE_OpenFile cart_type: %d", cart_type);
-				if (cart_type == CARTRIDGE_NONE) {
+				if (cart_type == CARTRIDGE_NONE)
 					/* User chose nothing - go back to parent menu. */
-					FilenameMessage("Wrong cartridge", filename);
 					return FALSE;
-				}
 				CARTRIDGE_SetTypeAutoReboot(&CARTRIDGE_main, cart_type);
 			}
-			printf("AutostartFile %s OK", filename);
 			return TRUE;
 		}
 		CantLoad(filename);
 	}
-	printf("AutostartFile cancelled");
 	return FALSE;
 }
 
@@ -2396,7 +2348,7 @@ static void SaveState(void)
 	if (UI_driver->fGetSaveFilename(state_filename, UI_saved_files_dir, UI_n_saved_files_dir)) {
 		int result;
 		UI_driver->fMessage("Please wait while saving...", 0);
-		result = StateSav_SaveAtariState(state_filename, FA_CREATE_ALWAYS | FA_WRITE | FA_READ, TRUE);
+		result = StateSav_SaveAtariState(state_filename, "wb", TRUE);
 		if (!result)
 			CantSave(state_filename);
 	}
@@ -2406,7 +2358,7 @@ static void LoadState(void)
 {
 	if (UI_driver->fGetLoadFilename(state_filename, UI_saved_files_dir, UI_n_saved_files_dir)) {
 		UI_driver->fMessage("Please wait while loading...", 0);
-		if (!StateSav_ReadAtariState(state_filename, FA_READ))
+		if (!StateSav_ReadAtariState(state_filename, "rb"))
 			CantLoad(state_filename);
 	}
 }
@@ -3424,347 +3376,6 @@ static void DisplaySettings(void)
 	}
 }
 
-#ifdef DIRECTX
-static void WindowsOptions(void)
-{
-	static const UI_tMenuItem screen_mode_menu_array[] = {
-		UI_MENU_ACTION(0, "Fullscreen"),
-		UI_MENU_ACTION(1, "Window"),
-		UI_MENU_END
-	};
-	
-	static const UI_tMenuItem display_mode_menu_array[] = {
-		UI_MENU_ACTION(0, "GDI"),
-		UI_MENU_ACTION(1, "GDI+"),
-		UI_MENU_ACTION(2, "GDI+/Bilinear"),
-		UI_MENU_ACTION(3, "GDI+/Bilinear(HQ)"),
-		UI_MENU_ACTION(4, "GDI+/Bicubic(HQ)"),
-		UI_MENU_ACTION(5, "Direct3D"),
-		UI_MENU_ACTION(6, "Direct3D/Bilinear"),
-		UI_MENU_END
-	};
-	
-	static const UI_tMenuItem window_scale_menu_array[] = {
-		UI_MENU_ACTION(0, "100% [320x240]"),
-		UI_MENU_ACTION(1, "150% [480x360]"),
-		UI_MENU_ACTION(2, "200% [640x480]"),
-		UI_MENU_ACTION(3, "250% [800x600]"),
-		UI_MENU_ACTION(4, "300% [960x720]"),
-		UI_MENU_ACTION(5, "350% [1120x840]"),
-		UI_MENU_ACTION(6, "400% [1280x960]"),
-		UI_MENU_ACTION(7, "450% [1440x1080]"),
-		UI_MENU_ACTION(8, "500% [1600x1200]"),
-		UI_MENU_END
-	};
-	
-	static const UI_tMenuItem fsresolution_menu_array[] = {
-		UI_MENU_ACTION(0, desktopreslabel),
-		UI_MENU_ACTION(1, "VGA     [640x480]   (2x)"),
-		UI_MENU_ACTION(2, "SXGA    [1280x960]  (4x)"),
-		UI_MENU_ACTION(3, "UXGA    [1600x1200] (5x)"),
-		UI_MENU_END
-	};
-	
-	static const UI_tMenuItem scaling_method_menu_array[] = {
-		UI_MENU_ACTION(0, "Off"),
-		UI_MENU_ACTION(1, "Normal"),
-		UI_MENU_ACTION(2, "Simple"),
-		UI_MENU_ACTION(3, "Adaptive"),
-		UI_MENU_END
-	};
-	
-	static const UI_tMenuItem aspect_mode_menu_array[] = {
-		UI_MENU_ACTION(0, "Auto       [7:5/4:3]"),
-		UI_MENU_ACTION(1, "Wide       [7:5]"),
-		UI_MENU_ACTION(2, "Cropped    [4:3]"),
-		UI_MENU_ACTION(3, "Compressed [4:3]"),
-		UI_MENU_END
-	};
-	
-	static const UI_tMenuItem scanline_mode_menu_array[] = {
-		UI_MENU_ACTION(0, "Off"),
-		UI_MENU_ACTION(1, "Low     [1x]"),
-		UI_MENU_ACTION(2, "Medium  [2x]"),
-		UI_MENU_ACTION(3, "High    [3x]"),
-		UI_MENU_END
-	};
-
-	static char refresh_status[16];
-	static UI_tMenuItem menu_array[] = {
-	    UI_MENU_SUBMENU_SUFFIX(0, "Display rendering: ", NULL),
-		UI_MENU_SUBMENU_SUFFIX(1, "Screen mode: ", NULL),
-		UI_MENU_SUBMENU_SUFFIX(2, "Window scale: ", NULL),
-		UI_MENU_SUBMENU_SUFFIX(3, "Fullscreen resolution:", NULL),
-		UI_MENU_SUBMENU_SUFFIX(4, "Scaling method:", NULL),
-		UI_MENU_SUBMENU_SUFFIX(5, "Aspect mode:", NULL),		
-		UI_MENU_ACTION_PREFIX(6, "Horizontal crop: ", native_width_label),		
-		UI_MENU_ACTION_PREFIX(7, "Vertical crop:   ", native_height_label),
-		UI_MENU_CHECK(8, "Lock aspect mode when cropping:"),
-		UI_MENU_SUBMENU_SUFFIX(9, "Horizontal offset: ", NULL),
-		UI_MENU_SUBMENU_SUFFIX(10, "Vertical offset: ", NULL),
-		UI_MENU_SUBMENU_SUFFIX(11, "Scanline mode:", NULL),
-		UI_MENU_CHECK(12, "Hide cursor in fullscreen UI:"),
-		UI_MENU_CHECK(13, "Show menu in window mode:"),
-		UI_MENU_END
-	};
-
-	int option = 0;
-	int option2;
-	int seltype;
-	int prev_value;
-	char current_scale[5], trim_value[4], shift_value[4];
-	char displaymodename[20];
-	int i;
-
-	for (;;) {
-		if (rendermode == DIRECTDRAW) {
-			for (i = 0; i <= 7; i++) {
-				FindMenuItem(menu_array, i)->suffix = "N/A";
-			}
-		}
-		else {
-			/*SetDisplayMode(GetActiveDisplayMode());*/
-			GetDisplayModeName(displaymodename);
-			FindMenuItem(menu_array, 0)->suffix = displaymodename; 
-			FindMenuItem(menu_array, 1)->suffix = screen_mode_menu_array[screenmode].item;
-			memcpy(current_scale, window_scale_menu_array[(int)((windowscale/100.0f-1)*2)].item, 5);
-			current_scale[4] = '\0'; 
-			
-			FindMenuItem(menu_array, 2)->suffix = current_scale;
-			
-			if (fsresolution == VGA)
-				FindMenuItem(menu_array, 3)->suffix = "VGA";
-			else if (fsresolution == SXGA)
-				FindMenuItem(menu_array, 3)->suffix = "SXGA";
-			else if (fsresolution == UXGA)
-				FindMenuItem(menu_array, 3)->suffix = "UXGA";
-			else	
-				FindMenuItem(menu_array, 3)->suffix = "Desktop";
-			
-			FindMenuItem(menu_array, 4)->suffix = scaling_method_menu_array[scalingmethod].item;
-			
-			if (aspectmode == AUTO)
-				FindMenuItem(menu_array, 5)->suffix = "Auto";
-			else if (aspectmode == WIDE)
-				FindMenuItem(menu_array, 5)->suffix = "Wide";
-			else if (aspectmode == CROPPED)
-				FindMenuItem(menu_array, 5)->suffix = "Cropped";
-			else if (aspectmode == COMPRESSED)
-				FindMenuItem(menu_array, 5)->suffix = "Compressed";
-
-			snprintf(hcrop_label, sizeof(hcrop_label), "%d", crop.horizontal);
-			snprintf(vcrop_label, sizeof(vcrop_label), "%d", crop.vertical);
-		    FindMenuItem(menu_array, 6)->suffix = hcrop_label;
-			FindMenuItem(menu_array, 7)->suffix = vcrop_label; 
-			
-			SetItemChecked(menu_array, 8, lockaspect);
-			snprintf(hshift_label, sizeof(hshift_label), "%d", offset.horizontal);
-			snprintf(vshift_label, sizeof(vshift_label), "%d", offset.vertical);
-			FindMenuItem(menu_array, 9)->suffix = hshift_label;
-			FindMenuItem(menu_array, 10)->suffix = vshift_label;
-			
-			if (frameparams.scanlinemode == NONE)
-				FindMenuItem(menu_array, 11)->suffix = "Off";
-			else if (frameparams.scanlinemode == LOW)
-				FindMenuItem(menu_array, 11)->suffix = "Low";
-			else if (frameparams.scanlinemode == MEDIUM)
-				FindMenuItem(menu_array, 11)->suffix = "Medium";
-			else if (frameparams.scanlinemode == HIGH)
-				FindMenuItem(menu_array, 11)->suffix = "High";
-				
-			SetItemChecked(menu_array, 12, hidecursor);
-			SetItemChecked(menu_array, 13, showmenu);
-		}
-
-		option = UI_driver->fSelect("Windows Display Options", 0, option, menu_array, &seltype);
-		switch (option) {
-
-		case 0:
-			if (rendermode != DIRECTDRAW) {
-				prev_value = displaymode;
-				option2 = UI_driver->fSelect(NULL, UI_SELECT_POPUP, displaymode, display_mode_menu_array, NULL);
-				if (option2 >= 0) {
-					displaymode = option2;					
-					if (prev_value != option2)
-						UI_driver->fMessage("Save the config and restart emulator", 1);
-				}
-			}
-			break;
-		case 1:
-			if (rendermode != DIRECTDRAW) {
-				prev_value = screenmode;
-				option2 = UI_driver->fSelect(NULL, UI_SELECT_POPUP, screenmode, screen_mode_menu_array, NULL);
-				if (option2 >= 0)
-					if (prev_value != option2)
-						togglewindowstate();
-			}
-			break;
-		case 2:
-			if (rendermode != DIRECTDRAW) {
-				option2 = UI_driver->fSelect(NULL, UI_SELECT_POPUP, (int)((windowscale/100.0f-1)*2), window_scale_menu_array, NULL);
-				if (option2 >= 0) {					
-					changewindowsize(SET, (int)((option2/2.0f+1)*100));
-					prev_value = windowscale;
-					windowscale = (int)((option2/2.0f+1)*100);
-					if (windowscale != prev_value) {
-						if (screenmode == WINDOW)
-							UI_driver->fMessage("Cannot display at this size", 1);
-						else
-							UI_driver->fMessage("Cannot preview in fullscreen mode", 1);
-					}
-				}
-			}
-			break;
-		case 3:
-			if (rendermode != DIRECTDRAW) {
-				option2 = UI_driver->fSelect(NULL, UI_SELECT_POPUP, fsresolution, fsresolution_menu_array, NULL);
-				if (option2 >= 0)
-					fsresolution = option2;
-				if (fsresolution == DESKTOP)
-					usecustomfsresolution = FALSE;
-				else if (fsresolution == UXGA) {
-					usecustomfsresolution = TRUE;
-					fullscreenWidth = 1600;
-					fullscreenHeight = 1200;
-				}
-				else if (fsresolution == SXGA) {
-					usecustomfsresolution = TRUE;
-					fullscreenWidth = 1280;
-					fullscreenHeight = 960;
-				}
-				else if (fsresolution == VGA) {
-					usecustomfsresolution = TRUE;
-					fullscreenWidth = 640;
-					fullscreenHeight = 480;
-				}
-			}
-			break;
-		case 4:
-			if (rendermode != DIRECTDRAW) {
-				option2 = UI_driver->fSelect(NULL, UI_SELECT_POPUP, scalingmethod, scaling_method_menu_array, NULL);
-				if (option2 >= 0) {
-					scalingmethod = option2;
-					changewindowsize(RESET, 0);
-					refreshframe();
-				}
-			}
-			break;
-		case 5:
-			if (rendermode != DIRECTDRAW) {
-				option2 = UI_driver->fSelect(NULL, UI_SELECT_POPUP, aspectmode, aspect_mode_menu_array, NULL);
-				if (option2 >= 0) {
-					aspectmode = option2;					
-					changewindowsize(RESET, 0);
-					refreshframe();
-					PLATFORM_DisplayScreen(); /* force rebuild of the clipping frame */
-					snprintf(native_height_label, sizeof(native_height_label), "[Height: %d]", frameparams.view.bottom - frameparams.view.top);
-					snprintf(native_width_label, sizeof(native_width_label), "[Width:  %d]", frameparams.view.right - frameparams.view.left);
-				}
-			}
-			break;
-		case 6:
-			if (rendermode != DIRECTDRAW)  {
-				snprintf(trim_value, sizeof(trim_value), "%d", crop.horizontal);
-				if (UI_driver->fEditString("Enter value", trim_value, sizeof(trim_value))) {
-					if (atoi(trim_value) > 150) 
-						UI_driver->fMessage("Maximum X-Trim value is 150", 1);
-					else if (atoi(trim_value) < -24) 
-						UI_driver->fMessage("Minimum X-Trim value is -24", 1);
-					else {
-						crop.horizontal = atoi(trim_value);	
-						changewindowsize(RESET, 0);
-						refreshframe();
-						PLATFORM_DisplayScreen(); /* force rebuild of the clipping frame */
-						snprintf(native_width_label, sizeof(native_width_label), "[Width:  %d]", frameparams.view.right - frameparams.view.left);
-					}
-				}
-			}
-			break;
-		case 7:
-			if (rendermode != DIRECTDRAW)  {
-				snprintf(trim_value, sizeof(trim_value), "%d", crop.vertical);
-				if (UI_driver->fEditString("Enter value", trim_value, sizeof(trim_value))) {
-					if (atoi(trim_value) < 0) 
-						UI_driver->fMessage("Minimum Y-Trim value is 0", 1);
-					else if (atoi(trim_value) > 108)
-						UI_driver->fMessage("Maximum Y-Trim value is 108", 1);
-					else {
-						crop.vertical = atoi(trim_value);
-						changewindowsize(RESET, 0);
-						refreshframe();
-						PLATFORM_DisplayScreen(); /* force rebuild of the clipping frame */
-						snprintf(native_height_label, sizeof(native_height_label), "[Height: %d]", frameparams.view.bottom - frameparams.view.top);
-					}
-				}
-			}
-			break;
-		case 8:
-			if (rendermode != DIRECTDRAW) {
-				lockaspect = !lockaspect;
-				changewindowsize(RESET, 0);
-				refreshframe();
-			}
-			break;
-		case 9:
-			if (rendermode != DIRECTDRAW)  {
-				snprintf(shift_value, sizeof(shift_value), "%d", offset.horizontal);
-				if (UI_driver->fEditString("Enter value", shift_value, sizeof(shift_value))) {
-					if (atoi(shift_value) > 24) 
-						UI_driver->fMessage("Maximum horizontal offset is 24", 1);
-					else if (atoi(shift_value) < -24) 
-						UI_driver->fMessage("Minimum horizontal offset is -24", 1);
-					else {
-						offset.horizontal = atoi(shift_value);						
-						changewindowsize(RESET, 0);
-						refreshframe();
-					}
-				}
-			}
-			break;
-		case 10:
-			if (rendermode != DIRECTDRAW)  {
-				snprintf(shift_value, sizeof(shift_value), "%d", offset.vertical);
-				if (UI_driver->fEditString("Enter value", shift_value, sizeof(shift_value))) {
-					if (atoi(shift_value) > 50) 
-						UI_driver->fMessage("Maximum vertical offset is 50", 1);
-					else if (atoi(shift_value) < -50) 
-						UI_driver->fMessage("Minimum vertical offset is 50", 1);
-					else {
-						offset.vertical = atoi(shift_value);					
-						changewindowsize(RESET, 0);
-						refreshframe();
-					}
-				}
-			}
-			break;
-		case 11:
-			if (rendermode != DIRECTDRAW)  {
-				option2 = UI_driver->fSelect(NULL, UI_SELECT_POPUP, frameparams.scanlinemode, scanline_mode_menu_array, NULL);
-				if (option2 >= 0) {
-					frameparams.scanlinemode = option2;
-					refreshframe();
-				}
-			}
-			break;
-		case 12:
-			if (rendermode != DIRECTDRAW) {
-				hidecursor = !hidecursor;
-				setcursor();
-			}
-			break;
-		case 13:
-			if (rendermode != DIRECTDRAW) {
-				togglemenustate();
-			}
-			break;
-			
-		default:
-			return;
-		}
-	}
-}
-#endif /* DIRECTX */
-
 #endif /* CURSES_BASIC */
 
 #ifndef USE_CURSES
@@ -3863,74 +3474,8 @@ static void RealJoystickConfiguration(void)
 }
 #endif
 
-#ifdef DIRECTX
-static char buttons[9][2][16];
-static const UI_tMenuItem joy0_menu_array[] = {
-	UI_MENU_LABEL("Select button to map"),
-	UI_MENU_LABEL("\022\022\022\022\022\022\022\022\022\022\022\022\022\022\022\022\022\022\022\022"),
-	UI_MENU_SUBMENU_SUFFIX(0, "Button 2  : ", buttons[0][0]),
-	UI_MENU_SUBMENU_SUFFIX(1, "Button 3  : ", buttons[0][1]),
-	UI_MENU_SUBMENU_SUFFIX(2, "Button 4  : ", buttons[0][2]),
-	UI_MENU_SUBMENU_SUFFIX(3, "Button 5  : ", buttons[0][3]),
-	UI_MENU_SUBMENU_SUFFIX(4, "Button 6  : ", buttons[0][4]),
-	UI_MENU_SUBMENU_SUFFIX(5, "Button 7  : ", buttons[0][5]),
-	UI_MENU_SUBMENU_SUFFIX(6, "Button 8  : ", buttons[0][6]),
-	UI_MENU_SUBMENU_SUFFIX(7, "Button 9  : ", buttons[0][7]),
-	UI_MENU_SUBMENU_SUFFIX(8, "Button 10 : ", buttons[0][8]),
-	UI_MENU_END
-};
-static const UI_tMenuItem joy1_menu_array[] = {
-	UI_MENU_LABEL("Select button to map"),
-	UI_MENU_LABEL("\022\022\022\022\022\022\022\022\022\022\022\022\022\022\022\022\022\022\022\022"),
-	UI_MENU_SUBMENU_SUFFIX(0, "Button 2  : ", buttons[1][0]),
-	UI_MENU_SUBMENU_SUFFIX(1, "Button 3  : ", buttons[1][1]),
-	UI_MENU_SUBMENU_SUFFIX(2, "Button 4  : ", buttons[1][2]),
-	UI_MENU_SUBMENU_SUFFIX(3, "Button 5  : ", buttons[1][3]),
-	UI_MENU_SUBMENU_SUFFIX(4, "Button 6  : ", buttons[1][4]),
-	UI_MENU_SUBMENU_SUFFIX(5, "Button 7  : ", buttons[1][5]),
-	UI_MENU_SUBMENU_SUFFIX(6, "Button 8  : ", buttons[1][6]),
-	UI_MENU_SUBMENU_SUFFIX(7, "Button 9  : ", buttons[1][7]),
-	UI_MENU_SUBMENU_SUFFIX(8, "Button 10 : ", buttons[1][8]),
-	UI_MENU_END
-};
-
-static void ConfigureControllerButtons(int stick)
-{
-	int i;
-	char title[40];
-	int option2 = 0;
-	
-	snprintf(title, sizeof(title), "Define keys for controller %d", stick + 1);
-	for(;;) {
-		for(i = 0; i <= 8; i++) 
-			PLATFORM_GetButtonAssignments(stick, i, buttons[stick][i], sizeof(buttons[stick][i]));
-		option2 = UI_driver->fSelect(title, UI_SELECT_POPUP, option2, stick == 0 ? joy0_menu_array : joy1_menu_array, NULL);
-		if (option2 >= 0 && option2 <= 8)
-			PLATFORM_SetButtonAssignment(stick, option2, GetKeyName());
-		if (option2 < 0) break;
-		if (++option2 > 8) option2 = 0;
-	}
-}
-#endif
-
 static void ControllerConfiguration(void)
 {
-#ifdef DIRECTX
-	static const UI_tMenuItem keyboard_joystick_mode_array[] = {
-		UI_MENU_ACTION(0, "Keypad"),
-		UI_MENU_ACTION(1, "Keypad+"),
-		UI_MENU_ACTION(2, "Arrows"),
-		UI_MENU_END
-	};
-	
-	static const UI_tMenuItem alternate_joystick_mode_array[] = {
-		UI_MENU_ACTION(0, "Normal"),
-		UI_MENU_ACTION(1, "Dual"),
-		UI_MENU_ACTION(2, "Shared"),
-		UI_MENU_END
-	};
-#endif
-
 #if !defined(_WIN32_WCE) && !defined(DREAMCAST)
 	static const UI_tMenuItem mouse_mode_menu_array[] = {
 		UI_MENU_ACTION(0, "None"),
@@ -3969,23 +3514,12 @@ static void ControllerConfiguration(void)
 		UI_MENU_SUBMENU(8, "Define layout of keyboard joystick 2"),
 		UI_MENU_SUBMENU(9, "Configure real joysticks"),
 #endif
-#ifdef DIRECTX
-		UI_MENU_SUBMENU_SUFFIX(5, "Keyboard joystick mode: ", NULL),
-		UI_MENU_SUBMENU_SUFFIX(6, "Alternate joystick mode: ", NULL),
-		UI_MENU_CHECK(7, "Enable custom buttons (joy 1):"),
-		UI_MENU_SUBMENU(8, "Assign custom buttons (joy 1):"),
-		UI_MENU_CHECK(9, "Enable custom buttons (joy 2):"),
-		UI_MENU_SUBMENU(10, "Assign custom buttons (joy 2):"),
-#endif
 		UI_MENU_END
 	};
 
 	int option = 0;
 #if !defined(_WIN32_WCE) && !defined(DREAMCAST)
 	int option2;
-#endif
-#ifdef DIRECTX
-    int prev_option;
 #endif
 	for (;;) {
 		menu_array[0].suffix = INPUT_joy_autofire[0] == INPUT_AUTOFIRE_FIRE ? "Fire"
@@ -4005,12 +3539,6 @@ static void ControllerConfiguration(void)
 #ifdef GUI_SDL
 		SetItemChecked(menu_array, 5, PLATFORM_IsKbdJoystickEnabled(0));
 		SetItemChecked(menu_array, 7, PLATFORM_IsKbdJoystickEnabled(1));
-#endif
-#ifdef DIRECTX
-		menu_array[5].suffix = keyboard_joystick_mode_array[keyboardJoystickMode].item;
-		menu_array[6].suffix = alternate_joystick_mode_array[alternateJoystickMode].item;
-		SetItemChecked(menu_array, 7, mapController1Buttons);
-		SetItemChecked(menu_array, 9, mapController2Buttons);
 #endif
 		option = UI_driver->fSelect("Controller Configuration", 0, option, menu_array, NULL);
 		switch (option) {
@@ -4073,31 +3601,6 @@ static void ControllerConfiguration(void)
 		case 9: RealJoystickConfiguration();
 			break;
 #endif
-#ifdef DIRECTX
-		case 5:
-		    prev_option = keyboardJoystickMode;
-			option2 = UI_driver->fSelect(NULL, UI_SELECT_POPUP, keyboardJoystickMode, keyboard_joystick_mode_array, NULL);
-			if (option2 >= 0)
-				keyboardJoystickMode = option2;
-			break;
-		case 6:
-			option2 = UI_driver->fSelect(NULL, UI_SELECT_POPUP, alternateJoystickMode, alternate_joystick_mode_array, NULL);
-			if (option2 >= 0)
-				alternateJoystickMode = option2;
-			break;
-		case 7:
-			mapController1Buttons = !mapController1Buttons;
-			break;
-		case 8:
-			ConfigureControllerButtons(0);
-			break;
-		case 9:
-			mapController2Buttons = !mapController2Buttons;
-			break;
-		case 10:
-			ConfigureControllerButtons(1);
-			break;
-#endif
 		default:
 			return;
 		}
@@ -4110,13 +3613,12 @@ static void ControllerConfiguration(void)
 
 static int SoundSettings(void)
 {
-#ifdef SOUND_THIN_API
 	Sound_setup_t setup = Sound_desired;
+	int sound_out_valid = setup.buffer_ms == 0;	/* Sound_out has been initialized */
+	int update_sound_params = TRUE;
 	static char freq_string[9]; /* "nnnnn Hz\0" */
 	static char hw_buflen_string[15]; /* "auto (nnnn ms)\0" */
-#ifdef SYNCHRONIZED_SOUND
 	static char latency_string[8]; /* nnnn ms\0" */
-#endif /* SYNCHRONIZED_SOUND */
 
 	static const unsigned int freq_values[] = {
 		8192,
@@ -4145,18 +3647,13 @@ static int SoundSettings(void)
 		UI_MENU_ACTION(1, "custom"),
 		UI_MENU_END
 	};
-#endif /* SOUND_THIN_API */
 
 	static UI_tMenuItem menu_array[] = {
-#ifdef SOUND_THIN_API
 		UI_MENU_CHECK(0, "Enable sound:"),
 		UI_MENU_SUBMENU_SUFFIX(1, "Frequency:", freq_string),
-///		UI_MENU_ACTION(2, "Bit depth:"),
+		UI_MENU_ACTION(2, "Bit depth:"),
 		UI_MENU_SUBMENU_SUFFIX(3, "Hardware buffer length:", hw_buflen_string),
-#ifdef SYNCHRONIZED_SOUND
 		UI_MENU_SUBMENU_SUFFIX(4, "Latency:", latency_string),
-#endif /* SYNCHRONIZED_SOUND */
-#endif /* SOUND_THIN_API */
 #ifdef DREAMCAST
 		UI_MENU_CHECK(0, "Enable sound:"),
 #endif
@@ -4167,9 +3664,6 @@ static int SoundSettings(void)
 #ifdef CONSOLE_SOUND
 		UI_MENU_CHECK(7, "Speaker (Key Click):"),
 #endif
-#ifdef SERIO_SOUND
-		UI_MENU_CHECK(8, "Serial IO Sound:"),
-#endif
 		UI_MENU_ACTION(9, "Enable higher frequencies:"),
 		UI_MENU_END
 	};
@@ -4177,44 +3671,33 @@ static int SoundSettings(void)
 	int option = 0;
 
 	for (;;) {
-#ifdef SOUND_THIN_API
-		SetItemChecked(menu_array, 0, Sound_enabled);
-		snprintf(freq_string, sizeof(freq_string), "%i Hz", setup.freq);
-	///	menu_array[2].suffix = "8 bit";
-		if (setup.buffer_ms == 0) {
-			if (Sound_enabled)
-				snprintf(hw_buflen_string, sizeof(hw_buflen_string), "auto (%u ms)", Sound_out.buffer_ms);
+		if (update_sound_params) {
+			SetItemChecked(menu_array, 0, Sound_enabled);
+			snprintf(freq_string, sizeof(freq_string), "%i Hz", setup.freq);
+			menu_array[2].suffix = setup.sample_size == 2 ? "16 bit" : "8 bit";
+			if (setup.buffer_ms == 0) {
+				if (Sound_enabled && sound_out_valid) {
+					snprintf(hw_buflen_string, sizeof(hw_buflen_string), "auto (%u ms)", Sound_out.buffer_ms);
+					sound_out_valid = FALSE;
+				}
+				else
+					strncpy(hw_buflen_string, "auto", sizeof(hw_buflen_string));
+			}
 			else
-				strncpy(hw_buflen_string, "auto", sizeof(hw_buflen_string));
-		}
-		else
-			snprintf(hw_buflen_string, sizeof(hw_buflen_string), "%u ms", setup.buffer_ms);
-#ifdef SYNCHRONIZED_SOUND
-		snprintf(latency_string, sizeof(latency_string), "%u ms", Sound_latency);
-#endif /* SYNCHRONIZED_SOUND */
-#endif /* SOUND_THIN_API */
-#ifdef DREAMCAST
-		SetItemChecked(menu_array, 0, glob_snd_ena);
-#endif
+				snprintf(hw_buflen_string, sizeof(hw_buflen_string), "%u ms", setup.buffer_ms);
 #ifdef STEREO_SOUND
-#ifdef SOUND_THIN_API
-		SetItemChecked(menu_array, 5, setup.channels == 2);
-#else /* !defined(SOUND_THIN_API) */
-		SetItemChecked(menu_array, 5, POKEYSND_stereo_enabled);
-#endif /* SOUND_THIN_API */
+			SetItemChecked(menu_array, 5, setup.channels == 2);
 #endif /* STEREO_SOUND */
+		}
+		snprintf(latency_string, sizeof(latency_string), "%u ms", Sound_latency);
 		SetItemChecked(menu_array, 6, POKEYSND_enable_new_pokey);
 #ifdef CONSOLE_SOUND
 		SetItemChecked(menu_array, 7, POKEYSND_console_sound_enabled);
-#endif
-#ifdef SERIO_SOUND
-		SetItemChecked(menu_array, 8, POKEYSND_serio_sound_enabled);
 #endif
 		FindMenuItem(menu_array, 9)->suffix = POKEYSND_enable_new_pokey ? "N/A" : POKEYSND_bienias_fix ? "Yes" : "No ";
 
 		option = UI_driver->fSelect("Sound Settings", 0, option, menu_array, NULL);
 		switch (option) {
-#ifdef SOUND_THIN_API
 		case 0:
 			if (Sound_enabled)
 				Sound_Exit();
@@ -4222,9 +3705,12 @@ static int SoundSettings(void)
 				Sound_desired = setup;
 				if (!Sound_Setup())
 					UI_driver->fMessage("Error: can't open sound device", 1);
-				else
+				else {
 					setup = Sound_desired;
+					sound_out_valid = TRUE;
+				}
 			}
+			update_sound_params = TRUE;
 			break;
 		case 1:
 			{
@@ -4243,10 +3729,14 @@ static int SoundSettings(void)
 				}
 				else if (option2 >= 0)
 					setup.freq = freq_values[option2];
+
+				update_sound_params = (option2 >= 0);
 			}
 			break;
-	///	case 2:
-	///		break;
+		case 2:
+			setup.sample_size = 3 - setup.sample_size; /* Toggle 1<->2 */
+			update_sound_params = TRUE;
+			break;
 		case 3:
 			{
 				int current = 1; /* 1 means "custom" as in hw_buflen_menu_array */
@@ -4266,31 +3756,19 @@ static int SoundSettings(void)
 				}
 				else if (option2 >= 0)
 					setup.buffer_ms = option2;
+
+				update_sound_params = (option2 >= 0);
 			}
 			break;
-#ifdef SYNCHRONIZED_SOUND
 		case 4:
 			snprintf(latency_string, sizeof(latency_string), "%u", Sound_latency); /* Remove " ms" suffix */
 			if (UI_driver->fEditString("Enter sound latency", latency_string, sizeof(latency_string)-3))
 				Sound_SetLatency(atoi(latency_string));
 			break;
-#endif /* SYNCHRONIZED_SOUND */
-#endif /* SOUND_THIN_API */
-#ifdef DREAMCAST
-		case 0:
-			glob_snd_ena = !glob_snd_ena;
-			break;
-#endif
 #ifdef STEREO_SOUND
 		case 5:
-#ifdef SOUND_THIN_API
 			setup.channels = 3 - setup.channels; /* Toggle 1<->2 */
-#else /* !defined(SOUND_THIN_API) */
-			POKEYSND_stereo_enabled = !POKEYSND_stereo_enabled;
-#ifdef SUPPORTS_SOUND_REINIT
-			Sound_Reinit();
-#endif
-#endif /* SOUND_THIN_API */
+			update_sound_params = TRUE;
 			break;
 #endif
 		case 6:
@@ -4305,21 +3783,16 @@ static int SoundSettings(void)
 			POKEYSND_console_sound_enabled = !POKEYSND_console_sound_enabled;
 			break;
 #endif
-#ifdef SERIO_SOUND
-		case 8:
-			POKEYSND_serio_sound_enabled = !POKEYSND_serio_sound_enabled;
-			break;
-#endif
 		case 9:
 			if (!POKEYSND_enable_new_pokey)
 				POKEYSND_bienias_fix = !POKEYSND_bienias_fix;
 			break;
 		default:
-#ifdef SOUND_THIN_API
 			if (!Sound_enabled)
 				/* Only store setup from menu in Sound_desired. */
 				Sound_desired = setup;
 			else if (setup.freq        != Sound_desired.freq ||
+			         setup.sample_size != Sound_desired.sample_size ||
 #ifdef STEREO_SOUND
 			         setup.channels    != Sound_desired.channels ||
 #endif
@@ -4333,7 +3806,6 @@ static int SoundSettings(void)
 				}
 				setup = Sound_desired;
 			}
-#endif /* SOUND_THIN_API */
 			return FALSE;
 		}
 	}
@@ -4369,8 +3841,8 @@ static void AboutEmulator(void)
 		"(c)1998-2023 Atari800 Development Team\0"
 		"See CREDITS file for details.\0"
 		"http://atari800.atari.org/\0"
-		"https://github.com/DnCraptor/atari800\0"
-		"https://github.com/atari800/atari800\0"
+		"\0"
+		"\0"
 		"\0"
 		"This program is free software; you can\0"
 		"redistribute it and/or modify it under\0"
@@ -4381,55 +3853,8 @@ static void AboutEmulator(void)
 		"\n");
 }
 
-#ifdef DIRECTX
-static void FunctionKeyHelp(void)
-{
-	UI_driver->fInfoScreen("Function Key List",
-		Atari800_TITLE "\0"
-		"\0"
-		"Function Key Assignments   \0"
-		"------------------------   \0"
-		"\0"
-		"F1  - User Interface       \0"
-		"F2  - Option key           \0"
-		"F3  - Select key           \0"
-		"F4  - Start key            \0"
-		"F5  - Reset key            \0"
-		"F6  - Help key (XL/XE only)\0"
-		"F7  - Break key            \0"
-		"F8  - Enter monitor        \0"
-		"      (-console required)  \0"
-		"F9  - Exit emulator        \0"
-#ifdef SCREENSHOTS
-		"F10 - Save screenshot      \0"
-#endif
-		"\n");
-}
-
-static void HotKeyHelp(void)
-{
-	UI_driver->fInfoScreen("Hot Key List",
-		Atari800_TITLE "\0"
-		"\0"
-		"Hot Key Assignments \0"
-		"------------------- \0"
-		"\0"
-		"Alt+Enter   - Toggle Fullscreen/Window\0"
-		"Alt+PgUp    - Increase window size    \0"
-		"Alt+PgDn    - Decrease window size    \0"
-		"Alt+I       - Next scanline mode      \0"
-		"Alt+M       - Hide/Show main menu     \0"
-		"Alt+Shift+Z - 3D Tilt                 \0"
-		"              (Direct3D modes only)   \0"
-		"Alt+Z       - 3D Screensaver          \0"
-		"              (Direct3D modes only)   \0"
-		"\n");
-}
-#endif
-
 int UI_Initialise(int *argc, char *argv[])
 {
-	printf("UI_Initialise");
 	int i;
 	int j;
 
@@ -4440,18 +3865,18 @@ int UI_Initialise(int *argc, char *argv[])
 
 		if (strcmp(argv[i], "-atari_files") == 0) {
 			if (i_a) {
-				if (UI_n_atari_files_dir >= UI_MAX_DIRECTORIES) {
+				if (UI_n_atari_files_dir >= UI_MAX_DIRECTORIES)
 					Log_print("All ATARI_FILES_DIR slots used!");
-				} else
+				else
 					Util_strlcpy(UI_atari_files_dir[UI_n_atari_files_dir++], argv[++i], FILENAME_MAX);
 			}
 			else a_m = TRUE;
 		}
 		else if (strcmp(argv[i], "-saved_files") == 0) {
 			if (i_a) {
-				if (UI_n_saved_files_dir >= UI_MAX_DIRECTORIES) {
+				if (UI_n_saved_files_dir >= UI_MAX_DIRECTORIES)
 					Log_print("All SAVED_FILES_DIR slots used!");
-				} else
+				else
 					Util_strlcpy(UI_saved_files_dir[UI_n_saved_files_dir++], argv[++i], FILENAME_MAX);
 			}
 			else a_m = TRUE;
@@ -4487,6 +3912,12 @@ void UI_Run(void)
 		UI_MENU_SUBMENU_ACCEL(UI_MENU_SYSTEM, "System Settings", "Alt+Y"),
 #ifdef SOUND
 		UI_MENU_SUBMENU_ACCEL(UI_MENU_SOUND, "Sound Settings", "Alt+O"),
+#ifndef DREAMCAST
+		UI_MENU_ACTION_ACCEL(UI_MENU_SOUND_RECORDING, "Sound Recording Start/Stop", "Alt+W"),
+#endif
+#endif
+#ifdef VIDEO_RECORDING
+		UI_MENU_ACTION_ACCEL(UI_MENU_VIDEO_RECORDING, "Video Recording Start/Stop", "Alt+V"),
 #endif
 #ifndef CURSES_BASIC
 		UI_MENU_SUBMENU(UI_MENU_DISPLAY, "Display Settings"),
@@ -4497,23 +3928,53 @@ void UI_Run(void)
 		UI_MENU_SUBMENU(UI_MENU_SETTINGS, "Emulator Configuration"),
 		UI_MENU_FILESEL_ACCEL(UI_MENU_SAVESTATE, "Save State", "Alt+S"),
 		UI_MENU_FILESEL_ACCEL(UI_MENU_LOADSTATE, "Load State", "Alt+L"),
+#if SCREENSHOTS
+#ifdef HAVE_LIBPNG
+		UI_MENU_FILESEL_ACCEL(UI_MENU_PCX, "Save Screenshot", "F10"),
+		/* there isn't enough space for "PNG/PCX Interlaced Screenshot Shift+F10" */
+		UI_MENU_FILESEL_ACCEL(UI_MENU_PCXI, "Save Interlaced Screenshot", "Shift+F10"),
+#else
+		UI_MENU_FILESEL_ACCEL(UI_MENU_PCX, "PCX Screenshot", "F10"),
+		UI_MENU_FILESEL_ACCEL(UI_MENU_PCXI, "PCX Interlaced Screenshot", "Shift+F10"),
+#endif
+#endif
 		UI_MENU_ACTION_ACCEL(UI_MENU_BACK, "Back to Emulated Atari", "Esc"),
-		UI_MENU_ACTION_ACCEL(UI_MENU_RESETW, "Reset (Warm Start)", "Alt+Q"),
-		UI_MENU_ACTION_ACCEL(UI_MENU_RESETC, "Reboot (Cold Start)", "Ctrl+Alt+Del"),
+		UI_MENU_ACTION_ACCEL(UI_MENU_RESETW, "Reset (Warm Start)", "F5"),
+		UI_MENU_ACTION_ACCEL(UI_MENU_RESETC, "Reboot (Cold Start)", "Shift+F5"),
+#if defined(_WIN32_WCE)
+		UI_MENU_ACTION(UI_MENU_MONITOR, "About Pocket Atari"),
+#elif defined(DREAMCAST)
+		UI_MENU_ACTION(UI_MENU_MONITOR, "About AtariDC"),
+#else
+///		UI_MENU_ACTION_ACCEL(UI_MENU_MONITOR, "Enter Monitor", "F8"),
+#endif
 		UI_MENU_ACTION_ACCEL(UI_MENU_ABOUT, "About the Emulator", "Alt+A"),
+///		UI_MENU_ACTION_ACCEL(UI_MENU_EXIT, "Exit Emulator", "F9"),
 		UI_MENU_END
 	};
+
 	int option = UI_MENU_RUN;
 	int done = FALSE;
+#if SUPPORTS_CHANGE_VIDEOMODE
+	VIDEOMODE_ForceStandardScreen(TRUE);
+#endif
+
 	UI_is_active = TRUE;
+
 	/* Sound_Active(FALSE); */
 	UI_driver->fInit();
+
+#ifdef CRASH_MENU
+	if (UI_crash_code >= 0) {
+		done = CrashMenu();
+		UI_crash_code = -1;
+	}
+#endif
+
 	while (!done) {
-	///	printf("UI_alt_function: %d", UI_alt_function);
-		if (UI_alt_function != -1) {
-			UI_current_function = UI_alt_function;
-			printf("UI_current_function: %d", UI_current_function);
-		}	
+		
+		if (UI_alt_function != -1)
+			UI_current_function = UI_alt_function;		
 		if (UI_alt_function < 0)
 			option = UI_driver->fSelect(Atari800_TITLE, 0, option, menu_array, NULL);
 		if (UI_alt_function >= 0) {
@@ -4521,6 +3982,7 @@ void UI_Run(void)
 			UI_alt_function = -1;
 			done = TRUE;
 		}
+
 		switch (option) {
 		case -2:
 		case -1:				/* ESC key */
@@ -4553,6 +4015,16 @@ void UI_Run(void)
 				done = TRUE;	/* reboot immediately */
 			}
 			break;
+#ifdef AUDIO_RECORDING
+		case UI_MENU_SOUND_RECORDING:
+			SoundRecording();
+			break;
+#endif
+#endif
+#ifdef VIDEO_RECORDING
+		case UI_MENU_VIDEO_RECORDING:
+			VideoRecording();
+			break;
 #endif
 		case UI_MENU_SAVESTATE:
 			SaveState();
@@ -4566,6 +4038,14 @@ void UI_Run(void)
 		case UI_MENU_DISPLAY:
 			DisplaySettings();
 			break;
+#ifdef SCREENSHOTS
+		case UI_MENU_PCX:
+			Screenshot(FALSE);
+			break;
+		case UI_MENU_PCXI:
+			Screenshot(TRUE);
+			break;
+#endif
 #endif
 #ifndef USE_CURSES
 		case UI_MENU_CONTROLLER:
@@ -4586,12 +4066,96 @@ void UI_Run(void)
 		case UI_MENU_ABOUT:
 			AboutEmulator();
 			break;
+			/** 
+		case UI_MENU_MONITOR:
+#if defined(_WIN32_WCE)
+			AboutPocketAtari();
+			break;
+#elif defined(DREAMCAST)
+			AboutAtariDC();
+			break;
+#else
+			if (Atari800_Exit(TRUE))
+				break;
+			/ * if 'quit' typed in monitor, exit emulator * /
+			exit(0);
+#endif
+		case UI_MENU_EXIT:
+			Atari800_Exit(FALSE);
+			exit(0);
+			*/
 		}
 	}
+
 	/* Sound_Active(TRUE); */
 	UI_is_active = FALSE;
+	
 	/* flush keypresses */
 	while (PLATFORM_Keyboard() != AKEY_NONE)
 		Atari800_Sync();
+
 	UI_alt_function = UI_current_function = -1;
+	/* restore 80 column screen */
+#if SUPPORTS_CHANGE_VIDEOMODE
+	VIDEOMODE_ForceStandardScreen(FALSE);
+#endif
 }
+
+
+#ifdef CRASH_MENU
+
+int CrashMenu(void)
+{
+	static char cim_info[42];
+	static UI_tMenuItem menu_array[] = {
+		UI_MENU_LABEL(cim_info),
+		UI_MENU_ACTION_ACCEL(0, "Reset (Warm Start)", "F5"),
+		UI_MENU_ACTION_ACCEL(1, "Reboot (Cold Start)", "Shift+F5"),
+		UI_MENU_ACTION_ACCEL(2, "Menu", "F1"),
+#if !defined(_WIN32_WCE) && !defined(DREAMCAST)
+		UI_MENU_ACTION_ACCEL(3, "Enter Monitor", "F8"),
+#endif
+		UI_MENU_ACTION_ACCEL(4, "Continue After CIM", "Esc"),
+		UI_MENU_ACTION_ACCEL(5, "Exit Emulator", "F9"),
+		UI_MENU_END
+	};
+
+	int option = 0;
+	snprintf(cim_info, sizeof(cim_info), "Code $%02X (CIM) at address $%04X", UI_crash_code, UI_crash_address);
+
+	for (;;) {
+		option = UI_driver->fSelect("!!! The Atari computer has crashed !!!", 0, option, menu_array, NULL);
+
+		if (UI_alt_function >= 0) /* pressed F5, Shift+F5 or F9 */
+			return FALSE;
+
+		switch (option) {
+		case 0:				/* Power On Reset */
+			UI_alt_function = UI_MENU_RESETW;
+			return FALSE;
+		case 1:				/* Power Off Reset */
+			UI_alt_function = UI_MENU_RESETC;
+			return FALSE;
+		case 2:				/* Menu */
+			return FALSE;
+#if !defined(_WIN32_WCE) && !defined(DREAMCAST)
+		case 3:				/* Monitor */
+			UI_alt_function = UI_MENU_MONITOR;
+			return FALSE;
+#endif
+		case -2:
+		case -1:			/* ESC key */
+		case 4:				/* Continue after CIM */
+			CPU_regPC = UI_crash_afterCIM;
+			return TRUE;
+		case 5:				/* Exit */
+			UI_alt_function = UI_MENU_EXIT;
+			return FALSE;
+		}
+	}
+}
+#endif
+
+/*
+vim:ts=4:sw=4:
+*/
