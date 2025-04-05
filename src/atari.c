@@ -176,7 +176,7 @@ int Atari800_refresh_rate = 1;
 int Atari800_collisions_in_skipped_frames = FALSE;
 int Atari800_turbo = FALSE;
 int Atari800_start_in_monitor = FALSE;
-int Atari800_auto_frameskip = FALSE;
+int Atari800_auto_frameskip = TRUE;
 
 #ifdef BENCHMARK
 static double benchmark_start_time;

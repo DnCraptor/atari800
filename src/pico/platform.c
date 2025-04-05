@@ -129,6 +129,7 @@ void LIBATARI800_Frame(void) {
 	Sound_Update();
 #endif
 	Atari800_nframes++;
+	Atari800_Sync();
 }
 
 int PLATFORM_Configure(char *option, char *parameters)

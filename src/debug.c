@@ -1,5 +1,6 @@
 #include "debug.h"
 #include "ff.h"
+#include <pico.h>
 #include <boards/pico.h>
 #include <hardware/pio.h>
 #include <stdbool.h>

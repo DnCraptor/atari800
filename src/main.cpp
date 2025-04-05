@@ -1,5 +1,6 @@
 #include <cstdlib>
 #include <cstring>
+#include <pico.h>
 #include <hardware/clocks.h>
 #include <hardware/flash.h>
 #include <hardware/vreg.h>

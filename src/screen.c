@@ -71,9 +71,9 @@ int Screen_visible_y1 = 0;				/* 0 .. Screen_HEIGHT */
 int Screen_visible_x2 = 360;			/* 0 .. Screen_WIDTH */
 int Screen_visible_y2 = Screen_HEIGHT;	/* 0 .. Screen_HEIGHT */
 
-int Screen_show_atari_speed = FALSE;
+int Screen_show_atari_speed = TRUE;
 int Screen_show_disk_led = TRUE;
-int Screen_show_sector_counter = FALSE;
+int Screen_show_sector_counter = TRUE;
 int Screen_show_1200_leds = TRUE;
 
 #ifdef SCREENSHOTS

@@ -29,7 +29,7 @@ struct dirent {
 #endif
 };
 
-inline int S_ISDIR_E(struct dirent* st) {
+inline static int S_ISDIR_E(struct dirent* st) {
     return st->fattrib & AM_DIR;
 }
 
@@ -75,14 +75,14 @@ inline static int stat(const char *path, struct stat *st) {
 }
 
 static FILINFO __FILINFO;
-inline struct dirent* readdir(DIR *d) {
+inline static struct dirent* readdir(DIR *d) {
     if (f_readdir(d, &__FILINFO) != FR_OK || __FILINFO.fname[0] == '\0') {
         return 0;
     }
     return (struct dirent*)&__FILINFO;
 }
 
-inline int S_ISDIR(struct stat* st) {
+inline static int S_ISDIR(struct stat* st) {
     return st->st_mode & AM_DIR;
 }
 
