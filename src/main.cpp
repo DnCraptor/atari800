@@ -505,20 +505,22 @@ bool __time_critical_func(handleScancode)(const uint32_t ps2scancode) {
                 if (input_map.control) {
                     StateSav_SaveAtariState1("\\atari800\\~f9.sav");
                     return true;
-                }
-                if (input_map.shift) {
+                } else if (input_map.shift) {
                     StateSav_ReadAtariState1("\\atari800\\~f9.sav");
                     return true;
+                } else {
+                    decrease_volume();
                 }
                 break; // F9
             case 0x44:
                 if (input_map.control) {
                     StateSav_SaveAtariState1("\\atari800\\~f10.sav");
                     return true;
-                }
-                if (input_map.shift) {
+                } else if (input_map.shift) {
                     StateSav_ReadAtariState1("\\atari800\\~f10.sav");
                     return true;
+                } else {
+                    increase_volume();
                 }
                 break; // F10
             case 0x57:
@@ -722,6 +724,18 @@ extern "C" void PLATFORM_SoundWrite(UBYTE const *buffer, unsigned int size)
 static repeating_timer_t timer;
 static int snd_channels = 2;
 static int snd_sample_size = 1;
+static int8_t vol = 8;
+
+void decrease_volume(void) {
+	vol--;
+    if (vol < 0) vol = 0;
+}
+
+void increase_volume(void) {
+	vol++;
+    if (vol > 8) vol = 8;
+}
+
 static bool __not_in_flash_func(snd_timer_callback)(repeating_timer_t *rt) {
     static uint16_t outL = 0;  
     static uint16_t outR = 0;
@@ -736,11 +750,12 @@ static bool __not_in_flash_func(snd_timer_callback)(repeating_timer_t *rt) {
         return true;
     }
     register UBYTE* uba = LIBATARI800_Sound_array;
+    float v = vol / 8.0f;
     if (snd_channels == 2) {
-        outL = uba[idx]; idx += snd_sample_size;
-        outR = uba[idx]; idx += snd_sample_size;
+        outL = uba[idx] * v; idx += snd_sample_size;
+        outR = uba[idx] * v; idx += snd_sample_size;
     } else {
-        outL = outR = uba[idx]; idx += snd_sample_size;
+        outL = outR = uba[idx] * v; idx += snd_sample_size;
     }
     sound_array_idx = idx;
     ///pwm_set_gpio_level(BEEPER_PIN, 0);

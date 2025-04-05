@@ -9,6 +9,8 @@ void Sound_Exit(void);
 void Sound_Update(void);
 void Sound_Pause(void);
 void Sound_Continue(void);
+void decrease_volume(void);
+void increase_volume(void);
 
 /* Nomenclature used:
    Sample - a single portion of one channel of audio signal. Sample size equals
