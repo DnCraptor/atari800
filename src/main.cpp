@@ -721,6 +721,7 @@ extern "C" void PLATFORM_SoundWrite(UBYTE const *buffer, unsigned int size)
 #ifdef SOUND
 static repeating_timer_t timer;
 static int snd_channels = 2;
+static int snd_sample_size = 1;
 static bool __not_in_flash_func(snd_timer_callback)(repeating_timer_t *rt) {
     static uint16_t outL = 0;  
     static uint16_t outR = 0;
@@ -736,10 +737,10 @@ static bool __not_in_flash_func(snd_timer_callback)(repeating_timer_t *rt) {
     }
     register UBYTE* uba = LIBATARI800_Sound_array;
     if (snd_channels == 2) {
-        outL = uba[idx++]; idx++;
-        outR = uba[idx++]; idx++;
+        outL = uba[idx]; idx += snd_sample_size;
+        outR = uba[idx]; idx += snd_sample_size;
     } else {
-        outL = outR = uba[idx++]; idx++;
+        outL = outR = uba[idx]; idx += snd_sample_size;
     }
     sound_array_idx = idx;
     ///pwm_set_gpio_level(BEEPER_PIN, 0);
@@ -853,6 +854,7 @@ int main() {
 	        }
         }
         snd_channels = libatari800_get_num_sound_channels();
+        snd_sample_size = libatari800_get_sound_sample_size();
 #endif
         libatari800_next_frame(&input_map);
         tight_loop_contents();
