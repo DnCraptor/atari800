@@ -80,11 +80,8 @@ map_save save_map[2] = {
 
 #endif /* PAGED_ATTRIB */
 
-#include "roms/ATARIBAS_ROM.h"
-#include "roms/ATARIOSB_ROM.h"
-///#include "roms/ATARIXL_ROM.h" TODO:
-//UBYTE MEMORY_basic[8192];
-//UBYTE MEMORY_os[16384];
+UBYTE MEMORY_basic[8192];
+UBYTE MEMORY_os[16384];
 UBYTE MEMORY_xegame[8192]; /// TODO:
 
 int MEMORY_xe_bank = 0;

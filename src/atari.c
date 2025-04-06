@@ -301,8 +301,7 @@ static int load_roms(void)
 {
 	int basic_ver, xegame_ver;
 	SYSROM_ChooseROMs(Atari800_machine_type, MEMORY_ram_size, Atari800_tv_mode, &Atari800_os_version, &basic_ver, &xegame_ver);
-	if (Atari800_os_version == -1
-		|| !SYSROM_LoadImage(Atari800_os_version, MEMORY_os)) {
+	if (Atari800_os_version == -1 || !SYSROM_LoadImage(Atari800_os_version, MEMORY_os)) {
 		/* Missing OS ROM. */
 		Atari800_os_version = -1;
 		/* Avoid MEMORY_os containing old OS when the user explicitly removed
@@ -319,8 +318,7 @@ static int load_roms(void)
 
 		if (Atari800_builtin_game) {
 			/* Try loading built-in XEGS game. */
-			if (xegame_ver == -1
-				|| !SYSROM_LoadImage(xegame_ver, MEMORY_xegame))
+			if (xegame_ver == -1 || !SYSROM_LoadImage(xegame_ver, MEMORY_xegame))
 				/* Missing XEGS game ROM. */
 				Atari800_builtin_game = FALSE;
 		}

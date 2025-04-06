@@ -94,8 +94,8 @@ void MEMORY_ROM_PutByte(UWORD addr, UBYTE byte);
 
 #endif /* PAGED_ATTRIB */
 
-extern const UBYTE MEMORY_basic[8192];
-extern const UBYTE MEMORY_os[16384];
+extern UBYTE MEMORY_basic[8192];
+extern UBYTE MEMORY_os[16384];
 extern UBYTE MEMORY_xegame[8192];
 
 extern int MEMORY_xe_bank;

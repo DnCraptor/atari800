@@ -12,7 +12,7 @@ void StateSav_SaveUWORD(const UWORD *data, int num);
 void StateSav_SaveINT(const int *data, int num);
 void StateSav_SaveFNAME(const char *filename);
 
-void StateSav_ReadUBYTE(UBYTE *data, int num);
+void StateSav_ReadUBYTE(const UBYTE *data, int num);
 void StateSav_ReadUWORD(UWORD *data, int num);
 void StateSav_ReadINT(int *data, int num);
 void StateSav_ReadFNAME(char *filename);

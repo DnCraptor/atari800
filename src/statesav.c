@@ -79,7 +79,7 @@
 #if defined(MEMCOMPR) || defined(LIBATARI800)
 /* libatari800 pretends to care about libz but it doesn't */
 #ifdef LIBATARI800
-#define gzFile char *
+#define gzFile FIL *
 #define Z_OK 0
 #endif
 static gzFile mem_open(const char *name, const char *mode);
@@ -143,7 +143,7 @@ void StateSav_SaveUBYTE(const UBYTE *data, int num)
 }
 
 /* Value is memory location of data, num is number of type to save */
-void StateSav_ReadUBYTE(UBYTE *data, int num)
+void StateSav_ReadUBYTE(const UBYTE *data, int num)
 {
 	if (!StateFile || nFileError != Z_OK)
 		return;

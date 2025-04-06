@@ -495,8 +495,9 @@ int Util_direxists(const char *filename)
 
 int Util_flen(FILE *fp)
 {
-	fseek(fp, 0, SEEK_END);
-	return (int) ftell(fp);
+	return (int)f_size(fp);
+///	fseek(fp, 0, SEEK_END);
+///	return (int) ftell(fp);
 }
 
 /* Creates a file that does not exist and fills in filename with its name.

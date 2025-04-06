@@ -128,7 +128,7 @@ inline static int _fgetc(FIL* F) { char _c; UINT wr; f_read(F, &_c, 1, &wr); ret
 
 #undef fread
 #define fread ___fread
-inline static int ___fread(char *n, int m, int len, FIL* f) {
+inline static int ___fread(void *n, int m, int len, FIL* f) {
     UINT r = 0;
 	f_read(f, n, len, &r);
 	return r;
@@ -136,7 +136,7 @@ inline static int ___fread(char *n, int m, int len, FIL* f) {
 
 #undef fwrite
 #define fwrite ___fwrite
-inline static int ___fwrite(char *n, int m, int len, FIL* f) {
+inline static int ___fwrite(void *n, int m, int len, FIL* f) {
     UINT r = 0;
 	f_write(f, n, len, &r);
 	return r;
@@ -183,5 +183,16 @@ static inline void closedir(DIR * d) {
 int ___fprintf(FIL* F, const char *format, ...);
 
 #define printf(...)
+
+int	sprintf (char *__restrict, const char *__restrict, ...) __attribute__ ((__format__ (__printf__, 2, 3)));
+int	snprintf (char *__restrict, unsigned int sz, const char *__restrict, ...) __attribute__ ((__format__ (__printf__, 3, 4)));
+
+#define fgetc(f) ___fgetc(f)
+static inline int ___fgetc (FILE* f) {
+    UINT br;
+    char c;
+    if (f_read(f, &c, 1, &br) != FR_OK || br != 1) return EOF;
+    return c;
+}
 
 #endif
