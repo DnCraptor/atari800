@@ -154,7 +154,7 @@
 #include "sdl/init.h"
 #endif
 
-int Atari800_machine_type = Atari800_MACHINE_XLXE;
+int Atari800_machine_type = Atari800_MACHINE_800;
 
 int Atari800_builtin_basic = TRUE;
 int Atari800_keyboard_leds = FALSE;

@@ -1217,7 +1217,7 @@ static void CartManagement(void)
 		option = UI_driver->fSelect("Cartridge Management", 0, option, menu_array, &seltype);
 
 		switch (option) {
-		case 0:
+		case 0: /// "Create Cartridge from ROM image"
 			if (UI_driver->fGetLoadFilename(cart_filename, UI_atari_files_dir, UI_n_atari_files_dir)) {
 				int error;
 				CARTRIDGE_image_t cart;
@@ -1237,31 +1237,47 @@ static void CartManagement(void)
 				}
 
 				if (!cart.raw) {
-					free(cart.image);
+					if (cart.tmp_file) {
+						f_close(cart.tmp_file);
+						free(cart.tmp_file);
+						cart.tmp_file = NULL;
+					}
 					UI_driver->fMessage("Not an image file", 1);
 					break;
 				}
 
 				cart.type = UI_SelectCartType(kb);
 				if (cart.type == CARTRIDGE_NONE) {
-					free(cart.image);
+					if (cart.tmp_file) {
+						f_close(cart.tmp_file);
+						free(cart.tmp_file);
+						cart.tmp_file = NULL;
+					}
 					break;
 				}
 
 				if (!UI_driver->fGetSaveFilename(cart_filename, UI_atari_files_dir, UI_n_atari_files_dir)) {
-					free(cart.image);
+					if (cart.tmp_file) {
+						f_close(cart.tmp_file);
+						free(cart.tmp_file);
+						cart.tmp_file = NULL;
+					}
 					break;
 				}
 
-				error = CARTRIDGE_WriteImage(cart_filename, cart.type, cart.image, kb << 10, FALSE, -1);
-				free(cart.image);
+				error = CARTRIDGE_WriteImageCart(cart_filename, &cart);
+				if (cart.tmp_file) {
+					f_close(cart.tmp_file);
+					free(cart.tmp_file);
+					cart.tmp_file = NULL;
+				}
 				if (error)
 					CantSave(cart_filename);
 				else
 					Created(cart_filename);
 			}
 			break;
-		case 1:
+		case 1: /// "Extract ROM image from Cartridge"
 			if (UI_driver->fGetLoadFilename(cart_filename, UI_atari_files_dir, UI_n_atari_files_dir)) {
 				int error;
 				CARTRIDGE_image_t cart;
@@ -1281,19 +1297,31 @@ static void CartManagement(void)
 				}
 
 				if (cart.raw) {
-					free(cart.image);
+					if (cart.tmp_file) {
+						f_close(cart.tmp_file);
+						free(cart.tmp_file);
+						cart.tmp_file = NULL;
+					}
 					UI_driver->fMessage("Not a CART file", 1);
 					break;
 				}
 
 				if (!UI_driver->fGetSaveFilename(cart_filename, UI_atari_files_dir, UI_n_atari_files_dir)) {
-					free(cart.image);
+					if (cart.tmp_file) {
+						f_close(cart.tmp_file);
+						free(cart.tmp_file);
+						cart.tmp_file = NULL;
+					}
 					break;
 				}
 
-				error = CARTRIDGE_WriteImage(cart_filename, CARTRIDGE_UNKNOWN, cart.image, cart.size << 10, TRUE, -1);
-				free(cart.image);
-				if (error)
+				error = CARTRIDGE_WriteImageROM(cart_filename, &cart);
+				if (cart.tmp_file) {
+					f_close(cart.tmp_file);
+					free(cart.tmp_file);
+					cart.tmp_file = NULL;
+				}
+			if (error)
 					CantSave(cart_filename);
 				else
 					Created(cart_filename);
@@ -1421,9 +1449,7 @@ static void CartManagement(void)
 			if (UI_driver->fGetSaveFilename(cart_filename, UI_atari_files_dir, UI_n_atari_files_dir)) {
 				int cart_type = UI_SelectCartTypeBetween(writable_carts_array);
 				if (cart_type != CARTRIDGE_NONE) {
-					if ( CARTRIDGE_WriteImage(
-							cart_filename, 
-							cart_type, NULL, CARTRIDGES[cart_type].kb << 10, FALSE, 0x00 ) )
+					if ( CARTRIDGE_WriteEmptyImage(cart_filename, cart_type, CARTRIDGES[cart_type].kb << 10) )
 						CantSave(cart_filename);
 					else
 						Created(cart_filename);

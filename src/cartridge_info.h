@@ -29,8 +29,6 @@
 #define CARTRIDGE_MIN_SIZE        2048
 #define CARTRIDGE_MAX_SIZE	  (128 * 1024 * 1024)
 
-extern int CARTRIDGE_Checksum(const UBYTE *image, int nbytes);
-
 /* Known cartridge type description and size in kb */
 typedef struct {
 	char *description;

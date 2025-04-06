@@ -1063,6 +1063,36 @@ void MEMORY_CartA0bfEnable(void)
 	}
 }
 
+uint8_t MEMORY_GetFromCart(cart_src_t* src) {
+	UINT br;
+	uint8_t res;
+	f_lseek(src->file, src->offset + (src->raw ? 0 : 16));
+	f_read(src->file, &res, 1, &br);
+	return res;
+}
+
+///#define MEMORY_CopyFromCart(addr1, addr2, src) memcpy(MEMORY_mem + (addr1), src, (addr2) - (addr1) + 1)
+void MEMORY_CopyFromCart(uint16_t from, uint16_t to, cart_src_t* src) {
+	void* dst = MEMORY_mem + from;
+	UINT br, sz = to - from + 1;
+	f_lseek(src->file, src->offset + (src->raw ? 0 : 16));
+	f_read(src->file, dst, sz, &br);
+}
+
+///#define MEMORY_CopyToCart(addr1, addr2, dst) memcpy(dst, MEMORY_mem + (addr1), (addr2) - (addr1) + 1)
+void MEMORY_CopyToCart(uint16_t from, uint16_t to, cart_src_t* dst) {
+	void* src = MEMORY_mem + from;
+	UINT bw, sz = to - from + 1;
+	f_lseek(dst->file, dst->offset + (dst->raw ? 0 : 16));
+	f_write(dst->file, src, sz, &bw);
+}
+
+void MEMORY_PutToCart(cart_src_t* dst, uint8_t v) {
+	UINT bw;
+	f_lseek(dst->file, dst->offset + (dst->raw ? 0 : 16));
+	f_write(dst->file, &v, 1, &bw);
+}
+
 void MEMORY_GetCharset(UBYTE *cs)
 {
 	/* copy font, but change screencode order to ATASCII order */

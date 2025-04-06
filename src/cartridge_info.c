@@ -193,14 +193,3 @@ cart_t const CARTRIDGES[CARTRIDGE_TYPE_COUNT] = {
 
 	{ "JRC64 cartridge (interleaved)",            64 } /* 160 */
 };
-
-int CARTRIDGE_Checksum(const UBYTE *image, int nbytes)
-{
-	int checksum = 0;
-	while (nbytes > 0) {
-		checksum += *image++;
-		nbytes--;
-	}
-	return checksum;
-}
-

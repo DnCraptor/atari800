@@ -49,7 +49,7 @@ typedef struct CARTRIDGE_image_t {
 	int type;
 	int state; /* Cartridge's state, such as selected bank or switch on/off. */
 	int size; /* Size of the image, in kilobytes. */
-	UBYTE *image;
+	FILE* tmp_file;
 	char filename[FILENAME_MAX];
 	int raw; /* File contains RAW data (important for writeable cartridges). */
 } CARTRIDGE_image_t;
@@ -61,6 +61,7 @@ int CARTRIDGE_ReadConfig(char *string, char *ptr);
 void CARTRIDGE_WriteConfig(FILE *fp);
 int CARTRIDGE_Initialise(int *argc, char *argv[]);
 void CARTRIDGE_Exit(void);
+int CARTRIDGE_Checksum(CARTRIDGE_image_t* cart);
 
 #define CARTRIDGE_CANT_OPEN		-1	/* Can't open cartridge image file */
 #define CARTRIDGE_BAD_FORMAT		-2	/* Unknown cartridge format */
@@ -133,7 +134,9 @@ void CARTRIDGE_BountyBob2PutByte(UWORD addr, UBYTE value);
 void CARTRIDGE_5200SuperCartPutByte(UWORD addr, UBYTE value);
 
 int CARTRIDGE_ReadImage(const char *filename, CARTRIDGE_image_t *cart);
-int CARTRIDGE_WriteImage(char *filename, int type, UBYTE *image, int size, int raw, UBYTE value);
+int CARTRIDGE_WriteImageCart(char *filename, CARTRIDGE_image_t* src);
+int CARTRIDGE_WriteImageROM(char *filename, CARTRIDGE_image_t* cart);
+int CARTRIDGE_WriteEmptyImage(char *filename, int type, int size);
 
 void CARTRIDGE_UpdateState(CARTRIDGE_image_t *cart, int old_state);
 #endif /* CARTRIDGE_H_ */
