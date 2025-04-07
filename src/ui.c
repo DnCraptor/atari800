@@ -976,7 +976,7 @@ static void DiskManagement(void)
 
 int UI_SelectCartType(int k)
 {
-	UI_tMenuItem menu_array[CARTRIDGE_TYPE_COUNT] = { 0 };
+	UI_tMenuItem* menu_array = (UI_tMenuItem*)calloc(sizeof(UI_tMenuItem), CARTRIDGE_TYPE_COUNT);
 	int cart_entry;
 	int menu_entry = 0;
 	int option = 0;
@@ -989,25 +989,25 @@ int UI_SelectCartType(int k)
 			menu_array[menu_entry].retval = cart_entry;
 			menu_array[menu_entry].item = CARTRIDGES[cart_entry].description;
 			menu_entry++;
-	    	}
+	    }
 	}
 		
-	if (menu_entry == 0)
+	if (menu_entry == 0) {
+		free(menu_array);
 		return CARTRIDGE_NONE;
+	}
 
 	/* Terminate menu_array, but do it by hand */
 	menu_array[menu_entry].flags = UI_ITEM_END;
 
 	option = UI_driver->fSelect("Select Cartridge Type", 0, option, menu_array, NULL);
-	if (option > 0)
-		return option;
-
-	return CARTRIDGE_NONE;
+	free(menu_array);
+	return option > 0 ? option : CARTRIDGE_NONE;
 }
 
 int UI_SelectCartTypeBetween(int *types)
 {
-	UI_tMenuItem menu_array[CARTRIDGE_TYPE_COUNT] = { 0 };
+	UI_tMenuItem* menu_array = (UI_tMenuItem*)calloc(sizeof(UI_tMenuItem), CARTRIDGE_TYPE_COUNT);
 	int cart_entry;
 	int menu_entry = 0;
 	int option = 0;
@@ -1020,20 +1020,20 @@ int UI_SelectCartTypeBetween(int *types)
 			menu_array[menu_entry].retval = cart_entry;
 			menu_array[menu_entry].item = CARTRIDGES[cart_entry].description;
 			menu_entry++;
-	    	}
+	    }
 	}
 	
-	if (menu_entry == 0)
+	if (menu_entry == 0) {
+		free(menu_array);
 		return CARTRIDGE_NONE;
+	}
 
 	/* Terminate menu_array, but do it by hand */
 	menu_array[menu_entry].flags = UI_ITEM_END;
 
 	option = UI_driver->fSelect("Select Cartridge Type", 0, option, menu_array, NULL);
-	if (option > 0)
-		return option;
-
-	return CARTRIDGE_NONE;
+	free(menu_array);
+	return option > 0 ? option : CARTRIDGE_NONE;
 }
 
 static void CartManagement(void)
@@ -1255,8 +1255,10 @@ static void CartManagement(void)
 					}
 					break;
 				}
+				char fn[FILENAME_MAX];
+				snprintf(fn, FILENAME_MAX, "%s.car", cart_filename);
 
-				if (!UI_driver->fGetSaveFilename(cart_filename, UI_atari_files_dir, UI_n_atari_files_dir)) {
+				if (!UI_driver->fGetSaveFilename(fn, UI_atari_files_dir, UI_n_atari_files_dir)) {
 					if (cart.tmp_file) {
 						f_close(cart.tmp_file);
 						free(cart.tmp_file);
@@ -1265,16 +1267,16 @@ static void CartManagement(void)
 					break;
 				}
 
-				error = CARTRIDGE_WriteImageCart(cart_filename, &cart);
+				error = CARTRIDGE_WriteImageCart(fn, &cart);
 				if (cart.tmp_file) {
 					f_close(cart.tmp_file);
 					free(cart.tmp_file);
 					cart.tmp_file = NULL;
 				}
 				if (error)
-					CantSave(cart_filename);
+					CantSave(fn);
 				else
-					Created(cart_filename);
+					Created(fn);
 			}
 			break;
 		case 1: /// "Extract ROM image from Cartridge"

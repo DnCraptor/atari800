@@ -1668,7 +1668,7 @@ static void InitCartridge(CARTRIDGE_image_t *cart)
 
 int CARTRIDGE_Checksum(CARTRIDGE_image_t* cart)
 {
-	cart_src_t src = { cart->tmp_file, cart->raw, 0};
+	cart_src_t src = { cart->tmp_file, cart->raw, 0 };
 	int nbytes = cart->size << 10;
 	int checksum = 0;
 	while (src.offset < nbytes) {
@@ -1679,14 +1679,14 @@ int CARTRIDGE_Checksum(CARTRIDGE_image_t* cart)
 }
 
 int CARTRIDGE_WriteEmptyImage(char *filename, int type, int size) {
+	const static uint8_t zero_values[256] = { 0 };
 	FIL fp;
-	UINT bw;
-	if ( f_open(&fp, filename, FA_CREATE_NEW || FA_WRITE) == FR_OK ) {
-		UBYTE header[0x10] = { 'C', 'A', 'R', 'T', 0, 0, 0, type, 0, 0, 0, 0, 0, 0, 0, 0};
-		f_write(&fp, &header, 0x10, &bw);
-		uint8_t value = 0;
-		while (size-- > 0)
-			fwrite(&value, 1, 1, &fp);
+	if ( f_open(&fp, filename, FA_CREATE_ALWAYS | FA_WRITE) == FR_OK ) {
+		UINT bw;
+		UBYTE header[] = { 'C', 'A', 'R', 'T', 0, 0, 0, type, 0, 0, 0, 0, 0, 0, 0, 0};
+		f_write(&fp, header, sizeof(header), &bw);
+		for (int i = 0; i < size; i += 256)
+			f_write(&fp, zero_values, 256, &bw);
 		f_close(&fp);
 		return 0;
 	}
@@ -1695,8 +1695,8 @@ int CARTRIDGE_WriteEmptyImage(char *filename, int type, int size) {
 }
 
 int CARTRIDGE_WriteImageCart(char *filename, CARTRIDGE_image_t* src) {
-	FILE *fp = fopen(filename, "wb");
-	if (fp != NULL) {
+	FIL fp;
+	if (f_open(&fp, filename, FA_CREATE_ALWAYS | FA_WRITE) == FR_OK) {
 		int checksum = CARTRIDGE_Checksum(src);
 		UBYTE header[0x10];
 		header[0x0] = 'C';
@@ -1715,14 +1715,15 @@ int CARTRIDGE_WriteImageCart(char *filename, CARTRIDGE_image_t* src) {
 		header[0xd] = 0;
 		header[0xe] = 0;
 		header[0xf] = 0;
-		fwrite(&header, 1, sizeof(header), fp);
+		UINT bw;
+		f_write(&fp, header, sizeof(header), &bw);
 		int size = src->size << 10;
 		cart_src_t card = { src->tmp_file, src->raw, 0 };
 		for (; card.offset < size; ++card.offset) {
 			uint8_t c = MEMORY_GetFromCart(&card);
-			fwrite(&c, 1, 1, fp);
+			f_write(&fp, &c, 1, &bw);
 		}
-		fclose(fp);
+		f_close(&fp);
 		return 0;
 	}
 	Log_print("Error writing cartridge \"%s\".\n", filename);
@@ -1813,14 +1814,15 @@ int CARTRIDGE_ReadImage(const char *filename, CARTRIDGE_image_t *cart)
 	int type;
 	UBYTE header[16];
 
-	FIL* fp = (FIL*)malloc(sizeof(FIL));
+	cart->tmp_file = (FIL*)malloc(sizeof(FIL));
 	/* open file */
-	if (f_open(fp, filename, FA_READ) != FR_OK) {
-		free(fp);
+	if (f_open(cart->tmp_file, filename, FA_READ) != FR_OK) {
+		free(cart->tmp_file);
+		cart->tmp_file = NULL;
 		return CARTRIDGE_CANT_OPEN;
 	}
 	/* check file length */
-	len = Util_flen(fp);
+	len = Util_flen(cart->tmp_file);
 
 	/* Guard against providing cart->filename as parameter. */
 	if (cart->filename != filename)
@@ -1831,8 +1833,6 @@ int CARTRIDGE_ReadImage(const char *filename, CARTRIDGE_image_t *cart)
 
 	/* if full kilobytes, assume it is raw image */
 	if ((len & 0x3ff) == 0) {
-		/* alloc memory and read data */
-		cart->tmp_file = fp;
 		/* find cart type */
 		cart->type = CARTRIDGE_NONE;
 		len >>= 10;	/* number of kilobytes */
@@ -1851,28 +1851,20 @@ int CARTRIDGE_ReadImage(const char *filename, CARTRIDGE_image_t *cart)
 			/*InitCartridge(cart);*/
 			return 0;	/* ok */
 		}
-		f_close(cart->tmp_file);
-		free(cart->tmp_file);
-		cart->tmp_file = NULL;
-		return CARTRIDGE_BAD_FORMAT;
+		goto bad_format;
 	}
 
 	/* if not full kilobytes, assume it is CART file */
-	if (fread(header, 1, 16, fp) < 16) {
+	if (fread(header, 1, 16, cart->tmp_file) < 16) {
 		Log_print("Error reading cartridge.\n");
-		f_close(cart->tmp_file);
-		free(cart->tmp_file);
-		cart->tmp_file = NULL;
-		return CARTRIDGE_BAD_FORMAT;
+		goto bad_format;
 	}
 	if ((header[0] == 'C') &&
 		(header[1] == 'A') &&
 		(header[2] == 'R') &&
-		(header[3] == 'T')) {
-		type = (header[4] << 24) |
-			(header[5] << 16) |
-			(header[6] << 8) |
-			header[7];
+		(header[3] == 'T')
+	) {
+		type = (header[4] << 24) | (header[5] << 16) | (header[6] << 8) | header[7];
 		if (type >= 1 && type < CARTRIDGE_TYPE_COUNT) {
 			int checksum;
 			int result;
@@ -1886,8 +1878,9 @@ int CARTRIDGE_ReadImage(const char *filename, CARTRIDGE_image_t *cart)
 			return result;
 		}
 	}
-	fclose(fp);
-	free(fp);
+bad_format:
+	f_close(cart->tmp_file);
+	free(cart->tmp_file);
 	cart->tmp_file = NULL;
 	return CARTRIDGE_BAD_FORMAT;
 }
