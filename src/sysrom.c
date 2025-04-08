@@ -54,7 +54,7 @@
 #include "roms/ATARIOSB_ROM.h"
 #include "roms/ATARIBAS_ROM.h"
 
-int SYSROM_os_versions[Atari800_MACHINE_SIZE] = { SYSROM_AUTO, SYSROM_AUTO, SYSROM_AUTO };
+int SYSROM_os_versions[Atari800_MACHINE_SIZE] = { SYSROM_AUTO, SYSROM_ALTIRRA_XL, SYSROM_AUTO };
 int SYSROM_basic_version = SYSROM_AUTO;
 int SYSROM_xegame_version = SYSROM_AUTO;
 
