@@ -813,7 +813,9 @@ int main() {
     }
 
     init_fs(); // TODO: psram replacement (pagefile)
+    #ifndef MURM2
     init_psram();
+    #endif
 
     /* force the 400/800 OS to get the Memo Pad */
     char *test_args[] = {

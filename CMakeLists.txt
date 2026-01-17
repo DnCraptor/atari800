@@ -21,7 +21,7 @@ include(pico_sdk_import.cmake)
 set(PACKAGE_VERSION "3.2.2")
 set(CPU_MHZ 378)
 
-#set(m1p2_launcher ON)
+set(m1p2_launcher ON)
 
 set(M2 ON)
 
