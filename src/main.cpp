@@ -772,6 +772,7 @@ static void init_fs() {
         printf("Unable to mount SD-card: %s (%d)", FRESULT_str(result), result);
     } else {
         SD_CARD_AVAILABLE = true;
+        f_mkdir("/atari800");
     }
 }
 

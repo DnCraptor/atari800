@@ -18,10 +18,19 @@ cmake_minimum_required(VERSION 3.28)
 # Pull in Raspberry Pi Pico SDK (must be before project)
 include(pico_sdk_import.cmake)
 
-set(PACKAGE_VERSION "3.2.1")
+set(PACKAGE_VERSION "3.2.2")
 set(CPU_MHZ 378)
 
-SET(PROJECT_NAME pico2-atari800)
+#set(m1p2_launcher ON)
+
+set(M2 ON)
+
+SET(PROJECT_NAME p2-atari800)
+if (M2)
+    SET(PROJECT_NAME "m2${PROJECT_NAME}")
+else()
+    SET(PROJECT_NAME "m1${PROJECT_NAME}")
+endif()
 set(FLASH_SIZE 4096)
 SET(BUILD_NAME "${PROJECT_NAME}-VGA-PWM-${CPU_MHZ}-${PACKAGE_VERSION}")
 
@@ -30,7 +39,7 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${OUTPUT_DIR}")
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${OUTPUT_DIR}")
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${OUTPUT_DIR}")
 
-project(pico2-atari800 C CXX ASM)
+project(${PROJECT_NAME} C CXX ASM)
 
 # Initialise the Raspberry Pi Pico SDK
 pico_sdk_init()
@@ -59,7 +68,7 @@ message(STATUS "")
 add_executable(${PROJECT_NAME} ${SRC})
 
 # pull in common dependencies
-target_link_libraries(pico2-atari800 PRIVATE
+target_link_libraries(${PROJECT_NAME} PRIVATE
     ps2
     sdcard
     graphics
@@ -90,7 +99,7 @@ target_include_directories(${PROJECT_NAME} PRIVATE
 )
 
 if (PICO_CYW43_SUPPORTED)
-    target_link_libraries(pico2-atari800 pico_cyw43_arch_none)
+    target_link_libraries(${PROJECT_NAME} pico_cyw43_arch_none)
 endif()
 
 set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME "${BUILD_NAME}")
@@ -125,9 +134,75 @@ endif ()
 target_compile_definitions(${PROJECT_NAME} PRIVATE
         PACKAGE_VERSION="${PACKAGE_VERSION}"
         CPU_MHZ=${CPU_MHZ}
-
         PICO_FLASH_SIZE_BYTES=16777216
 
+        STEREO_SOUND=1
+        CONSOLE_SOUND=1
+        SERIO_SOUND=1
+        VOICEBOX=1
+        SOUND_THIN_API=1
+        SOUND=1
+        
+        HAVR_FF_WRAP_H=1
+
+        #MNGR_DEBUG=1
+        #DEBUG2=1
+
+        HAVE_OPENDIR=1
+)
+
+if (M2)
+    target_compile_definitions(${PROJECT_NAME} PRIVATE
+        MURM2=1
+        # VGA 8 pins starts from pin:
+        VGA_BASE_PIN=12
+        # HDMI 8 pins starts from pin:
+        HDMI_BASE_PIN=12
+
+        # TFT
+        TFT_CS_PIN=12
+        TFT_RST_PIN=14
+        TFT_LED_PIN=15
+        TFT_DC_PIN=16
+        TFT_DATA_PIN=18
+        TFT_CLK_PIN=19
+
+        # SDCARD
+        SDCARD_PIN_SPI0_CS=5
+        SDCARD_PIN_SPI0_SCK=6
+        SDCARD_PIN_SPI0_MOSI=7
+        SDCARD_PIN_SPI0_MISO=4
+
+        # PS2 keyboard
+        KBD_CLOCK_PIN=2
+        KBD_DATA_PIN=3
+
+        # NES Gamepad
+        NES_GPIO_CLK=20
+        NES_GPIO_LAT=21
+        NES_GPIO_DATA=26
+        
+        USE_WII
+        WII_SDA_PIN=20
+        WII_SCL_PIN=21
+
+       # PSRAM
+        # PSRAM_MUTEX=1
+        PSRAM_SPINLOCK=1
+        PSRAM_ASYNC=1
+
+        PSRAM_PIN_CS=18
+        PSRAM_PIN_SCK=19
+        PSRAM_PIN_MOSI=20
+        PSRAM_PIN_MISO=21
+
+        LOAD_WAV_PIO=22
+        BEEPER_PIN=9 #
+        PWM_PIN0=10 #
+        PWM_PIN1=11
+    )
+else ()
+    target_compile_definitions(${PROJECT_NAME} PRIVATE
         # VGA 8 pins starts from pin:
         VGA_BASE_PIN=6
 
@@ -161,7 +236,7 @@ target_compile_definitions(${PROJECT_NAME} PRIVATE
         WII_SDA_PIN=14
         WII_SCL_PIN=15
 
-        PSRAM
+       # PSRAM
         # PSRAM_MUTEX=1
         PSRAM_SPINLOCK=1
         PSRAM_ASYNC=1
@@ -175,19 +250,35 @@ target_compile_definitions(${PROJECT_NAME} PRIVATE
         PWM_PIN0=26
         PWM_PIN1=27
         BEEPER_PIN=28
-        STEREO_SOUND=1
-        CONSOLE_SOUND=1
-        SERIO_SOUND=1
-        VOICEBOX=1
-        SOUND_THIN_API=1
-        SOUND=1
-        
-        HAVR_FF_WRAP_H=1
+    )
+endif()
 
-        #MNGR_DEBUG=1
-        #DEBUG2=1
+IF(m1p2_launcher)
+    IF(M2)
+        SET(BUILD_NAME "${BUILD_NAME}.m2p2")
+    ELSEIF(PICO_PC)
+        SET(BUILD_NAME "${BUILD_NAME}.PCp2")
+    ELSEIF(PICO_DV)
+        SET(BUILD_NAME "${BUILD_NAME}.DVp2")
+    ELSEIF(ZERO2)
+        SET(BUILD_NAME "${BUILD_NAME}.z0p2")
+    ELSE()
+        SET(BUILD_NAME "${BUILD_NAME}.m1p2")
+    ENDIF()
+ENDIF()
 
-        HAVE_OPENDIR=1
-)
+message(STATUS "BUILD_NAME: ${BUILD_NAME}")
 
-#pico_set_linker_script(${PROJECT_NAME} "${CMAKE_SOURCE_DIR}/memmap.ld")
+set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME "${BUILD_NAME}")
+
+if (m1p2_launcher)
+    pico_set_linker_script(${PROJECT_NAME} "${CMAKE_SOURCE_DIR}/memmap.ld")
+endif ()
+
+if (m1p2_launcher)
+    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E rename
+        "${OUTPUT_DIR}/${BUILD_NAME}.uf2"
+        "${OUTPUT_DIR}/${BUILD_NAME}"
+    )
+endif ()
