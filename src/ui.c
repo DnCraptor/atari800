@@ -454,7 +454,7 @@ static void SystemSettings(void)
 			break;
 		}
 
-		menu_array[6].suffix = (new_tv_mode == Atari800_TV_PAL) ? "PAL" : "NTSC";
+		menu_array[6].suffix = (new_tv_mode == Atari800_TV_NTSC) ? "NTSC" : "PAL";
 
 		/* Set label for the "Mosaic" action. */
 		if (Atari800_machine_type == Atari800_MACHINE_800) {

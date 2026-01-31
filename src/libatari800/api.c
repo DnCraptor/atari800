@@ -342,7 +342,7 @@ UBYTE *libatari800_get_screen_ptr()
  */
 UBYTE *libatari800_get_sound_buffer()
 {
-	return (UBYTE *)LIBATARI800_Sound_array;
+	return 0; // (UBYTE *)LIBATARI800_Sound_array;
 }
 
 

@@ -23,11 +23,7 @@ int stricmp(const char *s1, const char *s2) {
 }
 
 double PLATFORM_Time(void) {
-	absolute_time_t at = get_absolute_time();
-	uint32_t t = to_ms_since_boot(at);
-	double r = t * 1e-3;
-	//printf("PLATFORM_Time %d -> %f", t, r)
-	return r;
+	return time_us_64() * 1e-6;
 }
 
 static void autoframeskip(double curtime, double lasttime)
@@ -85,6 +81,8 @@ void Atari800_Sync(void) {
 	Util_sleep(lasttime - curtime);
 	curtime = Util_time();
 
+	printf("frame dt=%.6f sleep=%.6f\n", curtime - lasttime, sleeptime);
+
 	if ((lasttime + deltatime) < curtime)
 		lasttime = curtime;
 }
@@ -138,9 +136,11 @@ int PLATFORM_Configure(char *option, char *parameters)
 }
 
 void PLATFORM_Sleep(double s) {
-	uint32_t slp = s * 1e3;
-	//printf("PLATFORM_Sleep(%f) sleep_ms(%d)", s, slp);
-	sleep_ms(slp);
+    if (s <= 0)
+        return;
+    uint64_t us = (uint64_t)(s * 1000000.0 + 0.5);
+    if (us > 0)
+        sleep_us(us);
 }
 
 void PLATFORM_ConfigInit(void) {

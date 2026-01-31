@@ -707,17 +707,26 @@ void __time_critical_func(render_core)() {
     __unreachable();
 }
 
-static UINT sound_array_idx = 0;
-extern "C" UBYTE *LIBATARI800_Sound_array; /// TODO: libatari800_get_sound_buffer
-extern "C" unsigned int sound_array_fill;
+#define SOUND_RING_SIZE (4 * 1024)
+static uint8_t sound_ring[SOUND_RING_SIZE];
+static volatile uint32_t sound_wr = 0;
+static volatile uint32_t sound_rd = 0;
+static volatile uint32_t sound_count = 0;
+static spin_lock_t *sound_lock;
 extern "C" int paused;
 extern "C" void PLATFORM_SoundWrite(UBYTE const *buffer, unsigned int size)
 {
-    if (LIBATARI800_Sound_array) free(LIBATARI800_Sound_array);
-    LIBATARI800_Sound_array = (UBYTE *) Util_malloc(size);
-	memcpy(LIBATARI800_Sound_array, buffer, size);
-	sound_array_idx = 0;
-	sound_array_fill = size;
+    uint32_t flags = spin_lock_blocking(sound_lock);
+    for (unsigned int i = 0; i < size; i++) {
+        if (sound_count == SOUND_RING_SIZE) {
+            break; // переполнение — дропаем хвост, но не клинимся
+        }
+        sound_ring[sound_wr] = buffer[i];
+        sound_wr++;
+        if (sound_wr == SOUND_RING_SIZE) sound_wr = 0;
+        sound_count++;
+    }
+    spin_unlock(sound_lock, flags);
 }
 
 #ifdef SOUND
@@ -736,29 +745,85 @@ void increase_volume(void) {
     if (vol > 8) vol = 8;
 }
 
-static bool __not_in_flash_func(snd_timer_callback)(repeating_timer_t *rt) {
-    static uint16_t outL = 0;  
-    static uint16_t outR = 0;
-    register size_t idx = sound_array_idx;
-    if (idx >= sound_array_fill) {
-        return true;
-    }
-    pwm_set_gpio_level(PWM_PIN0, outR); // Право
-    pwm_set_gpio_level(PWM_PIN1, outL); // Лево
-    outL = outR = 0;
+static bool __not_in_flash_func(snd_timer_callback)(repeating_timer_t *rt)
+{
+    static uint16_t outL = 128;
+    static uint16_t outR = 128;
+
+    // выводим предыдущий сэмпл
+    pwm_set_gpio_level(PWM_PIN0, outR);
+    pwm_set_gpio_level(PWM_PIN1, outL);
+
     if (!Sound_enabled || paused) {
         return true;
     }
-    register UBYTE* uba = LIBATARI800_Sound_array;
-    float v = vol / 8.0f;
-    if (snd_channels == 2) {
-        outL = uba[idx] * v; idx += snd_sample_size;
-        outR = uba[idx] * v; idx += snd_sample_size;
-    } else {
-        outL = outR = uba[idx] * v; idx += snd_sample_size;
+
+    // fixed-point громкость
+    uint16_t vol_scale = (uint16_t)(vol * 32);
+
+    // bytes per frame: sample_size * channels
+    const uint32_t frame_bytes = (uint32_t)snd_sample_size * (uint32_t)snd_channels;
+
+    uint32_t flags = spin_lock_blocking(sound_lock);
+
+    if (sound_count >= frame_bytes) {
+
+        if (snd_sample_size == 1) {
+            // 8-bit unsigned
+            uint8_t s0 = sound_ring[sound_rd];
+            sound_rd = (sound_rd + 1) % SOUND_RING_SIZE;
+
+            uint8_t s1 = s0;
+            if (snd_channels == 2) {
+                s1 = sound_ring[sound_rd];
+                sound_rd = (sound_rd + 1) % SOUND_RING_SIZE;
+                sound_count -= 2;
+            } else {
+                sound_count -= 1;
+            }
+
+            // mono: дублируем в оба канала
+            if (snd_channels == 1) {
+                outL = (s0 * vol_scale) >> 8;
+                outR = outL;
+            } else {
+                outL = (s0 * vol_scale) >> 8;
+                outR = (s1 * vol_scale) >> 8;
+            }
+        }
+        else if (snd_sample_size == 2) {
+            // 16-bit signed little-endian
+            uint8_t lo0 = sound_ring[sound_rd]; sound_rd = (sound_rd + 1) % SOUND_RING_SIZE;
+            uint8_t hi0 = sound_ring[sound_rd]; sound_rd = (sound_rd + 1) % SOUND_RING_SIZE;
+            int16_t s0 = (int16_t)((hi0 << 8) | lo0);
+
+            int16_t s1 = s0;
+            if (snd_channels == 2) {
+                uint8_t lo1 = sound_ring[sound_rd]; sound_rd = (sound_rd + 1) % SOUND_RING_SIZE;
+                uint8_t hi1 = sound_ring[sound_rd]; sound_rd = (sound_rd + 1) % SOUND_RING_SIZE;
+                s1 = (int16_t)((hi1 << 8) | lo1);
+                sound_count -= 4;
+            } else {
+                sound_count -= 2;
+            }
+
+            // signed16 -> unsigned8 (0..255)
+            uint16_t u0 = (uint16_t)(s0 + 32768) >> 8;
+            uint16_t u1 = (uint16_t)(s1 + 32768) >> 8;
+
+            if (snd_channels == 1) {
+                outL = (u0 * vol_scale) >> 8;
+                outR = outL;
+            } else {
+                outL = (u0 * vol_scale) >> 8;
+                outR = (u1 * vol_scale) >> 8;
+            }
+        }
+        // иначе: неизвестный sample_size — держим прошлое
     }
-    sound_array_idx = idx;
-    ///pwm_set_gpio_level(BEEPER_PIN, 0);
+    // else: данных нет — держим прошлое значение
+
+    spin_unlock(sound_lock, flags);
     return true;
 }
 #endif
@@ -799,6 +864,7 @@ int main() {
 #endif
 
     stdio_init_all();
+    sound_lock = spin_lock_instance(spin_lock_claim_unused(true));
     keyboard_init();
     keyboard_send(0xFF);
     nespad_begin(clock_get_hz(clk_sys) / 1000, NES_GPIO_CLK, NES_GPIO_DATA, NES_GPIO_LAT);

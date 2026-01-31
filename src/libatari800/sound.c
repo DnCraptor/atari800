@@ -43,7 +43,6 @@
 
 #ifdef SOUND
 
-UBYTE *LIBATARI800_Sound_array;
 
 unsigned int sound_array_fill = 0;
 
@@ -69,7 +68,6 @@ int PLATFORM_SoundSetup(Sound_setup_t *setup)
 	if (sound_hw_buffer_size == 0)
 	        return FALSE;
 
-	LIBATARI800_Sound_array = Util_malloc(sound_hw_buffer_size);
 
 	sample_diff = (double)setup->buffer_frames - samples_per_video_frame;
 	sample_residual = 0;
@@ -79,7 +77,6 @@ int PLATFORM_SoundSetup(Sound_setup_t *setup)
 
 void PLATFORM_SoundExit(void)
 {
-	free(LIBATARI800_Sound_array);
 }
 
 void PLATFORM_SoundPause(void)
