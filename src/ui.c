@@ -3679,9 +3679,8 @@ static int SoundSettings(void)
 	static UI_tMenuItem menu_array[] = {
 		UI_MENU_CHECK(0, "Enable sound:"),
 		UI_MENU_SUBMENU_SUFFIX(1, "Frequency:", freq_string),
-		UI_MENU_ACTION(2, "Bit depth:"),
-		UI_MENU_SUBMENU_SUFFIX(3, "Hardware buffer length:", hw_buflen_string),
-		UI_MENU_SUBMENU_SUFFIX(4, "Latency:", latency_string),
+//		UI_MENU_SUBMENU_SUFFIX(3, "Hardware buffer length:", hw_buflen_string),
+//		UI_MENU_SUBMENU_SUFFIX(4, "Latency:", latency_string),
 #ifdef DREAMCAST
 		UI_MENU_CHECK(0, "Enable sound:"),
 #endif
@@ -3692,7 +3691,7 @@ static int SoundSettings(void)
 #ifdef CONSOLE_SOUND
 		UI_MENU_CHECK(7, "Speaker (Key Click):"),
 #endif
-		UI_MENU_ACTION(9, "Enable higher frequencies:"),
+//		UI_MENU_ACTION(9, "Enable higher frequencies:"),
 		UI_MENU_END
 	};
 
@@ -3702,7 +3701,6 @@ static int SoundSettings(void)
 		if (update_sound_params) {
 			SetItemChecked(menu_array, 0, Sound_enabled);
 			snprintf(freq_string, sizeof(freq_string), "%i Hz", setup.freq);
-			menu_array[2].suffix = setup.sample_size == 2 ? "16 bit" : "8 bit";
 			if (setup.buffer_ms == 0) {
 				if (Sound_enabled && sound_out_valid) {
 					snprintf(hw_buflen_string, sizeof(hw_buflen_string), "auto (%u ms)", Sound_out.buffer_ms);
@@ -3762,8 +3760,6 @@ static int SoundSettings(void)
 			}
 			break;
 		case 2:
-			setup.sample_size = 3 - setup.sample_size; /* Toggle 1<->2 */
-			update_sound_params = TRUE;
 			break;
 		case 3:
 			{
@@ -3820,7 +3816,6 @@ static int SoundSettings(void)
 				/* Only store setup from menu in Sound_desired. */
 				Sound_desired = setup;
 			else if (setup.freq        != Sound_desired.freq ||
-			         setup.sample_size != Sound_desired.sample_size ||
 #ifdef STEREO_SOUND
 			         setup.channels    != Sound_desired.channels ||
 #endif

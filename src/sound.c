@@ -101,12 +101,6 @@ int Sound_ReadConfig(char *option, char *ptr)
 		return (Sound_enabled = Util_sscanbool(ptr)) != -1;
 	else if (strcmp(option, "SOUND_RATE") == 0)
 		return (Sound_desired.freq = Util_sscandec(ptr)) != -1;
-	else if (strcmp(option, "SOUND_BITS") == 0) {
-		int bits = Util_sscandec(ptr);
-		if (bits != 8 && bits != 16)
-			return FALSE;
-		Sound_desired.sample_size = bits / 8;
-	}
 	else if (strcmp(option, "SOUND_BUFFER_MS") == 0) {
 		int val = Util_sscandec(ptr);
 		if (val == -1)
@@ -124,7 +118,6 @@ void Sound_WriteConfig(FILE *fp)
 {
 	fprintf(fp, "SOUND_ENABLED=%u\n", Sound_enabled);
 	fprintf(fp, "SOUND_RATE=%u\n", Sound_desired.freq);
-	fprintf(fp, "SOUND_BITS=%u\n", Sound_desired.sample_size * 8);
 	fprintf(fp, "SOUND_BUFFER_MS=%u\n", Sound_desired.buffer_ms);
 	fprintf(fp, "SOUND_LATENCY=%u\n", Sound_latency);
 }
@@ -158,10 +151,6 @@ int Sound_Initialise(int *argc, char *argv[])
 			}
 			else a_m = TRUE;
 		}
-		else if (strcmp(argv[i], "-audio16") == 0)
-			Sound_desired.sample_size = 2;
-		else if (strcmp(argv[i], "-audio8") == 0)
-			Sound_desired.sample_size = 1;
 		else if (strcmp(argv[i], "snd-buflen") == 0) {
 			if (i_a) {
 				int val = Util_sscandec(argv[++i]);
@@ -244,16 +233,15 @@ int Sound_Setup(void)
 	POKEYSND_stereo_enabled = Sound_out.channels == 2;
 #ifndef SOUND_CALLBACK
 	free(process_buffer);
-	process_buffer_size = Sound_out.buffer_frames * Sound_out.channels * Sound_out.sample_size;
+	process_buffer_size = Sound_out.buffer_frames * Sound_out.channels;
 	process_buffer = Util_malloc(process_buffer_size);
 #endif /* !SOUND_CALLBACK */
 
-	POKEYSND_Init(POKEYSND_FREQ_17_EXACT, Sound_out.freq, Sound_out.channels, Sound_out.sample_size == 2 ? POKEYSND_BIT16 : 0);
+	POKEYSND_Init(POKEYSND_FREQ_17_EXACT, Sound_out.freq, Sound_out.channels);
 
 	Sound_SetLatency(Sound_latency);
 
 	Sound_desired.freq = Sound_out.freq;
-	Sound_desired.sample_size = Sound_out.sample_size;
 	Sound_desired.channels = Sound_out.channels;
 	/* buffer_ms and buffer_frames are not copied from Sound_out back to
 	   Sound_desired. The reason is, for some backends (e.g. SDL on PulseAudio)
@@ -305,7 +293,7 @@ static void FillBuffer(UBYTE *buffer, unsigned int size)
 {
 	unsigned int new_read_pos;
 	static UBYTE last_frame[MAX_FRAME_SIZE];
-	unsigned int bytes_per_frame = Sound_out.channels * Sound_out.sample_size;
+	unsigned int bytes_per_frame = Sound_out.channels;
 	unsigned int to_write = sync_write_pos - sync_read_pos;
 
 	if (to_write > 0) {
@@ -397,7 +385,7 @@ static void UpdateSyncBuffer(void)
 	/* Update sync_est_fill. */
 	{
 		unsigned int est_gap;
-		est_gap = (Util_time() - last_audio_write_time)*Sound_out.freq*Sound_out.channels*Sound_out.sample_size;
+		est_gap = (Util_time() - last_audio_write_time)*Sound_out.freq*Sound_out.channels;
 		if (fill < est_gap)
 			sync_est_fill = 0;
 		else
@@ -411,7 +399,7 @@ static void UpdateSyncBuffer(void)
 
 	/* produce samples from the sound emulation */
 	samples_written = POKEYSND_UpdateProcessBuffer();
-	bytes_written = Sound_out.sample_size * samples_written;
+	bytes_written = samples_written;
 
 	/* if there isn't enough room... */
 	if (bytes_written > sync_buffer_size - fill) {
@@ -478,7 +466,7 @@ void Sound_SetLatency(unsigned int latency)
 	if (Sound_enabled) {
 		/* how many fragments in the audio buffer */
 		enum { SYNC_BUFFER_FRAGS = 5 };
-		unsigned int bytes_per_frame = Sound_out.channels * Sound_out.sample_size;
+		unsigned int bytes_per_frame = Sound_out.channels;
 		unsigned int latency_frames = Sound_out.freq*Sound_latency/1000;
 		PLATFORM_SoundLock();
 		sync_buffer_size = (latency_frames + SYNC_BUFFER_FRAGS*Sound_out.buffer_frames) * bytes_per_frame;

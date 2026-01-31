@@ -1559,7 +1559,7 @@ void Atari800_SetTVMode(int mode)
 #endif
 #ifdef SOUND
 		if (Sound_enabled)
-			POKEYSND_Init(POKEYSND_FREQ_17_EXACT, Sound_out.freq, Sound_out.channels, Sound_out.sample_size == 2 ? POKEYSND_BIT16 : 0);
+			POKEYSND_Init(POKEYSND_FREQ_17_EXACT, Sound_out.freq, Sound_out.channels);
 #endif /* SOUND */
 	}
 }

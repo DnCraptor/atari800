@@ -252,7 +252,7 @@ int CODECS_AUDIO_Init(void)
 		}
 	}
 
-	sample_size = POKEYSND_snd_flags & POKEYSND_BIT16? 2 : 1;
+	sample_size = 1;
 	if (sample_size == 1 && !(audio_codec->codec_flags & AUDIO_CODEC_FLAG_SUPPORTS_8_BIT_SAMPLES)) {
 		File_Export_SetErrorMessageArg("16 bit audio needed for %s", audio_codec->codec_id);
 		return 0;

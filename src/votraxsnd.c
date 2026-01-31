@@ -46,7 +46,6 @@
 #define VTRX_RATE 24500
 
 static double ratio;
-static int bit16;
 #define VTRX_BLOCK_SIZE 1024
 SWORD *temp_votrax_buffer = NULL;
 SWORD *votrax_buffer = NULL;
@@ -95,11 +94,10 @@ static int votraxsnd_enabled(void)
 }
 
 /* called from POKEYSND_Init */
-void VOTRAXSND_Init(int playback_freq, int n_pokeys, int b16)
+void VOTRAXSND_Init(int playback_freq, int n_pokeys)
 {
 	static struct Votrax_interface vi;
 	int temp_votrax_buffer_size;
-	bit16 = b16;
 	dsprate = playback_freq;
 	num_pokeys = n_pokeys;
 	if (!votraxsnd_enabled()) return;
@@ -135,7 +133,7 @@ void VOTRAXSND_Init(int playback_freq, int n_pokeys, int b16)
 
 void VOTRAXSND_Reinit(void)
 {
-	if (dsprate) VOTRAXSND_Init(dsprate, num_pokeys, bit16);
+	if (dsprate) VOTRAXSND_Init(dsprate, num_pokeys);
 }
 
 /* process votrax and interpolate samples */
@@ -270,9 +268,8 @@ void VOTRAXSND_Process(void *sndbuffer, int sndn)
 	while (sndn > 0) {
 		int amount = ((sndn > VTRX_BLOCK_SIZE) ? VTRX_BLOCK_SIZE : sndn);
 		votrax_process(votrax_buffer, amount, temp_votrax_buffer);
-		if (bit16) mix((SWORD *)sndbuffer, votrax_buffer, amount, POKEYSND_volume >> 3);
-		else mix8((UBYTE *)sndbuffer, votrax_buffer, amount, POKEYSND_volume >> 3);
-		sndbuffer = (char *) sndbuffer + VTRX_BLOCK_SIZE*(bit16 ? 2 : 1)*((num_pokeys == 2) ? 2: 1);
+		mix8((UBYTE *)sndbuffer, votrax_buffer, amount, POKEYSND_volume >> 3);
+		sndbuffer = (char *) sndbuffer + VTRX_BLOCK_SIZE*((num_pokeys == 2) ? 2: 1);
 		sndn -= VTRX_BLOCK_SIZE;
 	}
 }

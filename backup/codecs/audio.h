@@ -12,8 +12,7 @@
 
 typedef struct {
     int sample_rate;
-    int sample_size;
-    int bits_per_sample;
+    int bits_per_sample; // 8
     int bitrate;
     int num_channels;
     int block_align;

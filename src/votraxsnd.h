@@ -5,7 +5,7 @@
 #include "votrax.h"
 
 void VOTRAXSND_PutByte(UBYTE byte);
-void VOTRAXSND_Init(int playback_freq, int n_pokeys, int b16);
+void VOTRAXSND_Init(int playback_freq, int n_pokeys);
 void VOTRAXSND_Frame(void);
 void VOTRAXSND_Process(void *sndbuffer, int sndn);
 extern int VOTRAXSND_busy;

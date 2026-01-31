@@ -1284,7 +1284,7 @@ static void init_syncsound(void)
 }
 
 int MZPOKEYSND_Init(ULONG freq17, int playback_freq, UBYTE num_pokeys,
-                        int flags, int quality
+                        int quality
 #ifdef __PLUS
                         , int clear_regs
 #endif
@@ -1299,7 +1299,7 @@ int MZPOKEYSND_Init(ULONG freq17, int playback_freq, UBYTE num_pokeys,
     POKEYSND_UpdateConsol_ptr = Update_consol_sound_mz;
 #endif
 
-	POKEYSND_Process_ptr = (flags & POKEYSND_BIT16) ? mzpokeysnd_process_16 : mzpokeysnd_process_8;
+	POKEYSND_Process_ptr = mzpokeysnd_process_8;
 
     switch(playback_freq)
     {
@@ -2364,20 +2364,11 @@ static void generate_sync(unsigned int num_ticks)
 		for (i = 0; i < num_cur_pokeys; ++i) {
 			/* advance pokey to the new position and produce a sample */
 			advance_ticks(pokey_states + i, ticks);
-			if (POKEYSND_snd_flags & POKEYSND_BIT16) {
-				*((SWORD *)buffer) = (SWORD)floor(
-					interp_read_resam_all(pokey_states + i, samp_pos)
-					* (volume.s16 / 2 / MAX_SAMPLE / 4 * M_PI * 0.95)
-					+ 0.5 + 0.5 * rand() / RAND_MAX - 0.25
-				);
-				buffer += 2;
-			}
-			else
-				*buffer++ = (UBYTE)floor(
-					interp_read_resam_all(pokey_states + i, samp_pos)
-					* (volume.s8 / 2 / MAX_SAMPLE / 4 * M_PI * 0.95)
-					+ 128 + 0.5 + 0.5 * rand() / RAND_MAX - 0.25
-				);
+            *buffer++ = (UBYTE)floor(
+                interp_read_resam_all(pokey_states + i, samp_pos)
+                * (volume.s8 / 2 / MAX_SAMPLE / 4 * M_PI * 0.95)
+                + 128 + 0.5 + 0.5 * rand() / RAND_MAX - 0.25
+            );
 		}
 	}
 

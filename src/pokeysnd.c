@@ -136,7 +136,6 @@ static UWORD last_val2 = 0;
 static ULONG snd_freq17 = POKEYSND_FREQ_17_EXACT;
 int POKEYSND_playback_freq = 44100;
 UBYTE POKEYSND_num_pokeys = 1;
-int POKEYSND_snd_flags = 0;
 static int mz_quality = 0;		/* default quality for mzpokeysnd */
 #ifdef __PLUS
 int mz_clear_regs = 0;
@@ -230,8 +229,7 @@ static int const CONSOLE_VOL = 32;
 /*                                                                           */
 /*****************************************************************************/
 
-static int pokeysnd_init_rf(ULONG freq17, int playback_freq,
-           UBYTE num_pokeys, int flags);
+static int pokeysnd_init_rf(ULONG freq17, int playback_freq, UBYTE num_pokeys);
 
 int POKEYSND_DoInit(void)
 {
@@ -241,18 +239,17 @@ int POKEYSND_DoInit(void)
 
 	if (POKEYSND_enable_new_pokey)
 		return MZPOKEYSND_Init(snd_freq17, POKEYSND_playback_freq,
-				POKEYSND_num_pokeys, POKEYSND_snd_flags, mz_quality
+				POKEYSND_num_pokeys, mz_quality
 #ifdef __PLUS
 				, mz_clear_regs
 #endif
 		);
 	else
 		return pokeysnd_init_rf(snd_freq17, POKEYSND_playback_freq,
-				POKEYSND_num_pokeys, POKEYSND_snd_flags);
+				POKEYSND_num_pokeys);
 }
 
-int POKEYSND_Init(ULONG freq17, int playback_freq, UBYTE num_pokeys,
-                     int flags
+int POKEYSND_Init(ULONG freq17, int playback_freq, UBYTE num_pokeys
 #ifdef __PLUS
                      , int clear_regs
 #endif
@@ -261,7 +258,6 @@ int POKEYSND_Init(ULONG freq17, int playback_freq, UBYTE num_pokeys,
 	snd_freq17 = freq17;
 	POKEYSND_playback_freq = playback_freq;
 	POKEYSND_num_pokeys = num_pokeys;
-	POKEYSND_snd_flags = flags;
 #ifdef __PLUS
 	mz_clear_regs = clear_regs;
 #endif
@@ -273,7 +269,7 @@ int POKEYSND_Init(ULONG freq17, int playback_freq, UBYTE num_pokeys,
 		unsigned int ticks_per_frame = Atari800_tv_mode*114;
 		unsigned int max_ticks_per_frame = ticks_per_frame + surplus_ticks;
 		double ticks_per_sample = (double)ticks_per_frame / samples_per_frame;
-		POKEYSND_process_buffer_length = POKEYSND_num_pokeys * (unsigned int)ceil((double)max_ticks_per_frame / ticks_per_sample) * ((POKEYSND_snd_flags & POKEYSND_BIT16) ? 2:1);
+		POKEYSND_process_buffer_length = POKEYSND_num_pokeys * (unsigned int)ceil((double)max_ticks_per_frame / ticks_per_sample);
 		free(POKEYSND_process_buffer);
 		POKEYSND_process_buffer = (UBYTE *)Util_malloc(POKEYSND_process_buffer_length);
 		POKEYSND_process_buffer_fill = 0;
@@ -281,7 +277,7 @@ int POKEYSND_Init(ULONG freq17, int playback_freq, UBYTE num_pokeys,
 	}
 
 #if defined(PBI_XLD) || defined (VOICEBOX)
-	VOTRAXSND_Init(playback_freq, num_pokeys, (flags & POKEYSND_BIT16));
+	VOTRAXSND_Init(playback_freq, num_pokeys);
 #endif
 	return POKEYSND_DoInit();
 }
@@ -312,7 +308,7 @@ int POKEYSND_UpdateProcessBuffer(void)
 {
 	int sndn;
 	Update_synchronized_sound();
-	sndn = POKEYSND_process_buffer_fill / ((POKEYSND_snd_flags & POKEYSND_BIT16) ? 2 : 1);
+	sndn = POKEYSND_process_buffer_fill;
 	POKEYSND_process_buffer_fill = 0;
 
 #if defined(PBI_XLD) || defined (VOICEBOX)
@@ -334,8 +330,7 @@ static void init_syncsound(void)
 	speaker = 0;
 }
 
-static int pokeysnd_init_rf(ULONG freq17, int playback_freq,
-           UBYTE num_pokeys, int flags)
+static int pokeysnd_init_rf(ULONG freq17, int playback_freq, UBYTE num_pokeys)
 {
 	UBYTE chan;
 
@@ -343,8 +338,7 @@ static int pokeysnd_init_rf(ULONG freq17, int playback_freq,
 #ifdef CONSOLE_SOUND
 	POKEYSND_UpdateConsol_ptr = Update_consol_sound_rf;
 #endif
-
-	POKEYSND_Process_ptr = (flags & POKEYSND_BIT16) ? pokeysnd_process_16 : pokeysnd_process_8;
+	POKEYSND_Process_ptr = pokeysnd_process_8;
 
 	/* start all of the polynomial counters at zero */
 	P4 = 0;
@@ -1078,14 +1072,8 @@ static void Generate_sync_rf(unsigned int num_ticks)
 		samp_pos = new_samp_pos;
 		num_ticks -= ticks;
 
-		if (POKEYSND_snd_flags & POKEYSND_BIT16) {
-			pokeysnd_process_16(buffer, POKEYSND_num_pokeys);
-			buffer += 2 * POKEYSND_num_pokeys;
-		}
-		else {
-			pokeysnd_process_8(buffer, POKEYSND_num_pokeys);
-			buffer += POKEYSND_num_pokeys;
-		}
+		pokeysnd_process_8(buffer, POKEYSND_num_pokeys);
+		buffer += POKEYSND_num_pokeys;
 
 	}
 

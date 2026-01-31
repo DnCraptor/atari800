@@ -76,12 +76,8 @@ extern "C" {
 #define POKEYSND_SAMP_MID 128
 #endif
 
-/* init flags */
-#define POKEYSND_BIT16	1
-
 extern SLONG POKEYSND_playback_freq;
 extern UBYTE POKEYSND_num_pokeys;
-extern int POKEYSND_snd_flags;
 extern int POKEYSND_volume;
 
 extern int POKEYSND_enable_new_pokey;
@@ -93,8 +89,7 @@ extern void (*POKEYSND_Process_ptr)(void *sndbuffer, int sndn);
 extern void (*POKEYSND_Update_ptr)(UWORD addr, UBYTE val, UBYTE chip, UBYTE gain);
 extern void (*POKEYSND_UpdateConsol_ptr)(int set);
 
-int POKEYSND_Init(ULONG freq17, int playback_freq, UBYTE num_pokeys,
-                     int flags
+int POKEYSND_Init(ULONG freq17, int playback_freq, UBYTE num_pokeys
 #ifdef __PLUS
                      , int clear_regs
 #endif

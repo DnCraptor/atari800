@@ -14,19 +14,15 @@ void increase_volume(void);
 
 /* Nomenclature used:
    Sample - a single portion of one channel of audio signal. Sample size equals
-   1 byte for 8-bit audio and 2 bytes for 16-bit audio.
+   1 byte - 8-bit audio
    Frame - a single portion of samples for all channels of audio signal. Frame
-   size equals sample size * number of channels.
+   size equals sample size (==1) * number of channels.
    The word "size", unless additionally specified, means size in bytes.
  */
 
 typedef struct Sound_setup_t {
 	/* Sound sample rate - number of frames per second: 1000..65535. */
 	unsigned int freq;
-	/* Number of bytes per each sample, also determines sample format:
-	   1 = unsigned 8-bit format.
-	   2 = signed 16-bit system-endian format. */
-	int sample_size;
 	/* Number of audio channels: 1 = mono, 2 = stereo. */
 	unsigned int channels;
 	/* Length of the hardware audio buffer in milliseconds. */
