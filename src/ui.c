@@ -3679,8 +3679,8 @@ static int SoundSettings(void)
 	static UI_tMenuItem menu_array[] = {
 		UI_MENU_CHECK(0, "Enable sound:"),
 		UI_MENU_SUBMENU_SUFFIX(1, "Frequency:", freq_string),
-//		UI_MENU_SUBMENU_SUFFIX(3, "Hardware buffer length:", hw_buflen_string),
-//		UI_MENU_SUBMENU_SUFFIX(4, "Latency:", latency_string),
+		UI_MENU_SUBMENU_SUFFIX(3, "Hardware buffer length:", hw_buflen_string),
+		UI_MENU_SUBMENU_SUFFIX(4, "Latency:", latency_string),
 #ifdef DREAMCAST
 		UI_MENU_CHECK(0, "Enable sound:"),
 #endif

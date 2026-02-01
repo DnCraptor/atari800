@@ -30,6 +30,11 @@ extern "C" {
 #include "util_Wii_Joy.h"
 }
 
+#ifdef PICO_RP2350
+#include <hardware/regs/qmi.h>
+#include <hardware/structs/qmi.h>
+#endif
+
 static FATFS fs;
 semaphore vga_start_semaphore;
 #define DISP_WIDTH (320)
@@ -707,52 +712,88 @@ void __time_critical_func(render_core)() {
     __unreachable();
 }
 
-#define SOUND_RING_SIZE (16 * 1024)
-static uint8_t sound_ring[SOUND_RING_SIZE];
-static volatile uint32_t sound_wr = 0;
-static volatile uint32_t sound_rd = 0;
-static volatile uint32_t sound_count = 0;
+#define SOUND_BUF_SIZE (8 * 1024)
+static uint8_t  snd_buf[2][SOUND_BUF_SIZE];
+// индексы буферов
+static volatile uint8_t snd_wi = 0;   // куда пишем (0/1)
+static volatile uint8_t snd_ri = 1;   // откуда читаем (0/1)
+
+// сколько байт “готово” в каждом буфере (commit size)
+static volatile uint32_t snd_ready[2] = {0, 0};
+
+// позиция чтения в текущем read-буфере
+static volatile uint32_t snd_rpos = 0;
+
+// позиция записи в текущем write-буфере (локальная для writer’а, но держим volatile)
+static volatile uint32_t snd_wpos = 0;
+
 static spin_lock_t *sound_lock;
+
+static inline void snd_try_swap_buffers_locked(void)
+{
+    // Если read-буфер пуст (дочитан) и второй буфер готов — меняем
+    if (snd_ready[snd_ri] == 0 && snd_ready[snd_wi] != 0) {
+        // swap индексы
+        uint8_t old_ri = snd_ri;
+        snd_ri = snd_wi;
+        snd_wi = old_ri;
+
+        // reset позиций
+        snd_rpos = 0;
+        snd_wpos = 0;   // новый write-буфер (старый read) пуст
+    }
+}
+
 extern "C" int paused;
+
 extern "C" void PLATFORM_SoundWrite(const UBYTE *buffer, unsigned int size)
 {
-    if (size == 0)
-        return;
+    if (!buffer || size == 0) return;
 
-    if (size > SOUND_RING_SIZE) {
-        // если пришёл слишком большой блок — берём хвост
-        buffer += size - SOUND_RING_SIZE;
-        size = SOUND_RING_SIZE;
+    // Пишем кусками, пока есть данные
+    while (size) {
+
+        // Если текущий write-буфер уже закоммичен (готов к чтению) — пробуем свапнуть
+        if (snd_ready[snd_wi] != 0) {
+            uint32_t flags = spin_lock_blocking(sound_lock);
+            snd_try_swap_buffers_locked();
+            spin_unlock(sound_lock, flags);
+
+            // Если всё равно занято — дропаем остаток (оба буфера заполнены/ожидают)
+            if (snd_ready[snd_wi] != 0) {
+                return;
+            }
+        }
+
+        // Сколько места осталось в write-буфере
+        uint32_t wpos = snd_wpos;
+        uint32_t space = SOUND_BUF_SIZE - wpos;
+        if (space == 0) {
+            // буфер заполнен — коммит и попробуем свап
+            uint32_t flags = spin_lock_blocking(sound_lock);
+            snd_ready[snd_wi] = SOUND_BUF_SIZE;
+            snd_try_swap_buffers_locked();
+            spin_unlock(sound_lock, flags);
+            continue;
+        }
+
+        uint32_t chunk = size;
+        if (chunk > space) chunk = space;
+
+        memcpy(&snd_buf[snd_wi][wpos], buffer, chunk);
+        buffer += chunk;
+        size   -= chunk;
+        wpos   += chunk;
+        snd_wpos = wpos;
+
+        // Если добили буфер до конца — коммитим (под lock, чтобы reader видел консистентно)
+        if (wpos == SOUND_BUF_SIZE) {
+            uint32_t flags = spin_lock_blocking(sound_lock);
+            snd_ready[snd_wi] = SOUND_BUF_SIZE;
+            snd_try_swap_buffers_locked();
+            spin_unlock(sound_lock, flags);
+        }
     }
-
-    uint32_t flags = spin_lock_blocking(sound_lock);
-
-    // если не хватает места — выкидываем старые данные
-    if (sound_count + size > SOUND_RING_SIZE) {
-        uint32_t drop = sound_count + size - SOUND_RING_SIZE;
-        sound_rd = (sound_rd + drop) % SOUND_RING_SIZE;
-        sound_count -= drop;
-    }
-
-    uint32_t first = SOUND_RING_SIZE - sound_wr;
-    if (first > size)
-        first = size;
-
-    memcpy(&sound_ring[sound_wr], buffer, first);
-
-    uint32_t second = size - first;
-    if (second > 0) {
-        memcpy(&sound_ring[0], buffer + first, second);
-        sound_wr = second;
-    } else {
-        sound_wr += first;
-        if (sound_wr == SOUND_RING_SIZE)
-            sound_wr = 0;
-    }
-
-    sound_count += size;
-
-    spin_unlock(sound_lock, flags);
 }
 
 #ifdef SOUND
@@ -774,37 +815,58 @@ static bool __not_in_flash_func(snd_timer_callback)(repeating_timer_t *rt)
 {
     static uint16_t outL = 128;
     static uint16_t outR = 128;
-    // выводим предыдущий сэмпл
+
     pwm_set_gpio_level(PWM_PIN0, outR);
     pwm_set_gpio_level(PWM_PIN1, outL);
-    if (!Sound_enabled || paused) {
+
+    if (!Sound_enabled || paused)
         return true;
-    }
-    // fixed-point громкость
+
+    const uint32_t frame_bytes = (uint32_t)snd_channels; // 8-bit unsigned: 1 байт на канал
     uint16_t vol_scale = (uint16_t)(vol * 32);
-    // bytes per frame: sample_size * channels
-    const uint32_t frame_bytes = (uint32_t)snd_channels;
-    // 8-bit unsigned
-    uint32_t flags = spin_lock_blocking(sound_lock);
-    if (sound_count < frame_bytes) {
+
+    // Быстрый путь: есть данные в read-буфере?
+    uint8_t ri = snd_ri;
+    uint32_t ready = snd_ready[ri];
+    uint32_t rpos  = snd_rpos;
+
+    if (ready < frame_bytes || rpos + frame_bytes > ready) {
+        // Буфер пуст/кончился: отметим пустым и попробуем свапнуть (под lock)
+        uint32_t flags = spin_lock_blocking(sound_lock);
+
+        // возможно кто-то уже обновил, перечитаем консистентно
+        ri = snd_ri;
+        ready = snd_ready[ri];
+        rpos = snd_rpos;
+
+        if (ready < frame_bytes || rpos + frame_bytes > ready) {
+            // дочитали текущий — освобождаем
+            snd_ready[ri] = 0;
+            snd_rpos = 0;
+
+            // попытка переключиться на другой готовый буфер
+            snd_try_swap_buffers_locked();
+        }
+
         spin_unlock(sound_lock, flags);
-        return true;
+
+        // после свапа можем попробовать ещё раз без рекурсии
+        ri = snd_ri;
+        ready = snd_ready[ri];
+        rpos  = snd_rpos;
+        if (ready < frame_bytes || rpos + frame_bytes > ready) {
+            return true; // всё ещё нет данных
+        }
     }
-    register uint32_t rd = sound_rd;
-    uint8_t s0 = sound_ring[rd];
-    rd = (rd + 1) % SOUND_RING_SIZE;
+
+    // Читаем фрейм без lock
+    uint8_t s0 = snd_buf[ri][rpos++];
     uint8_t s1 = s0;
     if (snd_channels == 2) {
-        s1 = sound_ring[rd];
-        rd = (rd + 1) % SOUND_RING_SIZE;
-        sound_count -= 2;
-    } else {
-        --sound_count;
+        s1 = snd_buf[ri][rpos++];
     }
-    sound_rd = rd;
-    spin_unlock(sound_lock, flags);
+    snd_rpos = rpos;
 
-    // mono: дублируем в оба канала
     if (snd_channels == 1) {
         outL = (s0 * vol_scale) >> 8;
         outR = outL;
@@ -812,6 +874,7 @@ static bool __not_in_flash_func(snd_timer_callback)(repeating_timer_t *rt)
         outL = (s0 * vol_scale) >> 8;
         outR = (s1 * vol_scale) >> 8;
     }
+
     return true;
 }
 #endif
@@ -836,15 +899,32 @@ inline static void init_wii() {
     }
 }
 
+#ifndef PICO_RP2040
+void __not_in_flash() flash_timings() {
+        const int max_flash_freq = 66 * MHZ;
+        const int clock_hz = CPU_MHZ * MHZ;
+        int divisor = (clock_hz + max_flash_freq - 1) / max_flash_freq;
+        if (divisor == 1 && clock_hz > 100000000) {
+            divisor = 2;
+        }
+        int rxdelay = divisor;
+        if (clock_hz / divisor > 100000000) {
+            rxdelay += 1;
+        }
+        qmi_hw->m[0].timing = 0x60007000 |
+                            rxdelay << QMI_M0_TIMING_RXDELAY_LSB |
+                            divisor << QMI_M0_TIMING_CLKDIV_LSB;
+}
+#endif
+
 int main() {
 #if !PICO_RP2040
     volatile uint32_t *qmi_m0_timing=(uint32_t *)0x400d000c;
     vreg_disable_voltage_limit();
     vreg_set_voltage(VREG_VOLTAGE_1_60);
-    sleep_ms(33);
-    *qmi_m0_timing = 0x60007204;
+    flash_timings();
+    sleep_ms(100);
     set_sys_clock_khz(CPU_MHZ * KHZ, 0);
-    *qmi_m0_timing = 0x60007204;
 #else
     hw_set_bits(&vreg_and_chip_reset_hw->vreg, VREG_AND_CHIP_RESET_VREG_VSEL_BITS);
     sleep_ms(10);

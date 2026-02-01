@@ -77,7 +77,7 @@ int CFG_save_on_exit = FALSE;
 /* If another default path config path is defined use it
    otherwise use the default one */
 #ifndef DEFAULT_CFG_NAME
-#define DEFAULT_CFG_NAME ".atari800.cfg"
+#define DEFAULT_CFG_NAME "/atari800/.atari800.cfg"
 #endif
 
 #ifndef SYSTEM_WIDE_CFG_FILE

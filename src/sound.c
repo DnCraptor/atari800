@@ -43,14 +43,12 @@ int Sound_enabled = 1;
 
 Sound_setup_t Sound_desired = {
 	44100,
-	1, /// TODO:
 	1,
 	0
 };
 
 Sound_setup_t Sound_out = {
 	44100,
-	1,
 	1,
 	0
 };
