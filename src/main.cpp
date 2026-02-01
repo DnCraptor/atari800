@@ -874,8 +874,8 @@ int main() {
     /* force the 400/800 OS to get the Memo Pad */
     char *test_args[] = {
 //        "-atari",
-        "-xe",
-        "-ntsc",
+//        "-xe",
+//        "-ntsc",
         NULL,
     };
     printf("libatari800_init");

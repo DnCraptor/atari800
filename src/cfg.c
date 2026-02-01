@@ -320,8 +320,10 @@ int CFG_LoadConfig(const char *alternate_config_filename)
 			}
 #endif
 #if !defined(BASIC) && !defined(CURSES_BASIC)
+		#if Colours_ReadConfig_Enabed
 			else if (Colours_ReadConfig(string, ptr)) {
 			}
+		#endif
 			else if (ARTIFACT_ReadConfig(string, ptr)) {
 			}
 			else if (Screen_ReadConfig(string, ptr)) {
@@ -359,6 +361,7 @@ int CFG_LoadConfig(const char *alternate_config_filename)
 	}
 
 	fclose(fp);
+
 #ifndef BASIC
 	if (was_obsolete_dir) {
 		Log_print(

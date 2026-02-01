@@ -52,7 +52,7 @@
 
 UBYTE MEMORY_mem[65536 + 2];
 
-int MEMORY_ram_size = 64;
+int MEMORY_ram_size = 128;
 
 #ifndef PAGED_ATTRIB
 

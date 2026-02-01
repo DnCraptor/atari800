@@ -95,7 +95,7 @@ extern FIL __files[4]; // global
 inline static FIL* ___fopen(const char* fn, const char* mode) {
     for (int i = 0; i < sizeof(__files) / sizeof(FIL); ++i) {
         if (__files[i].obj.fs == 0) {
-            FRESULT r = f_open(&__files[i], fn, mode[0] == 'r' ? FA_READ : FA_WRITE); // TODO:
+            FRESULT r = f_open(&__files[i], fn, mode[0] == 'r' ? FA_READ : (FA_WRITE | FA_OPEN_ALWAYS)); // TODO:
             if (r != FR_OK) {
                 return 0;
             }
