@@ -14,7 +14,8 @@ originally written by David Firth and now developed by the Atari800
 Development Team (please see DOC/CREDITS). This program is copyrighted and
 released under the GPL (see COPYING).
 
-Optimised for ZX Murmulator by me ;)
+Optimised for Murmulator by me:
+
 PS2 Keyboard mapping:
 F1 - UI
 F2 - Option
@@ -24,49 +25,46 @@ F5 - Help
 Ctrl + Alt + Del - Cold Restart
 
 Joystick 0 emulation:
-Q / W / E - up left   / up   / up right
-A /   / D - left      /      / right
-Z / X / C - down left / down / down right
+7  8  9
+ \ | /
+4--5--6
+ / | \
+1  2  3
 Left Ctrl - fire
 
 Joystick 1 emulation (numpad):
-7 / 8 / 9 - up left   / up   / up right
-4 /   / 6 - left      /      / right
-1 / 2 / 3 - down left / down / down right
+Q  W  E
+ \ | /
+A--S--D
+ / | \
+Z  X  C
 RightCtrl - fire
+
+Alt combinations (UI functions).
+
+Alt + C opens cartridge menu.
+Alt + D opens disk menu.
+Alt + O opens sound menu.
+Alt + Q performs warm reset.
+Alt + R runs loaded content.
+Alt + S saves emulator state.
+Alt + L loads emulator state.
+Alt + T opens cassette menu.
+Alt + Y opens settings menu.
+
+Save and load states.
+
+Ctrl + F1 through F12 saves emulator state.
+Shift + F1 through F12 loads emulator state.
+
+System combinations.
+
+Alt + Ctrl + Delete performs a cold start.
 
 Dendy-8 joysticks:
 Start + Select - UI
 Start  - Start
 Select - Select
 A - Fire
-TBA
 
-TBA:
-Please read DOC/README, DOC/INSTALL and DOC/USAGE and eventual platform
-specific versions of the above mentioned files.
-
-For news in this release please read DOC/NEWS.
-
-If you have a problem running this emulator please read DOC/FAQ first.
-If the problem persists then please ask in newsgroup comp.sys.atari.8bit
-or in the atari800-users mailing list (see below).
-
-Look at DOC/BUGS before reporting something you consider a bug.
-
-If you want to help developing Atari800 emulator you can subscribe to our
-mailing list (http://lists.sourceforge.net/lists/listinfo/atari800-users).
-DOC/TODO might point you in the right direction.
-
-This version, and all previous versions back to v0.8.2 have been released Petr
-Stehlik and are available at internet (current project URL is below). Thanks
-go to original author David Firth and all the people that contributed since then.
-
-EnJoy!
-
-Petr Stehlik
-Dec 29, 2023
-
-E-mail: pstehlik@sophics.cz
-
-Project homepage: http://atari800.github.io/
+Original project homepage: http://atari800.github.io/

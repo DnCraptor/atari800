@@ -150,97 +150,105 @@ bool __time_critical_func(handleScancode)(const uint32_t ps2scancode) {
                 } // F4 Start
                 case 0xc8: { // Up
                     input_map.keychar = 0;
-                    input_map.joy1 &= INPUT_STICK_FORWARD;
+                    input_map.joy0 &= INPUT_STICK_FORWARD;
                     _8Pressed = false;
                     break;
                 }
                 case 0xcb: { // Left
                     input_map.keychar = 0;
-                    input_map.joy1 &= INPUT_STICK_LEFT;
+                    input_map.joy0 &= INPUT_STICK_LEFT;
                     _4Pressed = false;
                     break;
                 }
-                case 0xd0: { // Down
+                case 0xcc: { // 5 Center -> Down
                     input_map.keychar = 0;
-                    input_map.joy1 &= INPUT_STICK_BACK;
+                    input_map.joy0 &= INPUT_STICK_BACK;
+                    _2Pressed = false;
+                    break;
+                }
+                case 0xd0: { // 2 Down
+                    input_map.keychar = 0;
+                    input_map.joy0 &= INPUT_STICK_BACK;
                     _2Pressed = false;
                     break;
                 }
                 case 0xcd: { // Right
                     input_map.keychar = 0;
-                    input_map.joy1 &= INPUT_STICK_RIGHT;
+                    input_map.joy0 &= INPUT_STICK_RIGHT;
                     _6Pressed = false;
                     break;
                 }
                 case 0xc7: { // 7 UpLeft
                     input_map.keychar = 0;
-                    input_map.joy1 &= INPUT_STICK_UL;
+                    input_map.joy0 &= INPUT_STICK_UL;
                     _7Pressed = false;
                     break;
                 }
                 case 0xc9: { // 9 UpRight
                     input_map.keychar = 0;
-                    input_map.joy1 &= INPUT_STICK_UR;
+                    input_map.joy0 &= INPUT_STICK_UR;
                     _9Pressed = false;
                     break;
                 }
                 case 0xcf: { // 1 LowLeft
                     input_map.keychar = 0;
-                    input_map.joy1 &= INPUT_STICK_LL;
+                    input_map.joy0 &= INPUT_STICK_LL;
                     _1Pressed = false;
                     break;
                 }
                 case 0xd1: { // 3 LowRight
                     input_map.keychar = 0;
-                    input_map.joy1 &= INPUT_STICK_LR;
+                    input_map.joy0 &= INPUT_STICK_LR;
                     _3Pressed = false;
                     break;
                 }
+
                 case 0x90: { // Q
                     input_map.keychar = 0;
-                    input_map.joy0 &= INPUT_STICK_UL;
+                    input_map.joy1 &= INPUT_STICK_UL;
                     qPressed = false;
                     break;
                 }
                 case 0x91: { // W
                     input_map.keychar = 0;
-                    input_map.joy0 &= INPUT_STICK_FORWARD;
+                    input_map.joy1 &= INPUT_STICK_FORWARD;
                     wPressed = false;
                     break;
                 }
                 case 0x92: { // E
                     input_map.keychar = 0;
-                    input_map.joy0 &= INPUT_STICK_UR;
+                    input_map.joy1 &= INPUT_STICK_UR;
                     ePressed = false;
                     break;
                 }
                 case 0x9e: { // A
                     input_map.keychar = 0;
-                    input_map.joy0 &= INPUT_STICK_LEFT;
+                    input_map.joy1 &= INPUT_STICK_LEFT;
                     aPressed = false;
                     break;
                 }
                 case 0xa0: { // D
                     input_map.keychar = 0;
-                    input_map.joy0 &= INPUT_STICK_RIGHT;
+                    input_map.joy1 &= INPUT_STICK_RIGHT;
                     dPressed = false;
                     break;
                 }
                 case 0xac: { // Z
                     input_map.keychar = 0;
-                    input_map.joy0 &= INPUT_STICK_LL;
+                    input_map.joy1 &= INPUT_STICK_LL;
                     zPressed = false;
                     break;
                 }
+                case 0x9f: // S
                 case 0xad: { // X
                     input_map.keychar = 0;
-                    input_map.joy0 &= INPUT_STICK_BACK;
+                    input_map.joy1 &= INPUT_STICK_BACK;
                     xPressed = false;
                     break;
                 }
                 case 0xae: { // C
                     input_map.keychar = 0;
-                    input_map.joy0 &= INPUT_STICK_LR;
+                    input_map.joy1 &= INPUT_STICK_LR;
                     cPressed = false;
                     break;
                 }
@@ -374,6 +382,9 @@ bool __time_critical_func(handleScancode)(const uint32_t ps2scancode) {
 			        UI_alt_function = UI_MENU_SAVESTATE;
                     return true;
                 }
+                input_map.keychar = sp ? 'S' : 's';
+                input_map.joy1 |= ~INPUT_STICK_BACK;
+                xPressed = true;
                 input_map.keychar = sp ? 'S' : 's'; break;
             case 0x14:
 	            if (input_map.alt) {
@@ -550,49 +561,55 @@ bool __time_critical_func(handleScancode)(const uint32_t ps2scancode) {
                 break; // F12
             case 0x48: { // Up
                 input_map.keychar = 254;
-                input_map.joy1 |= ~INPUT_STICK_FORWARD;
+                input_map.joy0 |= ~INPUT_STICK_FORWARD;
                 _8Pressed = true;
                 break;
             }
             case 0x4b: { // Left
                 input_map.keychar = 253;
-                input_map.joy1 |= ~INPUT_STICK_LEFT;
+                input_map.joy0 |= ~INPUT_STICK_LEFT;
                 _4Pressed = true;
                 break;
             }
-            case 0x50: { // Down
+            case 0x4c: { // 5 Down
+                input_map.keychar = '5'; // TODO: NumLock
+                input_map.joy0 |= ~INPUT_STICK_BACK;
+                _2Pressed = true;
+                break;
+            }
+            case 0x50: { // 2- Down
                 input_map.keychar = 252;
-                input_map.joy1 |= ~INPUT_STICK_BACK;
+                input_map.joy0 |= ~INPUT_STICK_BACK;
                 _2Pressed = true;
                 break;
             }
             case 0x4d: { // Right
                 input_map.keychar = 251;
-                input_map.joy1 |= ~INPUT_STICK_RIGHT;
+                input_map.joy0 |= ~INPUT_STICK_RIGHT;
                 _6Pressed = true;
                 break;
             }
             case 0x47: { // 7 - Up Left
                 input_map.keychar = '7'; // TODO: NumLock
-                input_map.joy1 |= ~INPUT_STICK_UL;
+                input_map.joy0 |= ~INPUT_STICK_UL;
                 _7Pressed = true;
                 break;
             }
             case 0x49: { // 9 - Up Right
                 input_map.keychar = '9'; // TODO: NumLock
-                input_map.joy1 |= ~INPUT_STICK_UR;
+                input_map.joy0 |= ~INPUT_STICK_UR;
                 _9Pressed = true;
                 break;
             }
             case 0x4f: { // 1 - Low Left
                 input_map.keychar = '1'; // TODO: NumLock
-                input_map.joy1 |= ~INPUT_STICK_LL;
+                input_map.joy0 |= ~INPUT_STICK_LL;
                 _1Pressed = true;
                 break;
             }
             case 0x51: { // 3 - Low Right
                 input_map.keychar = '3'; // TODO: NumLock
-                input_map.joy1 |= ~INPUT_STICK_LR;
+                input_map.joy0 |= ~INPUT_STICK_LR;
                 _3Pressed = true;
                 break;
             }
