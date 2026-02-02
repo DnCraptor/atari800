@@ -376,16 +376,17 @@ bool __time_critical_func(handleScancode)(const uint32_t ps2scancode) {
                 }
                 input_map.keychar = sp ? 'R' : 'r';
                 break;
-            case 0x1f:
+            case 0x1f: {
 	            if (input_map.alt) {
                     input_map.keychar = 255; // -> AKEY_UI;
 			        UI_alt_function = UI_MENU_SAVESTATE;
                     return true;
                 }
-                input_map.keychar = sp ? 'S' : 's';
                 input_map.joy1 |= ~INPUT_STICK_BACK;
                 xPressed = true;
-                input_map.keychar = sp ? 'S' : 's'; break;
+                input_map.keychar = sp ? 'S' : 's';
+                break;
+            }
             case 0x14:
 	            if (input_map.alt) {
                     input_map.keychar = 255; // -> AKEY_UI;
@@ -629,31 +630,31 @@ bool __time_critical_func(handleScancode)(const uint32_t ps2scancode) {
 
 
 void nespad_update() {
-    if (!aPressed && !qPressed && !zPressed)
+    if (!_7Pressed && !_4Pressed && !_1Pressed)
         if (nespad_state & DPAD_LEFT) {
             input_map.joy0 |= ~INPUT_STICK_LEFT;
         } else {
             input_map.joy0 &= INPUT_STICK_LEFT;
         }
-    if (!ePressed && !dPressed && !cPressed)
+    if (!_9Pressed && !_6Pressed && !_3Pressed)
         if (nespad_state & DPAD_RIGHT) {
             input_map.joy0 |= ~INPUT_STICK_RIGHT;
         } else {
             input_map.joy0 &= INPUT_STICK_RIGHT;
         }
-    if (!qPressed && !wPressed && !ePressed)
+    if (!_7Pressed && !_8Pressed && !_9Pressed)
         if (nespad_state & DPAD_UP) {
             input_map.joy0 |= ~INPUT_STICK_FORWARD;
         } else {
             input_map.joy0 &= INPUT_STICK_FORWARD;
         }
-    if (!zPressed && !xPressed && !cPressed)
+    if (!_1Pressed && !_2Pressed && !_3Pressed)
         if (nespad_state & DPAD_DOWN) {
             input_map.joy0 |= ~INPUT_STICK_BACK;
         } else {
             input_map.joy0 &= INPUT_STICK_BACK;
         }
-    if(!(input_map.control & 1))
+    if(!(input_map.control & 2))
         input_map.trig0 = nespad_state & DPAD_A;
     if(!f4Pressed)
         input_map.start = nespad_state & DPAD_START;
@@ -665,31 +666,31 @@ void nespad_update() {
         input_map.keychar = 255; // UI
     }
 
-    if (!_7Pressed && !_4Pressed && !_1Pressed)
+    if (!aPressed && !qPressed && !zPressed)
         if (nespad_state2 & DPAD_LEFT) {
             input_map.joy1 |= ~INPUT_STICK_LEFT;
         } else {
             input_map.joy1 &= INPUT_STICK_LEFT;
         }
-    if (!_9Pressed && !_6Pressed && !_3Pressed)
+    if (!ePressed && !dPressed && !cPressed)
         if (nespad_state2 & DPAD_RIGHT) {
             input_map.joy1 |= ~INPUT_STICK_RIGHT;
         } else {
             input_map.joy1 &= INPUT_STICK_RIGHT;
         }
-    if (!_7Pressed && !_8Pressed && !_9Pressed)
+    if (!qPressed && !wPressed && !ePressed)
         if (nespad_state2 & DPAD_UP) {
             input_map.joy1 |= ~INPUT_STICK_FORWARD;
         } else {
             input_map.joy1 &= INPUT_STICK_FORWARD;
         }
-    if (!_1Pressed && !_2Pressed && !_3Pressed)
+    if (!zPressed && !xPressed && !cPressed)
         if (nespad_state2 & DPAD_DOWN) {
             input_map.joy1 |= ~INPUT_STICK_BACK;
         } else {
             input_map.joy1 &= INPUT_STICK_BACK;
         }
-    if(!(input_map.control & 2))
+    if(!(input_map.control & 1))
         input_map.trig1 = nespad_state2 & DPAD_A;
 }
 
