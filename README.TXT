@@ -24,7 +24,7 @@ F4 - Start
 F5 - Help
 Ctrl + Alt + Del - Cold Restart
 
-Joystick 0 emulation:
+Joystick 0 emulation (numpad):
 7  8  9
  \ | /
 4--5--6
@@ -32,7 +32,7 @@ Joystick 0 emulation:
 1  2  3
 Left Ctrl - fire
 
-Joystick 1 emulation (numpad):
+Joystick 1 emulation:
 Q  W  E
  \ | /
 A--S--D
