@@ -201,7 +201,7 @@ int BINLOAD_Loader(const char *filename)
 	if (SIO_drive_status[0] == SIO_NO_DISK)
 		SIO_DisableDrive(1);
 	UINT rb;
-	if (fread(&BINLOAD_bin_file, buf, 2, &rb) == FR_OK) {
+	if (f_read(&BINLOAD_bin_file, buf, 2, &rb) == FR_OK) {
 		if (buf[0] == 0xff && buf[1] == 0xff) {
 			BINLOAD_start_binloading = TRUE; /* force SIO to call BINLOAD_LoaderStart at boot */
 			Atari800_Coldstart();             /* reboot */

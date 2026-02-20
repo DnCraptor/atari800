@@ -3,6 +3,7 @@
 #include <boards/pico.h>
 #include <hardware/pio.h>
 #include <stdbool.h>
+#include <string.h>
 
 static FIL f;
 void logMsg(char* msg) {

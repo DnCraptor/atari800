@@ -1561,7 +1561,7 @@ int CARTRIDGE_WriteImage(char *filename, int type, UBYTE *image, int size, int r
 			header[0xe] = 0;
 			header[0xf] = 0;
 
-			fwrite(&header, 1, sizeof(header), fp);
+			fwrite(header, 1, sizeof(header), fp);
 		}
 		if (image != NULL)
 			fwrite(image, 1, size, fp);

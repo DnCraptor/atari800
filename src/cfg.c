@@ -1,3 +1,4 @@
+#include <pico/stdlib.h>
 #include "ui.h"
 #include "cfg.h"
 #include "log.h"
@@ -11,6 +12,16 @@
 #include "binload.h"
 #include "devices.h"
 #include "pokeysnd.h"
+#include "platform.h"
+#include "pbi.h"
+#include "cassette.h"
+#include "colours.h"
+#include "rtime.h"
+#include "artifact.h"
+#include "cartridge.h"
+#include "screen.h"
+
+void perror(const char *s) {}
 
 int CFG_save_on_exit = FALSE;
 

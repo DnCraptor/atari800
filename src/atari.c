@@ -24,6 +24,7 @@
 
 #define _POSIX_C_SOURCE 199309L /* for nanosleep */
 
+#include <pico/stdlib.h>
 #include "afile.h"
 #include "config.h"
 #include "ff.h"
@@ -1351,7 +1352,7 @@ void Atari800_Frame(void)
 #endif
 	Atari800_nframes++;
     if (!Atari800_turbo) { // Тормозилка
-		static frame_cnt = 0;
+		static int frame_cnt = 0;
         if (++frame_cnt == (Atari800_tv_mode == Atari800_TV_PAL ? 5 : 6)) {
 		    while (time_us_64() - frame_timer_start < (Atari800_tv_mode == Atari800_TV_PAL ? 20000*6 : 16666*6)); // 60 Hz
             frame_timer_start = time_us_64();

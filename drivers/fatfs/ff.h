@@ -430,6 +430,7 @@ static FIL *__stderr = &__nofil;
 inline static void fputc(char c, FIL * F) { char _c = c; UINT wr; f_write(F, &_c, 1, &wr); }
 #define EOF -1
 inline static int _fgetc(FIL* F) { char _c; UINT wr; f_read(F, &_c, 1, &wr); return wr != 1 ? EOF : _c; }
+inline static int fgetc(FIL* F) { char _c; UINT wr; f_read(F, &_c, 1, &wr); return wr != 1 ? EOF : _c; }
 
 #undef fread
 inline static int fread(char *n, int m, int len, FIL * f) {
