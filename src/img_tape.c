@@ -142,10 +142,10 @@ static int WriteRecord(IMG_TAPE_t *file)
 static int CassetteFlush(IMG_TAPE_t *file)
 {
 	if (file->block_length > 0)
-		return WriteRecord(file) && fflush(file->file) == 0;
+		return WriteRecord(file) /*&& fflush(file->file)*/ == 0;
 	return TRUE;
 }
-
+void free(void*);
 IMG_TAPE_t *IMG_TAPE_Open(char const *filename, int *writable, char const **description)
 {
 	IMG_TAPE_t *img;
@@ -195,7 +195,7 @@ IMG_TAPE_t *IMG_TAPE_Open(char const *filename, int *writable, char const **desc
 		/* count number of blocks */
 		blocks = 0;
 		img->block_baudrates[0] = DEFAULT_BAUDRATE;
-		img->block_offsets[0] = ftell(img->file);
+		img->block_offsets[0] = f_tell(img->file);
 		for (;;) {
 			/* chunk header is always 8 bytes */
 			if (fread(&header, 1, 8, img->file) != 8)

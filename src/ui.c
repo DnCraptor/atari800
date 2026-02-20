@@ -973,7 +973,7 @@ static void DiskManagement(void)
 		}
 	}
 }
-
+void* calloc(size_t,size_t);
 int UI_SelectCartType(int k)
 {
 	UI_tMenuItem* menu_array = (UI_tMenuItem*)calloc(sizeof(UI_tMenuItem), CARTRIDGE_TYPE_COUNT);
@@ -3638,7 +3638,7 @@ static void ControllerConfiguration(void)
 #endif /* USE_CURSES */
 
 #ifdef SOUND
-
+int atoi(const char*);
 static int SoundSettings(void)
 {
 	Sound_setup_t setup = Sound_desired;

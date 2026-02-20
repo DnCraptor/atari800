@@ -67,6 +67,7 @@ int libatari800_continue_on_brk = 0;
 /* global variable indicating last error code */
 int libatari800_error_code;
 
+void free(void*);
 
 /** Initialize emulator configuration
  * 

@@ -53,6 +53,10 @@
 char Log_buffer[Log_BUFFER_SIZE];
 #endif
 
+#define __VALIST __gnuc_va_list
+int	vsprintf (char *__restrict, const char *__restrict, __VALIST)
+               _ATTRIBUTE ((__format__ (__printf__, 2, 0)));
+
 void Log_print(const char *format, ...)
 {
 	va_list args;

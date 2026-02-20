@@ -2,6 +2,10 @@
 
 FIL __files[4] = { 0 }; // global
 
+#define __VALIST __gnuc_va_list
+int	vsnprintf (char *__restrict, size_t, const char *__restrict, __VALIST)
+               _ATTRIBUTE ((__format__ (__printf__, 3, 0)));
+
 int ___fprintf(FIL* F, const char *format, ...) {
     char buffer[FILENAME_MAX];  // Буфер для форматированной строки
     va_list args;

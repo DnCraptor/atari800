@@ -122,7 +122,7 @@ int MEMORY_enable_mapram = FALSE;
 
 /* Buffer for storing of MapRAM memory. */
 static UBYTE *mapram_memory = NULL;
-
+void free(void*);
 static void alloc_axlon_memory(void){
 	if (MEMORY_axlon_num_banks > 0 && Atari800_machine_type == Atari800_MACHINE_800) {
 		int size = MEMORY_axlon_num_banks * 0x4000;

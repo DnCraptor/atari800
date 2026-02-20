@@ -5,25 +5,29 @@
 #include "input.h"
 #include "akey.h"
 #include "util.h"
+#include "ui.h"
+#include "gtia.h"
+#include "antic.h"
+#include "devices.h"
+#include "pokey.h"
+#include "votraxsnd.h"
+#include "libatari800/init.h"
 #include "libatari800/libatari800.h"
 #include <pico/time.h>
 
 UBYTE __aligned(4) __screen[Screen_HEIGHT * Screen_WIDTH];
 input_template_t input_map;
 
-int stricmp(const char *s1, const char *s2) {
-    while (*s1 && *s2) {
-        char c1 = tolower((unsigned char)*s1);
-        char c2 = tolower((unsigned char)*s2);
-        if (c1 != c2) return c1 - c2;
-        s1++;
-        s2++;
-    }
-    return (unsigned char)*s1 - (unsigned char)*s2;
-}
-
 double PLATFORM_Time(void) {
 	return time_us_64() * 1e-6;
+}
+
+void PLATFORM_Sleep(double s) {
+    if (s <= 0)
+        return;
+    uint64_t us = (uint64_t)(s * 1000000.0 + 0.5);
+    if (us > 0)
+        sleep_us(us);
 }
 
 static void autoframeskip(double curtime, double lasttime)
@@ -60,19 +64,12 @@ static void autoframeskip(double curtime, double lasttime)
 	}
 }
 
-/// @brief  TODO: 
-/// @param  
 void Atari800_Sync(void) {
 	static double lasttime = 0;
 	double deltatime = 1.0 / ((Atari800_tv_mode == Atari800_TV_PAL) ? Atari800_FPS_PAL : Atari800_FPS_NTSC);
 	double curtime;
-	//printf("Atari800_Sync");
 #ifdef SYNCHRONIZED_SOUND
 	deltatime *= Sound_AdjustSpeed();
-#endif
-#ifdef ALTERNATE_SYNC_WITH_HOST
-	if (! UI_is_active)
-		deltatime *= Atari800_refresh_rate;
 #endif
 	lasttime += deltatime;
 	curtime = Util_time();
@@ -85,6 +82,17 @@ void Atari800_Sync(void) {
 
 	if ((lasttime + deltatime) < curtime)
 		lasttime = curtime;
+}
+
+int stricmp(const char *s1, const char *s2) {
+    while (*s1 && *s2) {
+        char c1 = tolower((unsigned char)*s1);
+        char c2 = tolower((unsigned char)*s2);
+        if (c1 != c2) return c1 - c2;
+        s1++;
+        s2++;
+    }
+    return (unsigned char)*s1 - (unsigned char)*s2;
 }
 
 void LIBATARI800_Frame(void) {
@@ -133,14 +141,6 @@ void LIBATARI800_Frame(void) {
 int PLATFORM_Configure(char *option, char *parameters)
 {
     return LIBATARI800_ReadConfig(option, parameters);
-}
-
-void PLATFORM_Sleep(double s) {
-    if (s <= 0)
-        return;
-    uint64_t us = (uint64_t)(s * 1000000.0 + 0.5);
-    if (us > 0)
-        sleep_us(us);
 }
 
 void PLATFORM_ConfigInit(void) {

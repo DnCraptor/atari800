@@ -21,6 +21,7 @@
  * along with Atari800; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
+#if 0
 
 #define _POSIX_C_SOURCE 200112L /* for snprintf */
 
@@ -473,7 +474,7 @@ static void print_atascii_char(UWORD c) {
 }
 #else /* MONITOR_UTF8 */
 static void print_atascii_char(UWORD c) {
-	putchar((c >= ' ' && c <= 'z' && c != '\x60') ? c : '.');
+///	putchar((c >= ' ' && c <= 'z' && c != '\x60') ? c : '.');
 }
 #endif /* MONITOR_UTF8 */
 
@@ -4085,3 +4086,4 @@ int MONITOR_Run(void)
 /*
 vim:ts=4:sw=4:
 */
+#endif

@@ -105,11 +105,7 @@ int CFG_LoadConfig(const char *alternate_config_filename)
 	}
 	/* else use the default config name under the HOME folder */
 	else {
-		char *home = getenv("HOME");
-		if (home != NULL)
-			Util_catpath(rtconfig_filename, home, DEFAULT_CFG_NAME);
-		else
-			strcpy(rtconfig_filename, DEFAULT_CFG_NAME);
+		strcpy(rtconfig_filename, DEFAULT_CFG_NAME);
 	}
 
 	fp = fopen(fname, "r");
@@ -372,6 +368,8 @@ int CFG_LoadConfig(const char *alternate_config_filename)
 #endif
 	return TRUE;
 }
+
+void perror(char*);
 
 int CFG_WriteConfig(void)
 {

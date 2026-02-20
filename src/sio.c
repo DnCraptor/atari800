@@ -647,7 +647,8 @@ static int SeekSector(int unit, int sector)
 
 	return size;
 }
-
+int abs(int);
+int rand();
 /* Unit counts from zero up */
 int SIO_ReadSector(int unit, int sector, UBYTE *buffer)
 {

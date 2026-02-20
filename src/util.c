@@ -249,6 +249,7 @@ int Util_sscansdec(char const *s, int *dest)
 	return TRUE;
 }
 
+double strtod(char const *, char **);
 int Util_sscandouble(char const *s, double *dest)
 {
 	char *endptr;
@@ -301,7 +302,7 @@ double Util_round(double x)
 	return floor(x + 0.5);
 }
 #endif
-
+void exit(int);
 void *Util_malloc(size_t size)
 {
 	void *ptr = malloc(size);
@@ -312,7 +313,7 @@ void *Util_malloc(size_t size)
 	}
 	return ptr;
 }
-
+void* realloc(void*,size_t);
 void *Util_realloc(void *ptr, size_t size)
 {
 	ptr = realloc(ptr, size);

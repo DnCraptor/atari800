@@ -1050,7 +1050,7 @@ int Atari800_Exit(int run_monitor)
 #if defined(AUDIO_RECORDING) || defined(VIDEO_RECORDING)
 		File_Export_StopRecording();
 #endif
-		MONITOR_Exit();
+////		MONITOR_Exit();
 #ifdef SDL
 		SDL_INIT_Exit();
 #endif /* SDL */
@@ -1299,7 +1299,8 @@ void Atari800_Frame(void)
 		break;
 	case AKEY_EXIT:
 		Atari800_Exit(FALSE);
-		exit(0);
+		/// TODO:
+		while(1);
 	case AKEY_TURBO:
 		Atari800_turbo = !Atari800_turbo;
 		break;

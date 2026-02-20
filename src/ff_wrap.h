@@ -1,11 +1,17 @@
 #ifndef FF_WRAP_H
 #define FF_WRAP_H
 #include <stdarg.h>
+#include <string.h>
 #include "ff.h"
 
 #undef FILE
 typedef FIL FILE;
 #define NULL 0
+
+#define fflush(f) f_sync(f)
+#define ftell(f) f_tell(f)
+#define ftello(f) f_tell(f)
+#define fseeko(f,o,t) f_lseek(f,o)
 
 /*
 struct dirent {

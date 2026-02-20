@@ -50,9 +50,6 @@ static uint graphics_buffer_height = 0;
 static int graphics_buffer_shift_x = 0;
 static int graphics_buffer_shift_y = 0;
 
-static bool is_flash_line = false;
-static bool is_flash_frame = false;
-
 //буфер 1к графической палитры
 static uint16_t palette[2][256];
 
@@ -89,8 +86,7 @@ void __time_critical_func() dma_handler_VGA() {
         if (screen_line == N_lines_visible | screen_line == N_lines_visible + 3) {
             uint32_t* output_buffer_32bit = lines_pattern[2 + (screen_line & 1)];
             output_buffer_32bit += shift_picture / 4;
-            uint32_t p_i = (screen_line & is_flash_line) + (frame_number & is_flash_frame) & 1;
-            uint32_t color32 = bg_color[p_i];
+            uint32_t color32 = bg_color[screen_line & 1];
             for (int i = visible_line_size / 2; i--;) {
                 *output_buffer_32bit++ = color32;
             }
@@ -191,8 +187,7 @@ void __time_critical_func() dma_handler_VGA() {
         if (y == graphics_buffer_height | y == graphics_buffer_height + 1 |
             y == graphics_buffer_height + 2) {
             uint32_t* output_buffer_32bit = *output_buffer;
-            uint32_t p_i = ((line_number & is_flash_line) + (frame_number & is_flash_frame)) & 1;
-            uint32_t color32 = bg_color[p_i];
+            uint32_t color32 = bg_color[line_number & 1];
 
             output_buffer_32bit += shift_picture / 4;
             for (int i = visible_line_size / 2; i--;) {
@@ -247,7 +242,7 @@ void __time_critical_func() dma_handler_VGA() {
     if (width < 0) return; // TODO: detect a case
 
     // Индекс палитры в зависимости от настроек чередования строк и кадров
-    uint16_t* current_palette = palette[(y & is_flash_line) + (frame_number & is_flash_frame) & 1];
+    uint16_t* current_palette = palette[line_number & 1];
 
     uint8_t* output_buffer_8bit;
     if(graphics_buffer != NULL)
@@ -474,11 +469,6 @@ void graphics_set_buffer(uint8_t* buffer, const uint16_t width, const uint16_t h
 void graphics_set_offset(const int x, const int y) {
     graphics_buffer_shift_x = x;
     graphics_buffer_shift_y = y;
-}
-
-void graphics_set_flashmode(const bool flash_line, const bool flash_frame) {
-    is_flash_frame = flash_frame;
-    is_flash_line = flash_line;
 }
 
 void graphics_set_textbuffer(uint8_t* buffer) {

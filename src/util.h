@@ -28,18 +28,10 @@
 /* Returns TRUE if the characters are equal or represent the same letter
    in different case. */
 int Util_chrieq(char c1, char c2);
-
-#ifdef __STRICT_ANSI__
-/* Returns a positive integer if str1>str2, negative if str1<str2
- * 0 if str1 == str2, case insensitive */
-int Util_stricmp(const char *str1, const char *str2);
-#elif defined(HAVE_WINDOWS_H)
-#define Util_stricmp _stricmp
-#elif defined(HAVE_STRCASECMP)
+int strcasecmp(const char*, const char*);
 #define Util_stricmp strcasecmp
-#else
-#define Util_stricmp stricmp
-#endif
+void free(void*);
+void* malloc(size_t);
 
 /* Returns TRUE if str1 ends with the characters in str2, regardless of case. */
 int Util_striendswith(const char *str1, const char *str2);

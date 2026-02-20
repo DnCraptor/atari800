@@ -447,7 +447,7 @@ static void ide_sector_write(struct ide_device *s) {
         fprintf(stderr, "FWRITE FAILED\n");
         goto fail;
     }
-    fflush(s->file);
+    f_sync(s->file);
 
     s->nsector -= n;
     if (s->nsector == 0) {

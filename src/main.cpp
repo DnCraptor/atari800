@@ -702,7 +702,6 @@ void __time_critical_func(render_core)() {
     graphics_set_textbuffer(buffer);
     graphics_set_bgcolor(0x000000);
     graphics_set_offset(0, 0);
-    graphics_set_flashmode(false, false);
     sem_acquire_blocking(&vga_start_semaphore);
     // 60 FPS loop
 #define frame_tick (16666)

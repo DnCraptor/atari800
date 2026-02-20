@@ -122,6 +122,8 @@ static void update_8000_9fff(void)
 	}
 }
 
+void free(void*);
+
 int AF80_Initialise(int *argc, char *argv[])
 {
 	int i, j;
