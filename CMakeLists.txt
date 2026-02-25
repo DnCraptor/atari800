@@ -18,7 +18,7 @@ cmake_minimum_required(VERSION 3.28)
 # Pull in Raspberry Pi Pico SDK (must be before project)
 include(pico_sdk_import.cmake)
 
-set(PACKAGE_VERSION "3.3.0")
+set(PACKAGE_VERSION "3.3.1")
 set(CPU_MHZ 378)
 
 #set(m1p2_launcher ON)

@@ -699,7 +699,6 @@ void __time_critical_func(render_core)() {
     graphics_set_buffer(buffer, Screen_WIDTH, Screen_HEIGHT);
     multicore_lockout_victim_init();
     graphics_init();
-    graphics_set_textbuffer(buffer);
     graphics_set_bgcolor(0x000000);
     graphics_set_offset(0, 0);
     sem_acquire_blocking(&vga_start_semaphore);

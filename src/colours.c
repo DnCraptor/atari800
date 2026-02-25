@@ -174,7 +174,6 @@ static void CopyExternalWithoutAdjustments(void)
 	for (i = 0, ext_ptr = Colours_external->palette; i < 256; i ++, ext_ptr += 3) {
 		Colours_SetRGB(i, *ext_ptr, *(ext_ptr + 1), *(ext_ptr + 2));
 	}
-	graphics_set_mode(GRAPHICSMODE_DEFAULT);
 }
 
 /* Updates contents of Colours_table. */
