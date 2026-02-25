@@ -23,6 +23,7 @@ set(CPU_MHZ 378)
 
 #set(m1p2_launcher ON)
 set(M2 ON)
+set(HDMI ON)
 
 SET(PROJECT_NAME p2-atari800)
 if (M2)
@@ -31,7 +32,11 @@ else()
     SET(PROJECT_NAME "m1${PROJECT_NAME}")
 endif()
 set(FLASH_SIZE 4096)
-SET(BUILD_NAME "${PROJECT_NAME}-VGA-PWM-${CPU_MHZ}-${PACKAGE_VERSION}")
+if (HDMI)
+    SET(BUILD_NAME "${PROJECT_NAME}-HDMI-PWM-${CPU_MHZ}-${PACKAGE_VERSION}")
+else ()
+    SET(BUILD_NAME "${PROJECT_NAME}-VGA-PWM-${CPU_MHZ}-${PACKAGE_VERSION}")
+endif ()
 
 set(OUTPUT_DIR "${CMAKE_SOURCE_DIR}/bin/${CMAKE_BUILD_TYPE}")
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${OUTPUT_DIR}")
@@ -48,8 +53,12 @@ add_subdirectory(drivers/ps2)
 add_subdirectory(drivers/fatfs)
 add_subdirectory(drivers/psram)
 add_subdirectory(drivers/sdcard)
-add_subdirectory(drivers/vga-nextgen)
 add_subdirectory(drivers/graphics)
+if (HDMI)
+    add_subdirectory(drivers/hdmi)
+else ()
+    add_subdirectory(drivers/vga-nextgen)
+endif ()
 
 #target_compile_definitions(${PROJECT_NAME} PRIVATE VGA)
 
@@ -74,7 +83,6 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
     psram
     fatfs
     nespad
-    vga-nextgen
 
     pico_multicore
     pico_runtime
@@ -91,6 +99,12 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
 
     stdc++
 )
+
+if (HDMI)
+    target_link_libraries(${PROJECT_NAME} PRIVATE hdmi)
+else ()
+    target_link_libraries(${PROJECT_NAME} PRIVATE vga-nextgen)
+endif ()
 
 target_include_directories(${PROJECT_NAME} PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/src
@@ -128,6 +142,12 @@ target_compile_options(${PROJECT_NAME} PUBLIC
         -Wno-error=restrict
         -w
 )
+endif ()
+
+if (HDMI)
+    target_compile_definitions(${PROJECT_NAME} PRIVATE HDMI=1)
+else ()
+    target_compile_definitions(${PROJECT_NAME} PRIVATE VGA=1)
 endif ()
 
 target_compile_definitions(${PROJECT_NAME} PRIVATE
