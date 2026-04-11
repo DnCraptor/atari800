@@ -22,7 +22,7 @@ set(PACKAGE_VERSION "3.3.1")
 set(CPU_MHZ 378)
 
 #set(m1p2_launcher ON)
-set(M2 ON)
+#set(M2 ON)
 set(HDMI ON)
 
 SET(PROJECT_NAME p2-atari800)

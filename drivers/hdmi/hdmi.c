@@ -208,9 +208,8 @@ static void __time_critical_func() dma_handler_HDMI() {
 
     if (graphics_buffer && line < 480) {
         //область изображения
-        uint8_t* input_buffer = (24 + 8 ) + input_buffer + (line >> 1) * graphics_buffer_width;;
-        uint8_t* output_buffer = activ_buf + 72; //для выравнивания синхры;
-        int y = line / 2;
+        register uint8_t* input_buffer = (24 + 8 ) + graphics_buffer + (line >> 1) * graphics_buffer_width;
+        register uint8_t* output_buffer = activ_buf + 72; //для выравнивания синхры;
         for (register int i = SCREEN_WIDTH; i--;) {
             register uint8_t i_color = *input_buffer++;
             *output_buffer++ = i_color >= BASE_HDMI_CTRL_INX ? 255 : i_color;

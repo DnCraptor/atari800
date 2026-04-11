@@ -22,9 +22,6 @@ extern "C" {
 #define beginHDMI_PIN_data (HDMI_BASE_PIN+2)
 #define beginHDMI_PIN_clk (HDMI_BASE_PIN)
 
-#define TEXTMODE_COLS 53
-#define TEXTMODE_ROWS 30
-
 #define RGB888(r, g, b) ((r<<16) | (g << 8 ) | b )
 
 // TODO: Сделать настраиваемо
