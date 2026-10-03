@@ -1,7 +1,12 @@
 #ifndef COLOURS_EXTERNAL_H_
 #define COLOURS_EXTERNAL_H_
 
-#include "ff.h" /* for FILENAME_MAX */
+#ifdef HAVR_FF_WRAP_H
+#include <ff_wrap.h>
+#else
+#include <stdlib.h>
+#include <stdio.h>
+#endif
 
 /* Contains an externally-loaded palette and its configuration */
 typedef struct COLOURS_EXTERNAL_t {

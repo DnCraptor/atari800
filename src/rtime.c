@@ -23,7 +23,14 @@
 */
 
 #include "config.h"
-#include <stdlib.h>	/* for NULL */
+
+#ifdef HAVR_FF_WRAP_H
+#include <ff_wrap.h>
+#else
+#include <stdlib.h>
+#include <stdio.h>
+#endif
+
 #include <string.h>	/* for strcmp() */
 #ifdef HAVE_TIME_H
 #include <time.h>
@@ -60,14 +67,13 @@ int RTIME_ReadConfig(char *string, char *ptr)
 	return TRUE;
 }
 
-void RTIME_WriteConfig(FIL *fp)
+void RTIME_WriteConfig(FILE *fp)
 {
 	fprintf(fp, "RTIME=%d\n", RTIME_enabled);
 }
 
 int RTIME_Initialise(int *argc, char *argv[])
 {
-	printf("RTIME_Initialise");
 	int i;
 	int j;
 	for (i = j = 1; i < *argc; i++) {

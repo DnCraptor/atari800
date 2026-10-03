@@ -22,7 +22,14 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
+
+#ifdef HAVR_FF_WRAP_H
+#include <ff_wrap.h>
+#else
 #include <stdlib.h>
+#include <stdio.h>
+#endif
+
 #include "file_export.h"
 #include "screen.h"
 #include "colours.h"
@@ -175,7 +182,7 @@ int File_Export_ReadConfig(char *string, char *ptr)
 	return TRUE; /* matched something */
 }
 
-void File_Export_WriteConfig(FIL *fp)
+void File_Export_WriteConfig(FILE *fp)
 {
 #if defined(HAVE_LIBPNG) || defined(HAVE_LIBZ)
 	fprintf(fp, "COMPRESSION_LEVEL=%d\n", FILE_EXPORT_compression_level);

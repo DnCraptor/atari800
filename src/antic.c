@@ -747,7 +747,9 @@ static const UBYTE prior_to_pm_lookup[64] = {
 };
 
 #ifdef pm_lookup_table.h_regenerate
-static const UBYTE pm_lookup_template[10][16] = {
+static void init_pm_lookup(void)
+{
+	static const UBYTE pm_lookup_template[10][16] = {
 		/* PL_20 */
 		{ L_BAK, L_PM0, L_PM1, L_PM01, L_PM2, L_PM0, L_PM1, L_PM01,
 		L_PM3, L_PM0, L_PM1, L_PM01, L_PM23, L_PM0, L_PM1, L_PM01 },
@@ -778,18 +780,16 @@ static const UBYTE pm_lookup_template[10][16] = {
 		/* PL_3e */
 		{ L_PF3, L_PF3, L_PF3, L_PF3, L_PM25, L_BLACK, L_BLACK, L_BLACK,
 		L_PM25, L_BLACK, L_BLACK, L_BLACK, L_PM25, L_BLACK, L_BLACK, L_BLACK }
-};
+	};
 
-static const UBYTE multi_to_normal[] = {
+	static const UBYTE multi_to_normal[] = {
 		L_BAK,
 		L_PM0, L_PM1, L_PM0,
 		L_PM2, L_PM3, L_PM2,
 		L_PM023, L_PM123, L_PM023,
 		L_PM25, L_PM35, L_PM25
-};
+	};
 
-static void init_pm_lookup(void)
-{
 	int i;
 	int j;
 	UBYTE temp;
@@ -809,33 +809,9 @@ static void init_pm_lookup(void)
 			pm_lookup_table[i][j] = temp <= L_PM235 ? multi_to_normal[temp >> 1] : temp;
 		}
 	}
-
-	FIL f;
-	UINT bw;
-	char tmp[64];
-	const char * str = "const UBYTE __in_flash() __aligned(1024) pm_lookup_table[] = {\n";
-	f_open(&f, "\\pm_lookup_table.h", FA_CREATE_ALWAYS | FA_WRITE);
-	f_write(&f, str, strlen(str), &bw);
-	const char * b = pm_lookup_table;
-	for(int i = 0; i < sizeof(pm_lookup_table); i++) {
-		if (i && !(i % 16)) {
-			sprintf(tmp, " // 0x%08X\n", i - 16);
-			f_write(&f, tmp, strlen(tmp), &bw);
-		}
-		if (i == 0) {
-			str = "  ";
-		} else {
-			str = ", ";
-		}
-		f_write(&f, str, strlen(str), &bw);
-		sprintf(tmp, "0x%02X", (unsigned char)b[i] & 0xFF);
-		f_write(&f, tmp, strlen(tmp), &bw);
-	}
-	str = "\n};\n";
-	f_write(&f, str, strlen(str), &bw);
-	f_close(&f);
 }
 #endif
+
 static const UBYTE hold_missiles_tab[16] = {
 	0x00,0x03,0x0c,0x0f,0x30,0x33,0x3c,0x3f,
 	0xc0,0xc3,0xcc,0xcf,0xf0,0xf3,0xfc,0xff};
@@ -978,7 +954,6 @@ static void setup_art_colours(void)
 
 int ANTIC_Initialise(int *argc, char *argv[])
 {
-	printf("ANTIC_Initialise");
 #if !defined(BASIC) && !defined(CURSES_BASIC)
 	int i, j;
 
@@ -2906,7 +2881,7 @@ void ANTIC_Frame(int draw_display)
 		OVERSCREEN_LINE;
 	} while (ANTIC_ypos < 8);
 
-	scrn_ptr = (UWORD *) Screen_atari; // TODO: UBYTE ?
+	scrn_ptr = (UWORD *) Screen_atari;
 #ifdef NEW_CYCLE_EXACT
 	ANTIC_cur_screen_pos = ANTIC_NOT_DRAWING;
 #endif
@@ -4123,7 +4098,7 @@ case we have ANTIC_cpu2antic_ptr[ANTIC_WSYNC_C+1]-1 = 8 and in the 2nd =12  */
 
 void ANTIC_StateSave(void)
 {
-	///STATESAV_TAG(antic);
+	STATESAV_TAG(antic);
 	StateSav_SaveUBYTE(&ANTIC_DMACTL, 1);
 	StateSav_SaveUBYTE(&ANTIC_CHACTL, 1);
 	StateSav_SaveUBYTE(&ANTIC_HSCROL, 1);

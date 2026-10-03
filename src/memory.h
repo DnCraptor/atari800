@@ -3,6 +3,7 @@
 
 #include "config.h"
 #include <string.h>	/* memcpy, memset */
+#include <stdbool.h>
 
 #include "atari.h"
 
@@ -94,15 +95,9 @@ void MEMORY_ROM_PutByte(UWORD addr, UBYTE byte);
 
 #endif /* PAGED_ATTRIB */
 
-#include <pico/platform.h>
-
-extern const unsigned char __in_flash() __aligned(4096) MEMORY_basic[8192];
-extern const unsigned char __in_flash() __aligned(4096) MEMORY_os[16384]; // OS_B
-extern const unsigned char __in_flash() __aligned(4096) ATARIXL_ROM[8192];
-extern const unsigned char __in_flash() __aligned(4096) MEMORY_xegame[8192]; // TBA
-///extern UBYTE MEMORY_basic[8192];
-///extern UBYTE MEMORY_os[16384];
-///extern UBYTE MEMORY_xegame[8192];
+extern UBYTE MEMORY_basic[8192];
+extern UBYTE MEMORY_os[16384];
+extern UBYTE MEMORY_xegame[8192];
 
 extern int MEMORY_xe_bank;
 extern int MEMORY_selftest_enabled;
@@ -122,8 +117,17 @@ void MEMORY_Cart809fDisable(void);
 void MEMORY_Cart809fEnable(void);
 void MEMORY_CartA0bfDisable(void);
 void MEMORY_CartA0bfEnable(void);
-#define MEMORY_CopyFromCart(addr1, addr2, src) memcpy(MEMORY_mem + (addr1), src, (addr2) - (addr1) + 1)
-#define MEMORY_CopyToCart(addr1, addr2, dst) memcpy(dst, MEMORY_mem + (addr1), (addr2) - (addr1) + 1)
+typedef struct {
+	FILE* file;
+	bool raw;
+	size_t offset;
+} cart_src_t;
+uint8_t MEMORY_GetFromCart(cart_src_t* src);
+void MEMORY_PutToCart(cart_src_t* dst, uint8_t v);
+void MEMORY_CopyFromCart(uint16_t from, uint16_t to, cart_src_t* src);
+void MEMORY_CopyToCart(uint16_t from, uint16_t to, cart_src_t* dst);
+#define MEMORY_CopyFromCartOld(addr1, addr2, src) memcpy(MEMORY_mem + (addr1), src, (addr2) - (addr1) + 1)
+///#define MEMORY_CopyToCart(addr1, addr2, dst) memcpy(dst, MEMORY_mem + (addr1), (addr2) - (addr1) + 1)
 void MEMORY_GetCharset(UBYTE *cs);
 
 /* Mosaic and Axlon 400/800 RAM extensions */

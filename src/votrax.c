@@ -37,7 +37,14 @@ Votrax_GetStatus     - Return busy status (1 = busy)
 
 #include "votrax.h"
 #include <math.h>
+
+#ifdef HAVR_FF_WRAP_H
+#include <ff_wrap.h>
+#else
 #include <stdlib.h>
+#include <stdio.h>
+#endif
+
 #include <string.h>
 #include "util.h"
 
@@ -431,7 +438,7 @@ int Votrax_Start(void *sound_interface)
 		size = dwCount + AdditionalSamples;
 		if (size > buffer_size)  buffer_size = size;
 	}
-	votraxsc01_locals.lpBuffer = (SWORD*) Util_malloc(buffer_size*sizeof(SWORD), "Votrax_Start");
+	votraxsc01_locals.lpBuffer = (SWORD*) Util_malloc(buffer_size*sizeof(SWORD));
 	PrepareVoiceData(votraxsc01_locals.actPhoneme, votraxsc01_locals.actIntonation);
 	return 0;
 }

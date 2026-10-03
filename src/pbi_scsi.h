@@ -3,6 +3,13 @@
 
 #include "atari.h"
 
+#ifdef HAVR_FF_WRAP_H
+#include <ff_wrap.h>
+#else
+#include <stdlib.h>
+#include <stdio.h>
+#endif
+
 extern int PBI_SCSI_CD;
 extern int PBI_SCSI_MSG;
 extern int PBI_SCSI_IO;
@@ -10,7 +17,7 @@ extern int PBI_SCSI_BSY;
 extern int PBI_SCSI_REQ;
 extern int PBI_SCSI_SEL;
 extern int PBI_SCSI_ACK;
-extern FIL *PBI_SCSI_disk;
+extern FILE *PBI_SCSI_disk;
 
 void PBI_SCSI_PutByte(UBYTE byte);
 UBYTE PBI_SCSI_GetByte(void);

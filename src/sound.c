@@ -22,7 +22,12 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
+#ifdef HAVR_FF_WRAP_H
+#include <ff_wrap.h>
+#else
 #include <stdlib.h>
+#include <stdio.h>
+#endif
 
 #include "sound.h"
 
@@ -32,25 +37,29 @@
 #include "pokeysnd.h"
 #include "util.h"
 
-#define DEBUG 0
+#define DEBUG 0 || __MINT__
 
 int Sound_enabled = 1;
-int paused = TRUE;
 
 Sound_setup_t Sound_desired = {
 	44100,
-	2,
+	1,
 	0
 };
 
-Sound_setup_t Sound_out;
+Sound_setup_t Sound_out = {
+	44100,
+	1,
+	0
+};
+
+int paused = TRUE;
 
 #ifndef SOUND_CALLBACK
 static UBYTE *process_buffer = NULL;
 static unsigned int process_buffer_size;
 #endif /* !SOUND_CALLBACK */
 
-#ifdef SYNCHRONIZED_SOUND
 static UBYTE *sync_buffer = NULL;
 static unsigned int sync_buffer_size;
 /* Two invariants are held:
@@ -74,9 +83,8 @@ static unsigned int sync_max_fill;
 /* Time of last write of sudio to output device (either by Sound_Callback or
    WriteOut). */
 double last_audio_write_time;
-#endif /* SYNCHRONIZED_SOUND */
 
-enum { MAX_SAMPLE_SIZE = 1, /* for 8-bit */
+enum { MAX_SAMPLE_SIZE = 2, /* for 16-bit */
 #ifdef STEREO_SOUND
        MAX_CHANNELS = 2,
 #else /* !STEREO_SOUND */
@@ -97,23 +105,19 @@ int Sound_ReadConfig(char *option, char *ptr)
 			return FALSE;
 		Sound_desired.buffer_ms = val;
 	}
-#ifdef SYNCHRONIZED_SOUND
 	else if (strcmp(option, "SOUND_LATENCY") == 0)
 		return (Sound_latency = Util_sscandec(ptr)) != -1;
-#endif /* SYNCHRONIZED_SOUND */
 	else
 		return FALSE;
 	return TRUE;
 }
 
-void Sound_WriteConfig(FIL *fp)
+void Sound_WriteConfig(FILE *fp)
 {
 	fprintf(fp, "SOUND_ENABLED=%u\n", Sound_enabled);
 	fprintf(fp, "SOUND_RATE=%u\n", Sound_desired.freq);
 	fprintf(fp, "SOUND_BUFFER_MS=%u\n", Sound_desired.buffer_ms);
-#ifdef SYNCHRONIZED_SOUND
 	fprintf(fp, "SOUND_LATENCY=%u\n", Sound_latency);
-#endif /* SYNCHRONIZED_SOUND */
 }
 
 int Sound_Initialise(int *argc, char *argv[])
@@ -155,12 +159,10 @@ int Sound_Initialise(int *argc, char *argv[])
 			}
 			else a_m = TRUE;
 		}
-#ifdef SYNCHRONIZED_SOUND
 		else if (strcmp(argv[i], "-snddelay") == 0)
 			if (i_a)
 				Sound_latency = Util_sscandec(argv[++i]);
 			else a_m = TRUE;
-#endif /* SYNCHRONIZED_SOUND */
 		else {
 			if (strcmp(argv[i], "-help") == 0) {
 				help_only = TRUE;
@@ -168,10 +170,10 @@ int Sound_Initialise(int *argc, char *argv[])
 				Log_print("\t-nosound             Disable sound");
 				Log_print("\t-dsprate <rate>      Set sound output frequency in Hz");
 				Log_print("\t-volume <0 .. 100>   Set sound output volume");
+				Log_print("\t-audio16             Set sound output format to 16-bit");
+				Log_print("\t-audio8              Set sound output format to 8-bit");
 				Log_print("\t-snd-buflen <ms>     Set length of the hardware sound buffer in milliseconds");
-#ifdef SYNCHRONIZED_SOUND
 				Log_print("\t-snddelay <ms>       Set sound latency in milliseconds");
-#endif /* SYNCHRONIZED_SOUND */
 			}
 			argv[j++] = argv[i];
 		}
@@ -211,7 +213,7 @@ int Sound_Setup(void)
 	if (!(Sound_enabled = PLATFORM_SoundSetup(&Sound_out)))
 		return FALSE;
 
-	Sound_out.buffer_ms = Sound_out.buffer_frames * 1000 / Sound_out.freq;
+	Sound_out.buffer_ms = (unsigned int)(Sound_out.buffer_frames * 1000.0f / Sound_out.freq + 0.5f);
 
 	/* Now setup contains actual audio output settings. */
 	if ((POKEYSND_enable_new_pokey && Sound_out.freq < 8192)
@@ -230,14 +232,12 @@ int Sound_Setup(void)
 #ifndef SOUND_CALLBACK
 	free(process_buffer);
 	process_buffer_size = Sound_out.buffer_frames * Sound_out.channels;
-	process_buffer = Util_malloc(process_buffer_size, "Sound_Setup");
+	process_buffer = Util_malloc(process_buffer_size);
 #endif /* !SOUND_CALLBACK */
 
-	POKEYSND_Init(POKEYSND_FREQ_17_EXACT, Sound_out.freq, Sound_out.channels, 0);
+	POKEYSND_Init(POKEYSND_FREQ_17_EXACT, Sound_out.freq, Sound_out.channels);
 
-#ifdef SYNCHRONIZED_SOUND
 	Sound_SetLatency(Sound_latency);
-#endif /* SYNCHRONIZED_SOUND */
 
 	Sound_desired.freq = Sound_out.freq;
 	Sound_desired.channels = Sound_out.channels;
@@ -260,10 +260,8 @@ void Sound_Exit(void)
 		free(process_buffer);
 		process_buffer = NULL;
 #endif /* !SOUND_CALLBACK */
-#ifdef SYNCHRONIZED_SOUND
 		free(sync_buffer);
 		sync_buffer = NULL;
-#endif /* SYNCHRONIZED_SOUND */
 	}
 }
 
@@ -280,11 +278,9 @@ void Sound_Continue(void)
 {
 	if (Sound_enabled && paused) {
 		/* start audio output */
-#ifdef SYNCHRONIZED_SOUND
 /*		sync_write_pos = sync_read_pos + sync_min_fill;
 		avg_fill = sync_min_fill;*/
 		last_audio_write_time = Util_time();
-#endif /* SYNCHRONIZED_SOUND */
 		PLATFORM_SoundContinue();
 		paused = FALSE;
 	}
@@ -293,10 +289,9 @@ void Sound_Continue(void)
 /* Fills buffer BUFFER with SIZE bytes of audio samples. */
 static void FillBuffer(UBYTE *buffer, unsigned int size)
 {
-#ifdef SYNCHRONIZED_SOUND
 	unsigned int new_read_pos;
 	static UBYTE last_frame[MAX_FRAME_SIZE];
-	unsigned int bytes_per_frame = Sound_out.channels * Sound_out.sample_size;
+	unsigned int bytes_per_frame = Sound_out.channels;
 	unsigned int to_write = sync_write_pos - sync_read_pos;
 
 	if (to_write > 0) {
@@ -337,9 +332,6 @@ static void FillBuffer(UBYTE *buffer, unsigned int size)
 			to_write += bytes_per_frame;
 		} while (to_write < size);
 	}
-#else /* !SYNCHRONIZED_SOUND */
-	POKEYSND_Process(buffer, size);
-#endif /* !SYNCHRONIZED_SOUND */
 }
 
 #ifdef SOUND_CALLBACK
@@ -351,9 +343,7 @@ void Sound_Callback(UBYTE *buffer, unsigned int size)
 		          size / Sound_out.channels / Sound_out.sample_size);
 #endif
 	FillBuffer(buffer, size);
-#ifdef SYNCHRONIZED_SOUND
 	last_audio_write_time = Util_time();
-#endif /* SYNCHRONIZED_SOUND */
 }
 #else /* !SOUND_CALLBACK */
 /* Write audio to output device. */
@@ -374,14 +364,11 @@ static void WriteOut(void)
 			PLATFORM_SoundWrite(process_buffer, len);
 			avail -= len;
 		} while (avail > 0);
-#ifdef SYNCHRONIZED_SOUND
 		last_audio_write_time = Util_time();
-#endif /* SYNCHRONIZED_SOUND */
 	}
 }
 #endif /* !SOUND_CALLBACK */
 
-#ifdef SYNCHRONIZED_SOUND
 static void UpdateSyncBuffer(void)
 {
 	unsigned int bytes_written;
@@ -396,7 +383,7 @@ static void UpdateSyncBuffer(void)
 	/* Update sync_est_fill. */
 	{
 		unsigned int est_gap;
-		est_gap = (Util_time() - last_audio_write_time)*Sound_out.freq*Sound_out.channels*Sound_out.sample_size;
+		est_gap = (Util_time() - last_audio_write_time)*Sound_out.freq*Sound_out.channels;
 		if (fill < est_gap)
 			sync_est_fill = 0;
 		else
@@ -410,7 +397,7 @@ static void UpdateSyncBuffer(void)
 
 	/* produce samples from the sound emulation */
 	samples_written = POKEYSND_UpdateProcessBuffer();
-	bytes_written = Sound_out.sample_size * samples_written;
+	bytes_written = samples_written;
 
 	/* if there isn't enough room... */
 	if (bytes_written > sync_buffer_size - fill) {
@@ -460,28 +447,24 @@ static void UpdateSyncBuffer(void)
 		sync_write_pos -= sync_buffer_size;
 	PLATFORM_SoundUnlock();
 }
-#endif /* SYNCHRONIZED_SOUND */
 
 void Sound_Update(void)
 {
 	if (!Sound_enabled || paused)
 		return;
-#ifdef SYNCHRONIZED_SOUND
 	UpdateSyncBuffer();
-#endif /* SYNCHRONIZED_SOUND */
 #ifndef SOUND_CALLBACK
 	WriteOut();
 #endif /* !SOUND_CALLBACK */
 }
 
-#ifdef SYNCHRONIZED_SOUND
 void Sound_SetLatency(unsigned int latency)
 {
 	Sound_latency = latency;
 	if (Sound_enabled) {
 		/* how many fragments in the audio buffer */
 		enum { SYNC_BUFFER_FRAGS = 5 };
-		unsigned int bytes_per_frame = Sound_out.channels * Sound_out.sample_size;
+		unsigned int bytes_per_frame = Sound_out.channels;
 		unsigned int latency_frames = Sound_out.freq*Sound_latency/1000;
 		PLATFORM_SoundLock();
 		sync_buffer_size = (latency_frames + SYNC_BUFFER_FRAGS*Sound_out.buffer_frames) * bytes_per_frame;
@@ -528,7 +511,6 @@ double Sound_AdjustSpeed(void)
 	}
 	return delay_mult;
 }
-#endif /* SYNCHRONIZED_SOUND */
 
 unsigned int Sound_NextPow2(unsigned int num)
 {

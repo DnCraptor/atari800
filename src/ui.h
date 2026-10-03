@@ -25,6 +25,14 @@
 #define UI_H_
 
 #include "config.h"
+
+#ifdef HAVR_FF_WRAP_H
+#include <ff_wrap.h>
+#else
+#include <stdlib.h>
+#include <stdio.h>
+#endif
+
 #include "atari.h"
 
 /* Three legitimate entries to UI module. */
@@ -43,7 +51,7 @@ extern UWORD UI_crash_address;
 extern UWORD UI_crash_afterCIM;
 #endif
 
-#define UI_MAX_DIRECTORIES 1
+#define UI_MAX_DIRECTORIES 8
 
 extern char UI_atari_files_dir[UI_MAX_DIRECTORIES][FILENAME_MAX];
 extern char UI_saved_files_dir[UI_MAX_DIRECTORIES][FILENAME_MAX];
@@ -56,12 +64,6 @@ extern int UI_show_hidden_files;
 void PLATFORM_SetJoystickKey(int joystick, int direction, int value);
 void PLATFORM_GetJoystickKeyName(int joystick, int direction, char *buffer, int bufsize);
 int GetRawKey(void);
-#endif
-
-#ifdef DIRECTX
-void PLATFORM_GetButtonAssignments(int stick, int button, char *buffer, int bufsize);
-void PLATFORM_SetButtonAssignment(int stick, int button, int value);
-int GetKeyName(void);
 #endif
 
 /* Menu codes for Alt+letter shortcuts.
@@ -87,12 +89,6 @@ int GetKeyName(void);
 #define UI_MENU_CASSETTE         18
 #define UI_MENU_CONTROLLER       19
 #define UI_MENU_WINDOWS	         20
-
-#ifdef DIRECTX
-	#define UI_MENU_SAVE_CONFIG      21
-	#define UI_MENU_FUNCT_KEY_HELP   22
-	#define UI_MENU_HOT_KEY_HELP     23
-#endif
 
 #define UI_MENU_VIDEO_RECORDING  24
 

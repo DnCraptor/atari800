@@ -22,7 +22,13 @@
  *  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
+#ifdef HAVR_FF_WRAP_H
+#include <ff_wrap.h>
+#else
 #include <stdlib.h>
+#include <stdio.h>
+#endif
+
 #include <math.h>
 
 #include "remez.h"
@@ -315,7 +321,7 @@ static void Search(int r, int Ext[], int gridsize, const double E[])
 	int *foundExt;             /* Array of found extremals */
 
 	/* Allocate enough space for found extremals. */
-	foundExt = (int *) Util_malloc((2 * r) * sizeof(int), "Search");
+	foundExt = (int *) Util_malloc((2 * r) * sizeof(int));
 	k = 0;
 
 	/* Check for extremum at 0. */
@@ -509,18 +515,20 @@ static int isDone(int r, const int Ext[], const double E[])
  * double h[]      - Impulse response of final filter [numtaps]
  ********************/
 
-void REMEZ_CreateFilter(double h[], int numtaps, int numband, double bands[], const double des[], const double weight[], int type, double* tmp)
+void REMEZ_CreateFilter(double h[], int numtaps, int numband, double bands[],
+           const double des[], const double weight[], int type)
 {
-	printf("REMEZ_CreateFilter");
 	double *Grid, *W, *D, *E;
 	int    i, iter, gridsize, r, *Ext;
 	double *taps, c;
 	double *x, *y, *ad;
 	int    symmetry;
+
 	if (type == REMEZ_BANDPASS)
 		symmetry = POSITIVE;
 	else
 		symmetry = NEGATIVE;
+
 	r = numtaps / 2;                  /* number of extrema */
 	if ((numtaps % 2) && (symmetry == POSITIVE))
 		r++;
@@ -537,15 +545,15 @@ void REMEZ_CreateFilter(double h[], int numtaps, int numband, double bands[], co
 	}
 
 	/* Dynamically allocate memory for arrays with proper sizes */
-	Grid = tmp == 0 ? (double *) Util_malloc(gridsize * sizeof(double), "REMEZ_CreateFilter Grid") : tmp;
-	D = tmp == 0 ? (double *) Util_malloc(gridsize * sizeof(double), "REMEZ_CreateFilter") : Grid + gridsize;
-	W = tmp == 0 ? (double *) Util_malloc(gridsize * sizeof(double), "REMEZ_CreateFilter") : D + gridsize;
-	E = tmp == 0 ? (double *) Util_malloc(gridsize * sizeof(double), "REMEZ_CreateFilter") : W + gridsize;
-	taps = tmp == 0 ? (double *) Util_malloc((r + 1) * sizeof(double), "REMEZ_CreateFilter") : E + gridsize;
-	x = tmp == 0 ? (double *) Util_malloc((r + 1) * sizeof(double), "REMEZ_CreateFilter") : taps + r + 1;
-	y = tmp == 0 ? (double *) Util_malloc((r + 1) * sizeof(double), "REMEZ_CreateFilter") : x + r + 1;
-	ad = tmp == 0 ? (double *) Util_malloc((r + 1) * sizeof(double), "REMEZ_CreateFilter ad") : y + r + 1;
-	Ext = tmp == 0 ? (int *) Util_malloc((r + 1) * sizeof(int), "REMEZ_CreateFilter") : ad + r + 1;
+	Grid = (double *) Util_malloc(gridsize * sizeof(double));
+	D = (double *) Util_malloc(gridsize * sizeof(double));
+	W = (double *) Util_malloc(gridsize * sizeof(double));
+	E = (double *) Util_malloc(gridsize * sizeof(double));
+	Ext = (int *) Util_malloc((r + 1) * sizeof(int));
+	taps = (double *) Util_malloc((r + 1) * sizeof(double));
+	x = (double *) Util_malloc((r + 1) * sizeof(double));
+	y = (double *) Util_malloc((r + 1) * sizeof(double));
+	ad = (double *) Util_malloc((r + 1) * sizeof(double));
 
 	/* Create dense frequency grid */
 	CreateDenseGrid(r, numtaps, numband, bands, des, weight,
@@ -628,16 +636,13 @@ void REMEZ_CreateFilter(double h[], int numtaps, int numband, double bands[], co
 	FreqSample(numtaps, taps, h, symmetry);
 
 	/* Delete allocated memory */
-	if (tmp == 0) {
-		free(Grid);
-		free(W);
-		free(D);
-		free(E);
-		free(Ext);
-		free(taps);
-		free(x);
-		free(y);
-		free(ad);
-	}
-	printf("REMEZ_CreateFilter DONE");
+	free(Grid);
+	free(W);
+	free(D);
+	free(E);
+	free(Ext);
+	free(taps);
+	free(x);
+	free(y);
+	free(ad);
 }

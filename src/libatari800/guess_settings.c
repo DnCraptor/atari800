@@ -1,7 +1,8 @@
+#if 0
+#include <stdio.h>
 #include <string.h>
 
 #include "libatari800.h"
-#include "ff.h"
 
 #define MACHINE_TYPE_800 0x01
 #define MACHINE_TYPE_XL 0x02
@@ -124,6 +125,7 @@ cart_types_t cart_list_5200[] = {
 	{128, 72, "Super Cart 128 KB 5200",},
 	{256, 73, "Super Cart 256 KB 5200",},
 	{512, 74, "Super Cart 512 KB 5200",},
+	{40, 159, "Bounty Bob 40 KB 5200 (alt.)",},
 	{0, 0, NULL},
 };
 
@@ -137,7 +139,6 @@ char *default_args[] = {
 char memo_pad_text[] = "\x21\x34\x21\x32\x29\x00\x23\x2F\x2D\x30\x35\x34\x25\x32\x00\x0D\x00\x2D\x25\x2D\x2F\x00\x30\x21\x24"; /* ATARI COMPUTER - MEMO PAD */
 char memo_pad_altirra[] = "\x21\x6C\x74\x69\x72\x72\x61\x2F\x33"; /* AltirraOS */
 
-#if 0
 int check_memo_pad(emulator_state_t *state) {
 	antic_state_t *antic = (antic_state_t *)&state->state[state->tags.antic];
 	UBYTE *memory = (UBYTE *)&state->state[state->tags.base_ram];
@@ -168,7 +169,6 @@ int check_memo_pad(emulator_state_t *state) {
 	}
 	return FALSE;
 }
-#endif
 
 #define BAD_DLIST_MIN_FRAMES 200
 
@@ -184,14 +184,14 @@ int run_emulator(int num_args, int num_frames, int verbose) {
 	libatari800_init(num_args, test_args);
 	if (libatari800_error_code) return 0;
 
-	///emulator_state_t state;
+	emulator_state_t state;
 	input_template_t input;
 
 	int frame = 0;
 	int selftest_count = 0;
 	while (frame < num_frames) {
 		libatari800_next_frame(&input);
-	/**	libatari800_get_current_state(&state);
+		libatari800_get_current_state(&state);
 		if (state.flags.selftest_enabled) {
 			selftest_count++;
 			if (selftest_count > 10) {
@@ -199,14 +199,14 @@ int run_emulator(int num_args, int num_frames, int verbose) {
 				libatari800_error_code = LIBATARI800_SELF_TEST;
 				goto exit;
 			}
-		}**/
+		}
 		switch (libatari800_error_code) {
 			case 0:
-		///	if (check_memo_pad(&state)) {
-		///		libatari800_error_code = LIBATARI800_MEMO_PAD;
-		///		frame = -frame;
-		///		goto exit;
-		///	}
+			if (check_memo_pad(&state)) {
+				libatari800_error_code = LIBATARI800_MEMO_PAD;
+				frame = -frame;
+				goto exit;
+			}
 			break;
 
 			case LIBATARI800_DLIST_ERROR:
@@ -301,7 +301,7 @@ int run_machine(machine_config_t *machine, char *pathname, int num_frames, int c
 		}
 		else {
 			printf("%s: %s", pathname, machine->label);
-			if (success > 0) { printf(" status: OK through %d frames", success) }
+			if (success > 0) printf(" status: OK through %d frames", success);
 			else {
 				printf(" status: FAIL");
 				if (libatari800_error_code) {
@@ -330,10 +330,9 @@ int run_machine(machine_config_t *machine, char *pathname, int num_frames, int c
    a cart type identified by the cart header.
 */
 int guess_cart_kb(char *pathname, int verbose) {
-	FIL f;
 	char buf[CHUNK_SIZE];
 	char header[16];
-	FIL *fp = fopen(&f, pathname, FA_READ);
+	FILE *fp = fopen(pathname, "rb");
 	size_t current_len, total_len = 0;
 	int kb, cart_type;
 	cart_types_t *cart_desc;
@@ -382,7 +381,7 @@ int guess_cart_kb(char *pathname, int verbose) {
 	return kb;
 }
 
-int main_TODO2(int argc, char **argv) {
+int main(int argc, char **argv) {
 	input_template_t input;
 	libatari800_clear_input_array(&input);
 
@@ -477,3 +476,4 @@ int main_TODO2(int argc, char **argv) {
 	}
 	return 0;
 }
+#endif

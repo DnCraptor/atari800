@@ -23,7 +23,14 @@
 */
 
 #include "config.h"
+
+#ifdef HAVR_FF_WRAP_H
+#include <ff_wrap.h>
+#else
 #include <stdlib.h>
+#include <stdio.h>
+#endif
+
 #include <string.h>
 
 #include "atari.h"
@@ -109,7 +116,7 @@ int CASSETTE_ReadConfig(char *string, char *ptr)
 	return TRUE;
 }
 
-void CASSETTE_WriteConfig(FIL *fp)
+void CASSETTE_WriteConfig(FILE *fp)
 {
 	fprintf(fp, "CASSETTE_FILENAME=%s\n", CASSETTE_filename);
 	fprintf(fp, "CASSETTE_LOADED=%d\n", CASSETTE_status != CASSETTE_STATUS_NONE);
@@ -118,7 +125,6 @@ void CASSETTE_WriteConfig(FIL *fp)
 
 int CASSETTE_Initialise(int *argc, char *argv[])
 {
-	printf("CASSETTE_Initialise");
 	int i;
 	int j;
 	int protect = FALSE; /* Is write-protect requested in command line? */

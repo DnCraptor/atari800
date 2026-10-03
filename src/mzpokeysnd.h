@@ -6,7 +6,6 @@
 int MZPOKEYSND_Init(ULONG freq17,
                         int playback_freq,
                         UBYTE num_pokeys,
-                        int flags,
                         int quality
 #ifdef __PLUS
                         , int clear_regs

@@ -57,7 +57,6 @@ int PIA_IRQ = 0;
 
 int PIA_Initialise(int *argc, char *argv[])
 {
-	printf("PIA_Initialise");
 	PIA_PACTL = 0x3f;
 	PIA_PBCTL = 0x3f;
 	PIA_PORTA = 0xff;
@@ -335,7 +334,7 @@ void PIA_PutByte(UWORD addr, UBYTE byte)
 
 void PIA_StateSave(void)
 {
-	///STATESAV_TAG(pia);
+	STATESAV_TAG(pia);
 	StateSav_SaveUBYTE( &PIA_PACTL, 1 );
 	StateSav_SaveUBYTE( &PIA_PBCTL, 1 );
 	StateSav_SaveUBYTE( &PIA_PORTA, 1 );

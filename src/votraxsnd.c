@@ -21,7 +21,13 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 
+#ifdef HAVR_FF_WRAP_H
+#include <ff_wrap.h>
+#else
 #include <stdlib.h>
+#include <stdio.h>
+#endif
+
 #include "atari.h"
 #include "util.h"
 #include "votraxsnd.h"
@@ -40,7 +46,6 @@
 #define VTRX_RATE 24500
 
 static double ratio;
-static int bit16;
 #define VTRX_BLOCK_SIZE 1024
 SWORD *temp_votrax_buffer = NULL;
 SWORD *votrax_buffer = NULL;
@@ -49,9 +54,6 @@ static int votrax_sync_samples;
 static int dsprate;
 static int num_pokeys;
 static int samples_per_frame;
-/*if SYNCHRONIZED_SOUND is not used and the sound generation runs in a
- * separate thread, then these variables are accessed in two different
- * threads: */
 static int votrax_written = FALSE;
 static int votrax_written_byte = 0x3f;
 
@@ -92,11 +94,10 @@ static int votraxsnd_enabled(void)
 }
 
 /* called from POKEYSND_Init */
-void VOTRAXSND_Init(int playback_freq, int n_pokeys, int b16)
+void VOTRAXSND_Init(int playback_freq, int n_pokeys)
 {
 	static struct Votrax_interface vi;
 	int temp_votrax_buffer_size;
-	bit16 = b16;
 	dsprate = playback_freq;
 	num_pokeys = n_pokeys;
 	if (!votraxsnd_enabled()) return;
@@ -122,9 +123,9 @@ void VOTRAXSND_Init(int playback_freq, int n_pokeys, int b16)
 	temp_votrax_buffer_size = (int)(VTRX_BLOCK_SIZE*ratio + 10); /* +10 .. little extra? */
 #endif
 	free(temp_votrax_buffer);
-	temp_votrax_buffer = (SWORD *)Util_malloc(temp_votrax_buffer_size*sizeof(SWORD), "VOTRAXSND_Init");
+	temp_votrax_buffer = (SWORD *)Util_malloc(temp_votrax_buffer_size*sizeof(SWORD));
 	free(votrax_buffer);
-	votrax_buffer = (SWORD *)Util_malloc(VTRX_BLOCK_SIZE*sizeof(SWORD), "VOTRAXSND_Init");
+	votrax_buffer = (SWORD *)Util_malloc(VTRX_BLOCK_SIZE*sizeof(SWORD));
 
 	VOTRAXSND_busy = FALSE;
 	votrax_sync_samples = 0;
@@ -132,7 +133,7 @@ void VOTRAXSND_Init(int playback_freq, int n_pokeys, int b16)
 
 void VOTRAXSND_Reinit(void)
 {
-	if (dsprate) VOTRAXSND_Init(dsprate, num_pokeys, bit16);
+	if (dsprate) VOTRAXSND_Init(dsprate, num_pokeys);
 }
 
 /* process votrax and interpolate samples */
@@ -267,9 +268,8 @@ void VOTRAXSND_Process(void *sndbuffer, int sndn)
 	while (sndn > 0) {
 		int amount = ((sndn > VTRX_BLOCK_SIZE) ? VTRX_BLOCK_SIZE : sndn);
 		votrax_process(votrax_buffer, amount, temp_votrax_buffer);
-		if (bit16) mix((SWORD *)sndbuffer, votrax_buffer, amount, POKEYSND_volume >> 3);
-		else mix8((UBYTE *)sndbuffer, votrax_buffer, amount, POKEYSND_volume >> 3);
-		sndbuffer = (char *) sndbuffer + VTRX_BLOCK_SIZE*(bit16 ? 2 : 1)*((num_pokeys == 2) ? 2: 1);
+		mix8((UBYTE *)sndbuffer, votrax_buffer, amount, POKEYSND_volume >> 3);
+		sndbuffer = (char *) sndbuffer + VTRX_BLOCK_SIZE*((num_pokeys == 2) ? 2: 1);
 		sndn -= VTRX_BLOCK_SIZE;
 	}
 }

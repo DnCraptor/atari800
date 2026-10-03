@@ -22,7 +22,15 @@
  * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
-#include <string.h>
+
+ #ifdef HAVR_FF_WRAP_H
+ #include <ff_wrap.h>
+ #else
+ #include <stdlib.h>
+ #include <stdio.h>
+ #endif
+ 
+ #include <string.h>
 
 #include "artifact.h"
 
@@ -155,7 +163,7 @@ int ARTIFACT_ReadConfig(char *option, char *ptr)
 	return TRUE;
 }
 
-void ARTIFACT_WriteConfig(FIL *fp)
+void ARTIFACT_WriteConfig(FILE *fp)
 {
 	fprintf(fp, "ARTIFACT_NTSC=%s\n", mode_cfg_strings[mode_ntsc]);
 	fprintf(fp, "ARTIFACT_PAL=%s\n", mode_cfg_strings[mode_pal]);
@@ -164,7 +172,6 @@ void ARTIFACT_WriteConfig(FIL *fp)
 
 int ARTIFACT_Initialise(int *argc, char *argv[])
 {
-	printf("ARTIFACT_Initialise");
 	int i;
 	int j;
 

@@ -1,59 +1,78 @@
-# == DO NEVER EDIT THE NEXT LINES for Raspberry Pi Pico VS Code Extension to work ==
+# == DO NOT EDIT THE FOLLOWING LINES for the Raspberry Pi Pico VS Code Extension to work ==
 if(WIN32)
     set(USERHOME $ENV{USERPROFILE})
 else()
     set(USERHOME $ENV{HOME})
 endif()
-set(sdkVersion 2.0.0)
-set(toolchainVersion 13_2_Rel1)
-set(picotoolVersion 2.0.0)
+set(sdkVersion 2.2.0)
+set(toolchainVersion 14_2_Rel1)
+set(picotoolVersion 2.2.0)
 set(picoVscode ${USERHOME}/.pico-sdk/cmake/pico-vscode.cmake)
 if (EXISTS ${picoVscode})
     include(${picoVscode})
 endif()
 # ====================================================================================
-cmake_minimum_required(VERSION 3.22)
+set(PICO_BOARD pico2 CACHE STRING "Board type")
+cmake_minimum_required(VERSION 3.28)
+
+# Pull in Raspberry Pi Pico SDK (must be before project)
 include(pico_sdk_import.cmake)
 
-project(pico-atari C CXX ASM)
-pico_sdk_init()
+set(PACKAGE_VERSION "3.3.1")
+set(CPU_MHZ 378)
 
-option(VGA "Enable VGA" OFF)
-option(TFT "Enable TFT display" OFF)
-option(ILI9341 "Enable TFT ILI9341 display" OFF)
-option(HDMI "Enable HDMI display" OFF)
-option(FLASH_SIZE "Target Flash Size" 2048)
+#set(m1p2_launcher ON)
+#set(M2 ON)
+# Olimex RP2040-PICO-PC + Pico 2 (PCp2)
+set(PICO_PC ON)
+set(HDMI ON)
 
-if(NOT FLASH_SIZE)
-set(FLASH_SIZE 2048)
+if (PICO_PC)
+    # USB HID keyboard on the Pico 2 native USB port (TinyUSB host)
+    set(USB_HID ON)
+endif()
+
+SET(PROJECT_NAME p2-atari800)
+if (PICO_PC)
+    SET(PROJECT_NAME "PC${PROJECT_NAME}")
+elseif (M2)
+    SET(PROJECT_NAME "m2${PROJECT_NAME}")
+else()
+    SET(PROJECT_NAME "m1${PROJECT_NAME}")
+endif()
+set(FLASH_SIZE 4096)
+if (HDMI)
+    SET(BUILD_NAME "${PROJECT_NAME}-HDMI-PWM-${CPU_MHZ}-${PACKAGE_VERSION}")
+else ()
+    SET(BUILD_NAME "${PROJECT_NAME}-VGA-PWM-${CPU_MHZ}-${PACKAGE_VERSION}")
 endif ()
-
-SET(BUILD_NAME "${PROJECT_NAME}-${FLASH_SIZE}K")
-
-set(CMAKE_C_STANDARD 11)
-set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_C_FLAGS   "${CMAKE_C_FLAGS}   -ffast-math -feliminate-unused-debug-types -ffunction-sections -fdata-sections -O2")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}  -ffast-math -feliminate-unused-debug-types -ffunction-sections -fdata-sections -O2")
 
 set(OUTPUT_DIR "${CMAKE_SOURCE_DIR}/bin/${CMAKE_BUILD_TYPE}")
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${OUTPUT_DIR}")
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${OUTPUT_DIR}")
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${OUTPUT_DIR}")
 
-set(FAMILY rp2040)
-set(BOARD pico_sdk)
+project(${PROJECT_NAME} C CXX ASM)
 
+# Initialise the Raspberry Pi Pico SDK
+pico_sdk_init()
+
+add_subdirectory(drivers/nespad)
 add_subdirectory(drivers/ps2)
 add_subdirectory(drivers/fatfs)
-add_subdirectory(drivers/sdcard)
-add_subdirectory(drivers/nespad)
 add_subdirectory(drivers/psram)
-
-add_subdirectory(drivers/vga-nextgen)
-add_subdirectory(drivers/st7789)
-add_subdirectory(drivers/hdmi)
-add_subdirectory(drivers/tv)
+add_subdirectory(drivers/sdcard)
 add_subdirectory(drivers/graphics)
+if (USB_HID)
+    add_subdirectory(drivers/usbhid)
+endif ()
+if (HDMI)
+    add_subdirectory(drivers/hdmi)
+else ()
+    add_subdirectory(drivers/vga-nextgen)
+endif ()
+
+#target_compile_definitions(${PROJECT_NAME} PRIVATE VGA)
 
 # INCLUDE FILES THAT SHOULD BE COMPILED:
 file(GLOB_RECURSE SRC "src/*.cpp" "src/*.c"
@@ -67,46 +86,67 @@ endforeach ()
 message(STATUS "")
 
 add_executable(${PROJECT_NAME} ${SRC})
-target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
 
-configure_file(memmap.ld.in memmap.ld @ONLY)
-pico_set_linker_script(${PROJECT_NAME} ${CMAKE_CURRENT_BINARY_DIR}/memmap.ld)
-
-pico_set_program_name(${PROJECT_NAME} "pico-atari")
-pico_set_program_version(${PROJECT_NAME} "test")
-
+# pull in common dependencies
 target_link_libraries(${PROJECT_NAME} PRIVATE
-        ps2
-        sdcard
-        psram
-        fatfs
-        nespad
+    ps2
+    sdcard
+    graphics
+    psram
+    fatfs
+    nespad
 
-        graphics
+    pico_multicore
+    pico_runtime
+    pico_stdlib
 
-        pico_multicore
-        pico_runtime
-        pico_stdlib
+    hardware_dma
+    hardware_pio
+    hardware_i2c
+    hardware_interp
+    hardware_timer
+    hardware_clocks
+    hardware_pwm
+    hardware_flash
 
-        hardware_dma
-        hardware_pio
-        hardware_i2c
-        hardware_interp
-        hardware_timer
-        hardware_clocks
-        hardware_pwm
-        hardware_flash
-
-        tinyusb_board
-        tinyusb_device
+    stdc++
 )
 
-#family_configure_device_example(${PROJECT_NAME} noos)
-target_link_options(${PROJECT_NAME} PRIVATE -Xlinker --print-memory-usage)
+if (HDMI)
+    target_link_libraries(${PROJECT_NAME} PRIVATE hdmi)
+else ()
+    target_link_libraries(${PROJECT_NAME} PRIVATE vga-nextgen)
+endif ()
+
+if (USB_HID)
+    target_link_libraries(${PROJECT_NAME} PRIVATE usbhid)
+    target_compile_definitions(${PROJECT_NAME} PRIVATE USB_HID=1)
+    # drivers/usb holds a device-mode tusb_config.h; keep it off the include path
+    target_include_directories(${PROJECT_NAME} PRIVATE
+            ${CMAKE_CURRENT_SOURCE_DIR}/src
+    )
+else ()
 target_include_directories(${PROJECT_NAME} PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/src
         ${CMAKE_CURRENT_SOURCE_DIR}/drivers/usb
 )
+endif ()
+
+if (PICO_CYW43_SUPPORTED)
+    target_link_libraries(${PROJECT_NAME} pico_cyw43_arch_none)
+endif()
+
+set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME "${BUILD_NAME}")
+
+pico_enable_stdio_uart(${PROJECT_NAME} 0)
+##pico_enable_stdio_usb(${PROJECT_NAME} 1)
+
+# create map/bin/hex file etc.
+pico_add_extra_outputs(${PROJECT_NAME})
+
+# add url via pico_set_program_url
+target_link_options(${PROJECT_NAME} PRIVATE -Xlinker --print-memory-usage)
+target_compile_definitions(${PROJECT_NAME} PRIVATE FLASH_SIZE=${FLASH_SIZE})
 
 if (CMAKE_C_COMPILER_ID STREQUAL "GNU")
 target_compile_options(${PROJECT_NAME} PUBLIC
@@ -125,11 +165,135 @@ target_compile_options(${PROJECT_NAME} PUBLIC
 )
 endif ()
 
-target_compile_definitions(${PROJECT_NAME} PRIVATE
-        PACKAGE_VERSION="3.2.0"
+if (HDMI)
+    target_compile_definitions(${PROJECT_NAME} PRIVATE HDMI=1)
+else ()
+    target_compile_definitions(${PROJECT_NAME} PRIVATE VGA=1)
+endif ()
 
+target_compile_definitions(${PROJECT_NAME} PRIVATE
+        PACKAGE_VERSION="${PACKAGE_VERSION}"
+        CPU_MHZ=${CPU_MHZ}
         PICO_FLASH_SIZE_BYTES=16777216
 
+        STEREO_SOUND=1
+        CONSOLE_SOUND=1
+        SERIO_SOUND=1
+        VOICEBOX=1
+        SOUND_THIN_API=1
+        SOUND=1
+        
+        HAVR_FF_WRAP_H=1
+
+        #MNGR_DEBUG=1
+        #DEBUG2=1
+
+        HAVE_OPENDIR=1
+)
+
+if (PICO_PC)
+    # Pinout as in the other PCp2 builds (pico-nes, pico-z26, murmapple)
+    target_compile_definitions(${PROJECT_NAME} PRIVATE
+        PICO_PC=1
+        # HDMI: CLK 12/13, D0 14/15, D1 16/17, D2 18/19 (R/G lanes swapped in hdmi.c)
+        HDMI_BASE_PIN=12
+        VGA_BASE_PIN=12
+
+        # TFT (not present on the board, defines are needed for the build only)
+        TFT_CS_PIN=12
+        TFT_RST_PIN=14
+        TFT_LED_PIN=15
+        TFT_DC_PIN=16
+        TFT_DATA_PIN=18
+        TFT_CLK_PIN=19
+
+        # on-board microSD (SPI0)
+        SDCARD_PIN_SPI0_SCK=6
+        SDCARD_PIN_SPI0_MOSI=7
+        SDCARD_PIN_SPI0_MISO=4
+        SDCARD_PIN_SPI0_CS=22
+
+        # PS2 keyboard
+        KBD_CLOCK_PIN=0
+        KBD_DATA_PIN=1
+
+        # NES Gamepad on UEXT
+        NES_GPIO_CLK=8
+        NES_GPIO_LAT=9
+        NES_GPIO_DATA=20
+
+        # Wii joystick is not used on PCp2 (USE_WII is not set); pins are
+        # defined for the build only
+        WII_SDA_PIN=8
+        WII_SCL_PIN=9
+
+        # PSRAM driver is built but init_psram() is not called on PCp2:
+        # GPIO18..21 are taken by HDMI (same approach as MURM2)
+        PSRAM_SPINLOCK=1
+        PSRAM_ASYNC=1
+        PSRAM_PIN_CS=18
+        PSRAM_PIN_SCK=19
+        PSRAM_PIN_MOSI=20
+        PSRAM_PIN_MISO=21
+
+        # no tape input (GPIO22 is the SD card CS) and no separate beeper
+
+        # analog stereo output: right GPIO27, left GPIO28 (different PWM slices)
+        PWM_PIN0=27
+        PWM_PIN1=28
+    )
+elseif (M2)
+    target_compile_definitions(${PROJECT_NAME} PRIVATE
+        MURM2=1
+        # VGA 8 pins starts from pin:
+        VGA_BASE_PIN=12
+        # HDMI 8 pins starts from pin:
+        HDMI_BASE_PIN=12
+
+        # TFT
+        TFT_CS_PIN=12
+        TFT_RST_PIN=14
+        TFT_LED_PIN=15
+        TFT_DC_PIN=16
+        TFT_DATA_PIN=18
+        TFT_CLK_PIN=19
+
+        # SDCARD
+        SDCARD_PIN_SPI0_CS=5
+        SDCARD_PIN_SPI0_SCK=6
+        SDCARD_PIN_SPI0_MOSI=7
+        SDCARD_PIN_SPI0_MISO=4
+
+        # PS2 keyboard
+        KBD_CLOCK_PIN=2
+        KBD_DATA_PIN=3
+
+        # NES Gamepad
+        NES_GPIO_CLK=20
+        NES_GPIO_LAT=21
+        NES_GPIO_DATA=26
+        
+        USE_WII
+        WII_SDA_PIN=20
+        WII_SCL_PIN=21
+
+       # PSRAM
+        # PSRAM_MUTEX=1
+        PSRAM_SPINLOCK=1
+        PSRAM_ASYNC=1
+
+        PSRAM_PIN_CS=18
+        PSRAM_PIN_SCK=19
+        PSRAM_PIN_MOSI=20
+        PSRAM_PIN_MISO=21
+
+        LOAD_WAV_PIO=22
+        BEEPER_PIN=9 #
+        PWM_PIN0=10 #
+        PWM_PIN1=11
+    )
+else ()
+    target_compile_definitions(${PROJECT_NAME} PRIVATE
         # VGA 8 pins starts from pin:
         VGA_BASE_PIN=6
 
@@ -163,7 +327,7 @@ target_compile_definitions(${PROJECT_NAME} PRIVATE
         WII_SDA_PIN=14
         WII_SCL_PIN=15
 
-        PSRAM
+       # PSRAM
         # PSRAM_MUTEX=1
         PSRAM_SPINLOCK=1
         PSRAM_ASYNC=1
@@ -177,56 +341,35 @@ target_compile_definitions(${PROJECT_NAME} PRIVATE
         PWM_PIN0=26
         PWM_PIN1=27
         BEEPER_PIN=28
-        STEREO_SOUND=1
-        CONSOLE_SOUND=1
-        SERIO_SOUND=1
-        VOICEBOX=1
-        SOUND_THIN_API=1
+    )
+endif()
 
-        #MNGR_DEBUG=1
-        #DEBUG2=1
+IF(m1p2_launcher)
+    IF(M2)
+        SET(BUILD_NAME "${BUILD_NAME}.m2p2")
+    ELSEIF(PICO_PC)
+        SET(BUILD_NAME "${BUILD_NAME}.PCp2")
+    ELSEIF(PICO_DV)
+        SET(BUILD_NAME "${BUILD_NAME}.DVp2")
+    ELSEIF(ZERO2)
+        SET(BUILD_NAME "${BUILD_NAME}.z0p2")
+    ELSE()
+        SET(BUILD_NAME "${BUILD_NAME}.m1p2")
+    ENDIF()
+ENDIF()
 
-        HAVE_OPENDIR=1
-)
-
-
-pico_define_boot_stage2(slower_boot2 ${PICO_DEFAULT_BOOT_STAGE2_FILE})
-target_compile_definitions(slower_boot2 PRIVATE PICO_FLASH_SPI_CLKDIV=4)
-pico_set_boot_stage2(${PROJECT_NAME} slower_boot2)
-
-
-target_compile_definitions(${PROJECT_NAME} PRIVATE FLASH_SIZE=${FLASH_SIZE})
-
-IF (TFT)
-    target_link_libraries(${PROJECT_NAME} PRIVATE st7789)
-    target_compile_definitions(${PROJECT_NAME} PRIVATE TFT)
-    SET(BUILD_NAME "${BUILD_NAME}-TFT")
-    IF (ILI9341)
-        SET(BUILD_NAME "${BUILD_NAME}-ILI9341")
-        target_compile_definitions(${PROJECT_NAME} PRIVATE ILI9341)
-    ELSE ()
-        SET(BUILD_NAME "${BUILD_NAME}-ST7789")
-    ENDIF ()
-ELSEIF (HDMI)
-    target_link_libraries(${PROJECT_NAME} PRIVATE hdmi)
-    target_compile_definitions(${PROJECT_NAME} PRIVATE HDMI)
-    SET(BUILD_NAME "${BUILD_NAME}-HDMI")
-ELSEIF (TV)
-    target_compile_definitions(${PROJECT_NAME} PRIVATE TV)
-    target_link_libraries(${PROJECT_NAME} PRIVATE tv)
-    SET(BUILD_NAME "${BUILD_NAME}-TV")
-ELSE ()
-    target_compile_definitions(${PROJECT_NAME} PRIVATE VGA)
-    target_link_libraries(${PROJECT_NAME} PRIVATE vga-nextgen)
-    SET(BUILD_NAME "${BUILD_NAME}-VGA")
-ENDIF ()
+message(STATUS "BUILD_NAME: ${BUILD_NAME}")
 
 set_target_properties(${PROJECT_NAME} PROPERTIES OUTPUT_NAME "${BUILD_NAME}")
 
-pico_enable_stdio_uart(${PROJECT_NAME} 0)
-pico_enable_stdio_usb(${PROJECT_NAME} 1)
+if (m1p2_launcher)
+    pico_set_linker_script(${PROJECT_NAME} "${CMAKE_SOURCE_DIR}/memmap.ld")
+endif ()
 
-#pico_set_binary_type(${PROJECT_NAME} no_flash)
-#pico_set_binary_type(${PROJECT_NAME} copy_to_ram)
-
-pico_add_extra_outputs(${PROJECT_NAME})
+if (m1p2_launcher)
+    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E rename
+        "${OUTPUT_DIR}/${BUILD_NAME}.uf2"
+        "${OUTPUT_DIR}/${BUILD_NAME}"
+    )
+endif ()

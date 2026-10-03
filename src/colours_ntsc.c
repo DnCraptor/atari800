@@ -199,7 +199,6 @@ static void YIQ2RGB(const double yiq_table[768])
 
 		Colours_SetRGB(n, (int) (r * 255), (int) (g * 255), (int) (b * 255));
 	}
-	graphics_set_mode(GRAPHICSMODE_DEFAULT);
 }
 
 void COLOURS_NTSC_Update()

@@ -23,9 +23,14 @@
 */
 
 #include "config.h"
-#include "ff.h"
 
+#ifdef HAVR_FF_WRAP_H
+#include <ff_wrap.h>
+#else
 #include <stdlib.h>
+#include <stdio.h>
+#endif
+
 #include <string.h>
 
 #include "atari.h"
@@ -59,6 +64,7 @@ static int CartIsFor5200(int type)
 	case CARTRIDGE_5200_32:
 	case CARTRIDGE_5200_EE_16:
 	case CARTRIDGE_5200_40:
+	case CARTRIDGE_5200_40_ALT:
 	case CARTRIDGE_5200_NS_16:
 	case CARTRIDGE_5200_8:
 	case CARTRIDGE_5200_4:
@@ -124,20 +130,25 @@ static void set_bank_809F(int main, int old_state)
 	else {
 		MEMORY_Cart809fEnable();
 		MEMORY_CartA0bfEnable();
-		MEMORY_CopyFromCart(0x8000, 0x9fff, active_cart->image + active_cart->state * 0x2000);
-		if (old_state & 0x80)
-			MEMORY_CopyFromCart(0xa000, 0xbfff, active_cart->image + main);
+		cart_src_t cart_src = { active_cart->tmp_file, active_cart->raw, active_cart->state * 0x2000 };
+		MEMORY_CopyFromCart(0x8000, 0x9fff, &cart_src);
+		if (old_state & 0x80) {
+			cart_src.offset = main;
+			MEMORY_CopyFromCart(0xa000, 0xbfff, &cart_src);
+		}
 	}
 }
 
 /* XEGS_8F_64 */
 static void set_bank_XEGS_8F_64(void)
 {
-	if (active_cart->state & 0x08)
-		MEMORY_CopyFromCart(0x8000, 0x9fff, active_cart->image + (active_cart->state & ~0x08) * 0x2000);
-	else
+	if (active_cart->state & 0x08) {
+		cart_src_t cart_src = { active_cart->tmp_file, active_cart->raw, (active_cart->state & ~0x08) * 0x2000 };
+		MEMORY_CopyFromCart(0x8000, 0x9fff, &cart_src);
+	} else {
 		/* $8000-$9FFF is left unconnected. */
 		MEMORY_dFillMem(0x8000, 0xff, 0x2000);
+	}
 }
 
 /* OSS_034M_16, OSS_043M_16, OSS_M091_16, OSS_8 */
@@ -147,27 +158,33 @@ static void set_bank_A0AF(int main, int old_state)
 		MEMORY_CartA0bfDisable();
 	else {
 		MEMORY_CartA0bfEnable();
-		if (active_cart->state == 0xff)
+		if (active_cart->state == 0xff) {
 			/* Fill cart area with 0xFF. */
 			MEMORY_dFillMem(0xa000, 0xff, 0x1000);
-		else
-			MEMORY_CopyFromCart(0xa000, 0xafff, active_cart->image + active_cart->state * 0x1000);
-		if (old_state < 0)
-			MEMORY_CopyFromCart(0xb000, 0xbfff, active_cart->image + main);
+		} else {
+			cart_src_t cart_src = { active_cart->tmp_file, active_cart->raw, active_cart->state * 0x1000 };
+			MEMORY_CopyFromCart(0xa000, 0xafff, &cart_src);
+		}
+		if (old_state < 0) {
+			cart_src_t cart_src = { active_cart->tmp_file, active_cart->raw, main };
+			MEMORY_CopyFromCart(0xb000, 0xbfff, &cart_src);
+		}
 	}
 }
 
 /* WILL_64, EXP_64, DIAMOND_64, SDX_64, WILL_32, ATMAX_128, ATMAX_OLD_1024,
    ATRAX_DEC_128, ATRAX_SDX_64, TURBOSOFT_64, TURBOSOFT_128, ULTRACART_32,
    TURBO_HIT_32, THECART_128M, THECART_32M, THECART_64M, ATRAX_128, ADAWLIAH_32,
-   ADAWLIAH_64, ATMAX_NEW_1024 */
+   ADAWLIAH_64, ATMAX_NEW_1024, JACART_8, JACART_16, JACART_32, JACART_64,
+   JACART_128, JACART_256, JACART_512, JACART_1024 */
 static void set_bank_A0BF(int disable_mask, int bank_mask)
 {
 	if (active_cart->state & disable_mask)
 		MEMORY_CartA0bfDisable();
 	else {
 		MEMORY_CartA0bfEnable();
-		MEMORY_CopyFromCart(0xa000, 0xbfff, active_cart->image + (active_cart->state & bank_mask) * 0x2000);
+		cart_src_t cart_src = { active_cart->tmp_file, active_cart->raw, (active_cart->state & bank_mask) * 0x2000 };
+		MEMORY_CopyFromCart(0xa000, 0xbfff, &cart_src);
 	}
 }
 
@@ -182,13 +199,15 @@ static void set_bank_80BF(void)
 	else {
 		MEMORY_Cart809fEnable();
 		MEMORY_CartA0bfEnable();
-		MEMORY_CopyFromCart(0x8000, 0xbfff, active_cart->image + (active_cart->state & 0x7f) * 0x4000);
+		cart_src_t cart_src = { active_cart->tmp_file, active_cart->raw, (active_cart->state & 0x7f) * 0x4000 };
+		MEMORY_CopyFromCart(0x8000, 0xbfff, &cart_src);
 	}
 }
 
 static void set_bank_5200_SUPER(void)
 {
-	MEMORY_CopyFromCart(0x4000, 0xbfff, active_cart->image + active_cart->state * 0x8000);
+	cart_src_t cart_src = { active_cart->tmp_file, active_cart->raw, active_cart->state * 0x8000 };
+	MEMORY_CopyFromCart(0x4000, 0xbfff, &cart_src);
 }
 
 static void set_bank_SDX_128(void)
@@ -197,25 +216,26 @@ static void set_bank_SDX_128(void)
 		MEMORY_CartA0bfDisable();
 	else {
 		MEMORY_CartA0bfEnable();
-		MEMORY_CopyFromCart(0xa000, 0xbfff,
-			active_cart->image + ((active_cart->state & 7) + ((active_cart->state & 0x10) >> 1)) * 0x2000);
+		cart_src_t cart_src = { active_cart->tmp_file, active_cart->raw, ((active_cart->state & 7) + ((active_cart->state & 0x10) >> 1)) * 0x2000 };
+		MEMORY_CopyFromCart(0xa000, 0xbfff, &cart_src);
 	}
 }
+
 static void set_bank_SIC(int n)
 {
 	if (!(active_cart->state & 0x20))
 		MEMORY_Cart809fDisable();
 	else {
 		MEMORY_Cart809fEnable();
-		MEMORY_CopyFromCart(0x8000, 0x9fff,
-			active_cart->image + (active_cart->state & n) * 0x4000);
+		cart_src_t cart_src = { active_cart->tmp_file, active_cart->raw, (active_cart->state & n) * 0x4000 };
+		MEMORY_CopyFromCart(0x8000, 0x9fff, &cart_src);
 	}
 	if (active_cart->state & 0x40)
 		MEMORY_CartA0bfDisable();
 	else {
 		MEMORY_CartA0bfEnable();
-		MEMORY_CopyFromCart(0xa000, 0xbfff,
-			active_cart->image + (active_cart->state & n) * 0x4000 + 0x2000);
+		cart_src_t cart_src = { active_cart->tmp_file, active_cart->raw, (active_cart->state & n) * 0x4000 + 0x2000 };
+		MEMORY_CopyFromCart(0xa000, 0xbfff, &cart_src);
 	}
 }
 
@@ -229,7 +249,8 @@ static void set_bank_MEGA_4096(void)
 	else {
 		MEMORY_Cart809fEnable();
 		MEMORY_CartA0bfEnable();
-		MEMORY_CopyFromCart(0x8000, 0xbfff, active_cart->image + active_cart->state * 0x4000);
+		cart_src_t cart_src = { active_cart->tmp_file, active_cart->raw, active_cart->state * 0x4000 };
+		MEMORY_CopyFromCart(0x8000, 0xbfff, &cart_src);
 	}
 }
 
@@ -241,11 +262,13 @@ static void set_bank_RAMCART(int mask, int old_state)
 	if (old_state & 0x1000) {
 		if (old_state & 0x0002) {
 			offset = Calculate_RamCart_Address(active_cart->type, old_state & mask);
-			MEMORY_CopyToCart(0x8000, 0x9fff, active_cart->image + offset);
+			cart_src_t cart_src = { active_cart->tmp_file, active_cart->raw, offset };
+			MEMORY_CopyToCart(0x8000, 0x9fff, &cart_src);
 		}
 		if (old_state & 0x0001) {
 			offset = Calculate_RamCart_Address(active_cart->type, old_state & mask);
-			MEMORY_CopyToCart(0xa000, 0xbfff, active_cart->image + offset + 0x2000);
+			cart_src_t cart_src = { active_cart->tmp_file, active_cart->raw, offset + 0x2000 };
+			MEMORY_CopyToCart(0xa000, 0xbfff, &cart_src);
 		}
 	}
 
@@ -254,7 +277,8 @@ static void set_bank_RAMCART(int mask, int old_state)
 		MEMORY_Cart809fEnable();
 		if (active_cart->state & 0x1000)
 			MEMORY_SetRAM(0x8000, 0x9fff);
-		MEMORY_CopyFromCart(0x8000, 0x9fff, active_cart->image + offset);
+		cart_src_t cart_src = { active_cart->tmp_file, active_cart->raw, offset };
+		MEMORY_CopyFromCart(0x8000, 0x9fff, &cart_src);
 	}
 	else
 		MEMORY_Cart809fDisable();
@@ -266,7 +290,8 @@ static void set_bank_RAMCART(int mask, int old_state)
 		MEMORY_CartA0bfEnable();
 		if (active_cart->state & 0x1000)
 			MEMORY_SetRAM(0xa000, 0xbfff);
-		MEMORY_CopyFromCart(0xa000, 0xbfff, active_cart->image + offset + 0x2000);
+		cart_src_t cart_src = { active_cart->tmp_file, active_cart->raw, offset + 0x2000 };
+		MEMORY_CopyFromCart(0xa000, 0xbfff, &cart_src);
 	}
 }
 
@@ -277,14 +302,16 @@ static void set_bank_SIDICAR(int mask, int old_state)
 
 	if (old_state & 0x10) {
 		offset = Calculate_SiDiCar_Address(active_cart->type, old_state & mask);
-		MEMORY_CopyToCart(0x8000, 0x9fff, active_cart->image + offset);
+		cart_src_t cart_src = { active_cart->tmp_file, active_cart->raw, offset };
+		MEMORY_CopyToCart(0x8000, 0x9fff, &cart_src);
 	}
 
 	if (active_cart->state & 0x10) {
 		offset = Calculate_SiDiCar_Address(active_cart->type, active_cart->state & mask);
 		MEMORY_Cart809fEnable();
 		MEMORY_SetRAM(0x8000, 0x9fff);
-		MEMORY_CopyFromCart(0x8000, 0x9fff, active_cart->image + offset);
+		cart_src_t cart_src = { active_cart->tmp_file, active_cart->raw, offset };
+		MEMORY_CopyFromCart(0x8000, 0x9fff, &cart_src);
 	}
 	else
 		MEMORY_Cart809fDisable();
@@ -441,6 +468,36 @@ static void SwitchBank(int old_state)
 		break;
 	case CARTRIDGE_SIDICAR_32:
 		set_bank_SIDICAR(0x03, old_state);
+		break;	
+	case CARTRIDGE_JACART_8:
+		set_bank_A0BF(0x80, 0x00);
+		break;
+	case CARTRIDGE_JACART_16:
+		set_bank_A0BF(0x80, 0x01);
+		break;	
+	case CARTRIDGE_JACART_32:
+		set_bank_A0BF(0x80, 0x03);
+		break;	
+	case CARTRIDGE_JACART_64:
+		set_bank_A0BF(0x80, 0x07);
+		break;	
+	case CARTRIDGE_JACART_128:
+		set_bank_A0BF(0x80, 0x0f);
+		break;	
+	case CARTRIDGE_JACART_256:
+		set_bank_A0BF(0x80, 0x1f);
+		break;	
+	case CARTRIDGE_JACART_512:
+		set_bank_A0BF(0x80, 0x3f);
+		break;	
+	case CARTRIDGE_JACART_1024:
+		set_bank_A0BF(0x80, 0x7f);
+		break;
+	case CARTRIDGE_DCART: {
+			set_bank_A0BF(0x80, 0x3f);
+			cart_src_t cart_src = { active_cart->tmp_file, active_cart->raw, (active_cart->state & 0x3f) * 0x2000 + 0x1500 };
+			MEMORY_CopyFromCart(0xd500, 0xd5ff, &cart_src);
+		}
 		break;
 	}
 #if DEBUG
@@ -462,6 +519,7 @@ void CARTRIDGE_UpdateState(CARTRIDGE_image_t *cart, int old_state)
    calls SwitchBank(), which maps the rest. */
 static void MapActiveCart(void)
 {
+	cart_src_t cart_src = { active_cart->tmp_file, active_cart->raw, 0 };
 	if (Atari800_machine_type == Atari800_MACHINE_5200) {
 		MEMORY_SetROM(0x4ff6, 0x4ff9); /* disable Bounty Bob bank switching */
 		MEMORY_SetROM(0x5ff6, 0x5ff9);
@@ -480,18 +538,39 @@ static void MapActiveCart(void)
 #endif
 			break;
 		case CARTRIDGE_5200_32:
-			MEMORY_CopyFromCart(0x4000, 0xbfff, active_cart->image);
+			MEMORY_CopyFromCart(0x4000, 0xbfff, &cart_src);
 			break;
 		case CARTRIDGE_5200_EE_16:
-			MEMORY_CopyFromCart(0x4000, 0x5fff, active_cart->image);
-			MEMORY_CopyFromCart(0x6000, 0x9fff, active_cart->image);
-			MEMORY_CopyFromCart(0xa000, 0xbfff, active_cart->image + 0x2000);
+			MEMORY_CopyFromCart(0x4000, 0x5fff, &cart_src);
+			MEMORY_CopyFromCart(0x6000, 0x9fff, &cart_src);
+			cart_src.offset = 0x2000;
+			MEMORY_CopyFromCart(0xa000, 0xbfff, &cart_src);
 			break;
 		case CARTRIDGE_5200_40:
-			MEMORY_CopyFromCart(0x4000, 0x4fff, active_cart->image + (active_cart->state & 0x03) * 0x1000);
-			MEMORY_CopyFromCart(0x5000, 0x5fff, active_cart->image + 0x4000 + ((active_cart->state & 0x0c) >> 2) * 0x1000);
-			MEMORY_CopyFromCart(0x8000, 0x9fff, active_cart->image + 0x8000);
-			MEMORY_CopyFromCart(0xa000, 0xbfff, active_cart->image + 0x8000);
+			cart_src.offset = (active_cart->state & 0x03) * 0x1000;
+			MEMORY_CopyFromCart(0x4000, 0x4fff, &cart_src);
+			cart_src.offset = 0x4000 + ((active_cart->state & 0x0c) >> 2) * 0x1000;
+			MEMORY_CopyFromCart(0x5000, 0x5fff, &cart_src);
+			cart_src.offset = 0x8000;
+			MEMORY_CopyFromCart(0x8000, 0x9fff, &cart_src);
+			MEMORY_CopyFromCart(0xa000, 0xbfff, &cart_src);
+#ifndef PAGED_ATTRIB
+			MEMORY_SetHARDWARE(0x4ff6, 0x4ff9);
+			MEMORY_SetHARDWARE(0x5ff6, 0x5ff9);
+#else
+			MEMORY_readmap[0x4f] = CARTRIDGE_BountyBob1GetByte;
+			MEMORY_readmap[0x5f] = CARTRIDGE_BountyBob2GetByte;
+			MEMORY_writemap[0x4f] = CARTRIDGE_BountyBob1PutByte;
+			MEMORY_writemap[0x5f] = CARTRIDGE_BountyBob2PutByte;
+#endif
+			break;
+		case CARTRIDGE_5200_40_ALT:
+			MEMORY_CopyFromCart(0x8000, 0x9fff, &cart_src);
+			MEMORY_CopyFromCart(0xa000, 0xbfff, &cart_src);
+			cart_src.offset = 0x2000 + (active_cart->state & 0x03) * 0x1000;
+			MEMORY_CopyFromCart(0x4000, 0x4fff, &cart_src);
+			cart_src.offset = 0x6000 + ((active_cart->state & 0x0c) >> 2) * 0x1000;
+			MEMORY_CopyFromCart(0x5000, 0x5fff, &cart_src);
 #ifndef PAGED_ATTRIB
 			MEMORY_SetHARDWARE(0x4ff6, 0x4ff9);
 			MEMORY_SetHARDWARE(0x5ff6, 0x5ff9);
@@ -503,17 +582,17 @@ static void MapActiveCart(void)
 #endif
 			break;
 		case CARTRIDGE_5200_NS_16:
-			MEMORY_CopyFromCart(0x8000, 0xbfff, active_cart->image);
+			MEMORY_CopyFromCart(0x8000, 0xbfff, &cart_src);
 			break;
 		case CARTRIDGE_5200_8:
-			MEMORY_CopyFromCart(0x8000, 0x9fff, active_cart->image);
-			MEMORY_CopyFromCart(0xa000, 0xbfff, active_cart->image);
+			MEMORY_CopyFromCart(0x8000, 0x9fff, &cart_src);
+			MEMORY_CopyFromCart(0xa000, 0xbfff, &cart_src);
 			break;
 		case CARTRIDGE_5200_4:
-			MEMORY_CopyFromCart(0x8000, 0x8fff, active_cart->image);
-			MEMORY_CopyFromCart(0x9000, 0x9fff, active_cart->image);
-			MEMORY_CopyFromCart(0xa000, 0xafff, active_cart->image);
-			MEMORY_CopyFromCart(0xb000, 0xbfff, active_cart->image);
+			MEMORY_CopyFromCart(0x8000, 0x8fff, &cart_src);
+			MEMORY_CopyFromCart(0x9000, 0x9fff, &cart_src);
+			MEMORY_CopyFromCart(0xa000, 0xafff, &cart_src);
+			MEMORY_CopyFromCart(0xb000, 0xbfff, &cart_src);
 			break;
 		default:
 			/* clear cartridge area so the 5200 will crash */
@@ -527,43 +606,44 @@ static void MapActiveCart(void)
 			MEMORY_Cart809fDisable();
 			MEMORY_CartA0bfEnable();
 			MEMORY_dFillMem(0xa000, 0xff, 0x1800);
-			MEMORY_CopyFromCart(0xb800, 0xbfff, active_cart->image);
+			MEMORY_CopyFromCart(0xb800, 0xbfff, &cart_src);
 			break;
 		case CARTRIDGE_STD_4:
 			MEMORY_Cart809fDisable();
 			MEMORY_CartA0bfEnable();
 			MEMORY_dFillMem(0xa000, 0xff, 0x1000);
-			MEMORY_CopyFromCart(0xb000, 0xbfff, active_cart->image);
+			MEMORY_CopyFromCart(0xb000, 0xbfff, &cart_src);
 			break;
 		case CARTRIDGE_BLIZZARD_4:
 			MEMORY_Cart809fDisable();
 			MEMORY_CartA0bfEnable();
-			MEMORY_CopyFromCart(0xa000, 0xafff, active_cart->image);
-			MEMORY_CopyFromCart(0xb000, 0xbfff, active_cart->image);
+			MEMORY_CopyFromCart(0xa000, 0xafff, &cart_src);
+			MEMORY_CopyFromCart(0xb000, 0xbfff, &cart_src);
 			break;
 		case CARTRIDGE_STD_8:
 		case CARTRIDGE_PHOENIX_8:
 			MEMORY_Cart809fDisable();
 			MEMORY_CartA0bfEnable();
-			MEMORY_CopyFromCart(0xa000, 0xbfff, active_cart->image);
+			MEMORY_CopyFromCart(0xa000, 0xbfff, &cart_src);
 			break;
 		case CARTRIDGE_LOW_BANK_8:
 			MEMORY_Cart809fEnable();
 			MEMORY_CartA0bfDisable();
-			MEMORY_CopyFromCart(0x8000, 0x9fff, active_cart->image);
+			MEMORY_CopyFromCart(0x8000, 0x9fff, &cart_src);
 			break;
 		case CARTRIDGE_STD_16:
 		case CARTRIDGE_BLIZZARD_16:
 			MEMORY_Cart809fEnable();
 			MEMORY_CartA0bfEnable();
-			MEMORY_CopyFromCart(0x8000, 0xbfff, active_cart->image);
+			MEMORY_CopyFromCart(0x8000, 0xbfff, &cart_src);
 			break;
 		case CARTRIDGE_OSS_034M_16:
 		case CARTRIDGE_OSS_043M_16:
 			MEMORY_Cart809fDisable();
 			if (active_cart->state >= 0) {
 				MEMORY_CartA0bfEnable();
-				MEMORY_CopyFromCart(0xb000, 0xbfff, active_cart->image + 0x3000);
+				cart_src.offset = 0x3000;
+				MEMORY_CopyFromCart(0xb000, 0xbfff, &cart_src);
 			}
 			break;
 		case CARTRIDGE_OSS_M091_16:
@@ -571,7 +651,7 @@ static void MapActiveCart(void)
 			MEMORY_Cart809fDisable();
 			if (active_cart->state >= 0) {
 				MEMORY_CartA0bfEnable();
-				MEMORY_CopyFromCart(0xb000, 0xbfff, active_cart->image);
+				MEMORY_CopyFromCart(0xb000, 0xbfff, &cart_src);
 			}
 			break;
 		case CARTRIDGE_WILL_64:
@@ -596,6 +676,15 @@ static void MapActiveCart(void)
 		case CARTRIDGE_ADAWLIAH_32:
 		case CARTRIDGE_ADAWLIAH_64:
 		case CARTRIDGE_ATMAX_NEW_1024:
+		case CARTRIDGE_JACART_8:
+		case CARTRIDGE_JACART_16:
+		case CARTRIDGE_JACART_32:
+		case CARTRIDGE_JACART_64:
+		case CARTRIDGE_JACART_128:
+		case CARTRIDGE_JACART_256:
+		case CARTRIDGE_JACART_512:
+		case CARTRIDGE_JACART_1024:
+		case CARTRIDGE_DCART:	
 			MEMORY_Cart809fDisable();
 			break;
 		case CARTRIDGE_DB_32:
@@ -603,7 +692,8 @@ static void MapActiveCart(void)
 		case CARTRIDGE_SWXEGS_32:
 			if (!(active_cart->state & 0x80)) {
 				MEMORY_CartA0bfEnable();
-				MEMORY_CopyFromCart(0xa000, 0xbfff, active_cart->image + 0x6000);
+				cart_src.offset = 0x6000;
+				MEMORY_CopyFromCart(0xa000, 0xbfff, &cart_src);
 			}
 			break;
 		case CARTRIDGE_XEGS_07_64:
@@ -611,43 +701,51 @@ static void MapActiveCart(void)
 		case CARTRIDGE_XEGS_8F_64:
 			if (!(active_cart->state & 0x80)) {
 				MEMORY_CartA0bfEnable();
-				MEMORY_CopyFromCart(0xa000, 0xbfff, active_cart->image + 0xe000);
+				cart_src.offset = 0xe000;
+				MEMORY_CopyFromCart(0xa000, 0xbfff, &cart_src);
 			}
 			break;
 		case CARTRIDGE_XEGS_128:
 		case CARTRIDGE_SWXEGS_128:
 			if (!(active_cart->state & 0x80)) {
 				MEMORY_CartA0bfEnable();
-				MEMORY_CopyFromCart(0xa000, 0xbfff, active_cart->image + 0x1e000);
+				cart_src.offset = 0x1e000;
+				MEMORY_CopyFromCart(0xa000, 0xbfff, &cart_src);
 			}
 			break;
 		case CARTRIDGE_XEGS_256:
 		case CARTRIDGE_SWXEGS_256:
 			if (!(active_cart->state & 0x80)) {
 				MEMORY_CartA0bfEnable();
-				MEMORY_CopyFromCart(0xa000, 0xbfff, active_cart->image + 0x3e000);
+				cart_src.offset = 0x3e000;
+				MEMORY_CopyFromCart(0xa000, 0xbfff, &cart_src);
 			}
 			break;
 		case CARTRIDGE_XEGS_512:
 		case CARTRIDGE_SWXEGS_512:
 			if (!(active_cart->state & 0x80)) {
 				MEMORY_CartA0bfEnable();
-				MEMORY_CopyFromCart(0xa000, 0xbfff, active_cart->image + 0x7e000);
+				cart_src.offset = 0x7e000;
+				MEMORY_CopyFromCart(0xa000, 0xbfff, &cart_src);
 			}
 			break;
 		case CARTRIDGE_XEGS_1024:
 		case CARTRIDGE_SWXEGS_1024:
 			if (!(active_cart->state & 0x80)) {
 				MEMORY_CartA0bfEnable();
-				MEMORY_CopyFromCart(0xa000, 0xbfff, active_cart->image + 0xfe000);
+				cart_src.offset = 0xfe000;
+				MEMORY_CopyFromCart(0xa000, 0xbfff, &cart_src);
 			}
 			break;
 		case CARTRIDGE_BBSB_40:
 			MEMORY_Cart809fEnable();
 			MEMORY_CartA0bfEnable();
-			MEMORY_CopyFromCart(0x8000, 0x8fff, active_cart->image + (active_cart->state & 0x03) * 0x1000);
-			MEMORY_CopyFromCart(0x9000, 0x9fff, active_cart->image + 0x4000 + ((active_cart->state & 0x0c) >> 2) * 0x1000);
-			MEMORY_CopyFromCart(0xa000, 0xbfff, active_cart->image + 0x8000);
+			cart_src.offset = (active_cart->state & 0x03) * 0x1000;
+			MEMORY_CopyFromCart(0x8000, 0x8fff, &cart_src);
+			cart_src.offset = 0x4000 + ((active_cart->state & 0x0c) >> 2) * 0x1000;
+			MEMORY_CopyFromCart(0x9000, 0x9fff, &cart_src);
+			cart_src.offset = 0x8000;
+			MEMORY_CopyFromCart(0xa000, 0xbfff, &cart_src);
 #ifndef PAGED_ATTRIB
 			MEMORY_SetHARDWARE(0x8ff6, 0x8ff9);
 			MEMORY_SetHARDWARE(0x9ff6, 0x9ff9);
@@ -663,10 +761,10 @@ static void MapActiveCart(void)
 			if (Atari800_machine_type == Atari800_MACHINE_800) {
 				MEMORY_Cart809fEnable();
 				MEMORY_dFillMem(0x8000, 0xff, 0x1000);
-				MEMORY_CopyFromCart(0x9000, 0x9fff, active_cart->image);
+				MEMORY_CopyFromCart(0x9000, 0x9fff, &cart_src);
 				if ((!Atari800_disable_basic || BINLOAD_loading_basic) && MEMORY_have_basic) {
 					MEMORY_CartA0bfEnable();
-					MEMORY_CopyFromCart(0xa000, 0xbfff, MEMORY_basic);
+					MEMORY_CopyFromCartOld(0xa000, 0xbfff, MEMORY_basic);
 				}
 				else
 					MEMORY_CartA0bfDisable();
@@ -680,11 +778,11 @@ static void MapActiveCart(void)
 		case CARTRIDGE_RIGHT_8:
 			if (Atari800_machine_type == Atari800_MACHINE_800) {
 				MEMORY_Cart809fEnable();
-				MEMORY_CopyFromCart(0x8000, 0x9fff, active_cart->image);
+				MEMORY_CopyFromCart(0x8000, 0x9fff, &cart_src);
 				if (!Atari800_builtin_basic
 				    && (!Atari800_disable_basic || BINLOAD_loading_basic) && MEMORY_have_basic) {
 					MEMORY_CartA0bfEnable();
-					MEMORY_CopyFromCart(0xa000, 0xbfff, MEMORY_basic);
+					MEMORY_CopyFromCartOld(0xa000, 0xbfff, MEMORY_basic);
 				}
 				else
 					MEMORY_CartA0bfDisable();
@@ -701,8 +799,10 @@ static void MapActiveCart(void)
 				MEMORY_Cart809fDisable();
 				MEMORY_CartA0bfEnable();
 				/* Copy the chosen bank 32 times over 0xa000-0xbfff. */
-				for (i = 0xa000; i < 0xc000; i += 0x100)
-					MEMORY_CopyFromCart(i, i + 0xff, active_cart->image + (active_cart->state & 0xffff));
+				for (i = 0xa000; i < 0xc000; i += 0x100) {
+					cart_src.offset = (active_cart->state & 0xffff);
+					MEMORY_CopyFromCart(i, i + 0xff, &cart_src);
+				}
 			}
 			break;
 		case CARTRIDGE_MEGA_16:
@@ -734,7 +834,7 @@ static void MapActiveCart(void)
 			if (!Atari800_builtin_basic
 			&& (!Atari800_disable_basic || BINLOAD_loading_basic) && MEMORY_have_basic) {
 				MEMORY_CartA0bfEnable();
-				MEMORY_CopyFromCart(0xa000, 0xbfff, MEMORY_basic);
+				MEMORY_CopyFromCartOld(0xa000, 0xbfff, MEMORY_basic);
 			}
 			else
 				MEMORY_CartA0bfDisable();
@@ -939,7 +1039,15 @@ static int access_D5(CARTRIDGE_image_t *cart, UWORD addr, int *state)
 		break;
 	case CARTRIDGE_ATMAX_OLD_1024:
 	case CARTRIDGE_MEGAMAX_2048:
-	case CARTRIDGE_ATMAX_NEW_1024:
+	case CARTRIDGE_ATMAX_NEW_1024:	
+	case CARTRIDGE_JACART_8:
+	case CARTRIDGE_JACART_16:
+	case CARTRIDGE_JACART_32:
+	case CARTRIDGE_JACART_64:
+	case CARTRIDGE_JACART_128:
+	case CARTRIDGE_JACART_256:
+	case CARTRIDGE_JACART_512:
+	case CARTRIDGE_JACART_1024:
 		new_state = addr;
 		break;
 	case CARTRIDGE_OSS_8:
@@ -1001,10 +1109,12 @@ static UBYTE GetByte(CARTRIDGE_image_t *cart, UWORD addr, int no_side_effects)
 
 	/* Determine returned byte value. */
 	switch (cart->type) {
-	case CARTRIDGE_AST_32:
+	case CARTRIDGE_AST_32: {
 		/* cart->state contains address of current bank, therefore it
 		   divides by 0x100. */
-		return cart->image[(cart->state & 0xff00) | (addr & 0xff)];
+        cart_src_t cart_src = { active_cart->tmp_file, active_cart->raw, (cart->state & 0xff00) | (addr & 0xff) };
+		return MEMORY_GetFromCart(&cart_src);
+	}
 	case CARTRIDGE_SIC_512:
 	case CARTRIDGE_SIC_256:
 	case CARTRIDGE_SIC_128:
@@ -1043,9 +1153,15 @@ static UBYTE GetByte(CARTRIDGE_image_t *cart, UWORD addr, int no_side_effects)
 	case CARTRIDGE_DOUBLE_RAMCART_256:
 		if (cart->state & 0x20000)
 			return cart->state | 0x00c0;
+		break;
 	/*case CARTRIDGE_RAMCART_128:
 	case CARTRIDGE_RAMCART_64:
 		return cart->state | 0x00e0;*/
+	case CARTRIDGE_DCART: {
+			cart_src_t cart_src = { active_cart->tmp_file, active_cart->raw, ((cart->state & 0x3f)*0x2000)+0x1500+(addr & 0xff) };
+			return MEMORY_GetFromCart(&cart_src);
+		}
+		break;
 	}
 	return 0xff;
 }
@@ -1189,6 +1305,9 @@ static void PutByte(CARTRIDGE_image_t *cart, UWORD addr, UBYTE byte)
 		if (/*(addr == 0xd5ff) &&*/ !(byte & 0x80))
 			new_state = byte & 0x13;
 		break;
+	case CARTRIDGE_DCART:
+			new_state = addr;
+		break;
 	default:
 		/* Check types switchable by access to page D5. */
 		if (!access_D5(cart, addr, &new_state))
@@ -1270,8 +1389,13 @@ static void access_BountyBob1(UWORD addr)
 		addr -= 0xf6;
 		new_state = (active_cart->state & 0x0c) | addr;
 		if (new_state != active_cart->state) {
-			MEMORY_CopyFromCart(base_addr, base_addr + 0x0fff,
-			               active_cart->image + addr * 0x1000);
+			if (active_cart->type == CARTRIDGE_5200_40_ALT) {
+				cart_src_t cart_src = { active_cart->tmp_file, active_cart->raw, 0x2000 + addr * 0x1000 };
+				MEMORY_CopyFromCart(base_addr, base_addr + 0x0fff, &cart_src);
+			} else {
+				cart_src_t cart_src = { active_cart->tmp_file, active_cart->raw, addr * 0x1000 };
+				MEMORY_CopyFromCart(base_addr, base_addr + 0x0fff, &cart_src);
+			}
 			active_cart->state = new_state;
 		}
 	}
@@ -1287,8 +1411,13 @@ static void access_BountyBob2(UWORD addr)
 		addr -= 0xf6;
 		new_state = (active_cart->state & 0x03) | (addr << 2);
 		if (new_state != active_cart->state) {
-			MEMORY_CopyFromCart(base_addr, base_addr + 0x0fff,
-			               active_cart->image + 0x4000 + addr * 0x1000);
+			if (active_cart->type == CARTRIDGE_5200_40_ALT) {
+				cart_src_t cart_src = { active_cart->tmp_file, active_cart->raw, 0x6000 + addr * 0x1000 };
+				MEMORY_CopyFromCart(base_addr, base_addr + 0x0fff, &cart_src);
+			} else {
+				cart_src_t cart_src = { active_cart->tmp_file, active_cart->raw, 0x4000 + addr * 0x1000 };
+				MEMORY_CopyFromCart(base_addr, base_addr + 0x0fff, &cart_src);
+			}
 			active_cart->state = new_state;
 		}
 	}
@@ -1467,11 +1596,16 @@ static void PreprocessCart(CARTRIDGE_image_t *cart)
 	{
 		unsigned int i;
 		unsigned int const size = cart->size << 10;
-		UBYTE *new_image = (UBYTE *) Util_malloc(size, "PreprocessCart new_image");
+		FIL *new_image = (FIL*) Util_malloc(sizeof(FIL));
+		cart_src_t cart_dst = { new_image, true, 0 };
+		size_t sz = strlen(cart->filename);
+		snprintf(cart->filename + sz, FILENAME_MAX - sz, ".tc");
+		f_open(new_image, cart->filename, FA_CREATE_ALWAYS | FA_WRITE | FA_READ);
+		cart_src_t cart_src = { cart->tmp_file, cart->raw, 0 };
 		/* FIXME: Can be optimised by caching the results in a conversion
 		   table, but doesn't seem to be worth it. */
-		for (i = 0; i < size; i++) {
-			unsigned int const rom_addr =
+		for (cart_dst.offset = 0; cart_dst.offset < size; ++cart_dst.offset) {
+			cart_src.offset =
 				(i &  0x0001 ? map->addr[0] : 0) |
 				(i &  0x0002 ? map->addr[1] : 0) |
 				(i &  0x0004 ? map->addr[2] : 0) |
@@ -1489,9 +1623,8 @@ static void PreprocessCart(CARTRIDGE_image_t *cart)
 				(i &  0x4000 ? map->addr[14] : 0) |
 				(i &  0x8000 ? map->addr[15] : 0) |
 				(i & 0x10000 ? map->addr[16] : 0);
-
-			UBYTE byte = cart->image[rom_addr];
-			new_image[i] =
+			UBYTE byte = MEMORY_GetFromCart(&cart_src);
+			MEMORY_PutToCart(&cart_dst,
 				(byte & 0x01 ? map->data[0] : 0) |
 				(byte & 0x02 ? map->data[1] : 0) |
 				(byte & 0x04 ? map->data[2] : 0) |
@@ -1499,10 +1632,13 @@ static void PreprocessCart(CARTRIDGE_image_t *cart)
 				(byte & 0x10 ? map->data[4] : 0) |
 				(byte & 0x20 ? map->data[5] : 0) |
 				(byte & 0x40 ? map->data[6] : 0) |
-				(byte & 0x80 ? map->data[7] : 0);
+				(byte & 0x80 ? map->data[7] : 0)
+			);
 		}
-		free(cart->image);
-		cart->image = new_image;
+		f_close(cart->tmp_file);
+		free(cart->tmp_file);
+		cart->tmp_file = new_image;
+		cart->raw = true;
 	}
 }
 
@@ -1530,57 +1666,90 @@ static void InitCartridge(CARTRIDGE_image_t *cart)
 		MapActiveCart();
 }
 
-int CARTRIDGE_WriteImage(char *filename, int type, UBYTE *image, int size, int raw, UBYTE value) {
-	FIL f;
-	FIL *fp = &f;
-	FRESULT fr = f_open(fp, filename, FA_WRITE | FA_CREATE_ALWAYS);
-	if (fp != NULL) {
-		if (!raw) {
-			UBYTE header[0x10];
-			int checksum = 0;
-			if (image != NULL)
-				checksum = CARTRIDGE_Checksum(image, size);
+int CARTRIDGE_Checksum(CARTRIDGE_image_t* cart)
+{
+	cart_src_t src = { cart->tmp_file, cart->raw, 0 };
+	int nbytes = cart->size << 10;
+	int checksum = 0;
+	while (src.offset < nbytes) {
+		checksum += MEMORY_GetFromCart(&src);
+		++src.offset;
+	}
+	return checksum;
+}
 
-			header[0x0] = 'C';
-			header[0x1] = 'A';
-			header[0x2] = 'R';
-			header[0x3] = 'T';
+int CARTRIDGE_WriteEmptyImage(char *filename, int type, int size) {
+	const static uint8_t zero_values[256] = { 0 };
+	FIL fp;
+	if ( f_open(&fp, filename, FA_CREATE_ALWAYS | FA_WRITE) == FR_OK ) {
+		UINT bw;
+		UBYTE header[] = { 'C', 'A', 'R', 'T', 0, 0, 0, type, 0, 0, 0, 0, 0, 0, 0, 0};
+		f_write(&fp, header, sizeof(header), &bw);
+		for (int i = 0; i < size; i += 256)
+			f_write(&fp, zero_values, 256, &bw);
+		f_close(&fp);
+		return 0;
+	}
+	Log_print("Error writing cartridge \"%s\".\n", filename);
+	return -1;
+}
 
-			header[0x4] = 0;
-			header[0x5] = 0;
-			header[0x6] = 0;
-			header[0x7] = type;
-			
-			header[0x8] = checksum >> 24;
-			header[0x9] = checksum >> 16;
-			header[0xa] = checksum >> 8;
-			header[0xb] = checksum;
-			
-			header[0xc] = 0;
-			header[0xd] = 0;
-			header[0xe] = 0;
-			header[0xf] = 0;
-
-			fwrite(header, 1, sizeof(header), fp);
+int CARTRIDGE_WriteImageCart(char *filename, CARTRIDGE_image_t* src) {
+	FIL fp;
+	if (f_open(&fp, filename, FA_CREATE_ALWAYS | FA_WRITE) == FR_OK) {
+		int checksum = CARTRIDGE_Checksum(src);
+		UBYTE header[0x10];
+		header[0x0] = 'C';
+		header[0x1] = 'A';
+		header[0x2] = 'R';
+		header[0x3] = 'T';
+		header[0x4] = 0;
+		header[0x5] = 0;
+		header[0x6] = 0;
+		header[0x7] = src->type;
+		header[0x8] = checksum >> 24;
+		header[0x9] = checksum >> 16;
+		header[0xa] = checksum >> 8;
+		header[0xb] = checksum;
+		header[0xc] = 0;
+		header[0xd] = 0;
+		header[0xe] = 0;
+		header[0xf] = 0;
+		UINT bw;
+		f_write(&fp, header, sizeof(header), &bw);
+		int size = src->size << 10;
+		cart_src_t card = { src->tmp_file, src->raw, 0 };
+		for (; card.offset < size; ++card.offset) {
+			uint8_t c = MEMORY_GetFromCart(&card);
+			f_write(&fp, &c, 1, &bw);
 		}
-		if (image != NULL)
-			fwrite(image, 1, size, fp);
-		else
-			while (size-- > 0)
-				fwrite(&value, 1, 1, fp);
+		f_close(&fp);
+		return 0;
+	}
+	Log_print("Error writing cartridge \"%s\".\n", filename);
+	return -1;
+}
 
+int CARTRIDGE_WriteImageROM(char *filename, CARTRIDGE_image_t* src) {
+	FILE *fp = fopen(filename, "wb");
+	if (fp != NULL) {
+		int size = src->size << 10;
+		cart_src_t card = { src->tmp_file, src->raw, 0 };
+		for (; card.offset < size; ++card.offset) {
+			uint8_t c = MEMORY_GetFromCart(&card);
+			fwrite(&c, 1, 1, fp);
+		}
 		fclose(fp);
 		return 0;
 	}
-	else {
-		Log_print("Error writing cartridge \"%s\".\n", filename);
-		return -1;
-	}
+	Log_print("Error writing cartridge \"%s\".\n", filename);
+	return -1;
 }
 
 static void RemoveCart(CARTRIDGE_image_t *cart)
 {
-	if (cart->image != NULL) {
+	if (cart->tmp_file != NULL) {
+		/** ??
 		switch (cart->type) {
 		case CARTRIDGE_RAMCART_64:
 		case CARTRIDGE_RAMCART_128:
@@ -1594,9 +1763,10 @@ static void RemoveCart(CARTRIDGE_image_t *cart)
 		case CARTRIDGE_SIDICAR_32:
 			CARTRIDGE_WriteImage(cart->filename, cart->type, cart->image, cart->size << 10, cart->raw, -1);
 		}
-
-		free(cart->image);
-		cart->image = NULL;
+		*/
+		f_close(cart->tmp_file);
+		free(cart->tmp_file);
+		cart->tmp_file = NULL;
 	}
 	if (cart->type != CARTRIDGE_NONE) {
 		cart->type = CARTRIDGE_NONE;
@@ -1623,8 +1793,8 @@ void CARTRIDGE_SetType(CARTRIDGE_image_t *cart, int type)
 	InitCartridge(cart);
 }
 
-void CARTRIDGE_SetTypeAutoReboot(CARTRIDGE_image_t *cart, int type) {
-	printf("CARTRIDGE_SetTypeAutoReboot");
+void CARTRIDGE_SetTypeAutoReboot(CARTRIDGE_image_t *cart, int type)
+{
 	CARTRIDGE_SetType(cart, type);
 	/* We don't want to autoreboot on inserting the piggyback cartridge. */
 	if (cart != &CARTRIDGE_piggyback)
@@ -1640,38 +1810,29 @@ void CARTRIDGE_ColdStart(void) {
 
 int CARTRIDGE_ReadImage(const char *filename, CARTRIDGE_image_t *cart)
 {
-	FIL f;
-	FIL *fp = &f;
 	int len;
 	int type;
 	UBYTE header[16];
 
+	cart->tmp_file = (FIL*)malloc(sizeof(FIL));
 	/* open file */
-	if (FR_OK != f_open(&f, filename, FA_READ))
+	if (f_open(cart->tmp_file, filename, FA_READ) != FR_OK) {
+		free(cart->tmp_file);
+		cart->tmp_file = NULL;
 		return CARTRIDGE_CANT_OPEN;
+	}
 	/* check file length */
-	len = Util_flen(fp);
-	Util_rewind(fp);
+	len = Util_flen(cart->tmp_file);
 
 	/* Guard against providing cart->filename as parameter. */
 	if (cart->filename != filename)
 		/* Save Filename for state save */
-		strcpy(cart->filename, filename);
+		strncpy(cart->filename, filename, FILENAME_MAX);
 
 	cart->raw = TRUE;
 
 	/* if full kilobytes, assume it is raw image */
 	if ((len & 0x3ff) == 0) {
-		/* alloc memory and read data */
-		cart->image = (UBYTE *) Util_malloc(len, "CARTRIDGE_ReadImage cart");
-		if (fread(cart->image, 1, len, fp) < len) {
-			Log_print("Error reading cartridge.\n");
-			fclose(fp);
-			free(cart->image);
-			cart->image = NULL;
-			return CARTRIDGE_TOO_FEW_DATA;
-		}
-		fclose(fp);
 		/* find cart type */
 		cart->type = CARTRIDGE_NONE;
 		len >>= 10;	/* number of kilobytes */
@@ -1690,52 +1851,37 @@ int CARTRIDGE_ReadImage(const char *filename, CARTRIDGE_image_t *cart)
 			/*InitCartridge(cart);*/
 			return 0;	/* ok */
 		}
-		free(cart->image);
-		cart->image = NULL;
-		return CARTRIDGE_BAD_FORMAT;
+		goto bad_format;
 	}
 
 	/* if not full kilobytes, assume it is CART file */
-	if (fread(header, 1, 16, fp) < 16) {
+	if (fread(header, 1, 16, cart->tmp_file) < 16) {
 		Log_print("Error reading cartridge.\n");
-		fclose(fp);
-		return CARTRIDGE_BAD_FORMAT;
+		goto bad_format;
 	}
 	if ((header[0] == 'C') &&
 		(header[1] == 'A') &&
 		(header[2] == 'R') &&
-		(header[3] == 'T')) {
-		type = (header[4] << 24) |
-			(header[5] << 16) |
-			(header[6] << 8) |
-			header[7];
+		(header[3] == 'T')
+	) {
+		type = (header[4] << 24) | (header[5] << 16) | (header[6] << 8) | header[7];
 		if (type >= 1 && type < CARTRIDGE_TYPE_COUNT) {
 			int checksum;
 			int result;
 			len = CARTRIDGES[type].kb << 10;
 			cart->raw = FALSE;
 			cart->size = CARTRIDGES[type].kb;
-			/* alloc memory and read data */
-			cart->image = (UBYTE *) Util_malloc(len, "CARTRIDGE_ReadImage cart->image");
-			if (fread(cart->image, 1, len, fp) < len) {
-				Log_print("Error reading cartridge.\n");
-				fclose(fp);
-				free(cart->image);
-				cart->image = NULL;
-				return CARTRIDGE_TOO_FEW_DATA;
-			}
-			fclose(fp);
-			checksum = (header[8] << 24) |
-				(header[9] << 16) |
-				(header[10] << 8) |
-				header[11];
+			checksum = (header[8] << 24) | (header[9] << 16) | (header[10] << 8) | header[11];
 			cart->type = type;
-			result = checksum == CARTRIDGE_Checksum(cart->image, len) ? 0 : CARTRIDGE_BAD_CHECKSUM;
+			result = checksum == CARTRIDGE_Checksum(cart) ? 0 : CARTRIDGE_BAD_CHECKSUM;
 			/*InitCartridge(cart);*/
 			return result;
 		}
 	}
-	fclose(fp);
+bad_format:
+	f_close(cart->tmp_file);
+	free(cart->tmp_file);
+	cart->tmp_file = NULL;
 	return CARTRIDGE_BAD_FORMAT;
 }
 
@@ -1835,7 +1981,7 @@ int CARTRIDGE_ReadConfig(char *string, char *ptr)
 	return TRUE;
 }
 
-void CARTRIDGE_WriteConfig(FIL *fp)
+void CARTRIDGE_WriteConfig(FILE *fp)
 {
 	fprintf(fp, "CARTRIDGE_FILENAME=%s\n", CARTRIDGE_main.filename);
 	fprintf(fp, "CARTRIDGE_TYPE=%d\n", CARTRIDGE_main.type);
@@ -1863,7 +2009,6 @@ static void InitInsert(CARTRIDGE_image_t *cart)
 
 int CARTRIDGE_Initialise(int *argc, char *argv[])
 {
-	printf("CARTRIDGE_Initialise");
 	int i;
 	int j;
 	int help_only = FALSE;

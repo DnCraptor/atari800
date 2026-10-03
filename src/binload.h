@@ -1,11 +1,16 @@
 #ifndef BINLOAD_H_
 #define BINLOAD_H_
 
-#include "atari.h" /* UBYTE */
-#include "ff.h"
+#ifdef HAVR_FF_WRAP_H
+#include <ff_wrap.h>
+#else
+#include <stdlib.h>
+#include <stdio.h>
+#endif
 
-extern FIL BINLOAD_bin_file;
-extern int BINLOAD_bin_file_open;
+#include "atari.h" /* UBYTE */
+
+extern FILE *BINLOAD_bin_file;
 
 int BINLOAD_Loader(const char *filename);
 extern int BINLOAD_start_binloading;

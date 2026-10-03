@@ -1,6 +1,14 @@
 #ifndef DEVICES_H_
 #define DEVICES_H_
 
+
+#ifdef HAVR_FF_WRAP_H
+#include <ff_wrap.h>
+#else
+#include <stdlib.h>
+#include <stdio.h>
+#endif
+
 #include "atari.h" /* UWORD */
 
 int Devices_Initialise(int *argc, char *argv[]);

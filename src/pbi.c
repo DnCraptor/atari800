@@ -72,7 +72,6 @@ int PBI_IRQ = 0;
 
 int PBI_Initialise(int *argc, char *argv[])
 {
-	printf("PBI_Initialise");
 	return TRUE
 #ifdef PBI_XLD
 		&& PBI_XLD_Initialise(argc, argv)
@@ -129,7 +128,7 @@ int PBI_ReadConfig(char *string, char *ptr)
 	return TRUE; /* matched something */
 }
 
-void PBI_WriteConfig(FIL *fp)
+void PBI_WriteConfig(FILE *fp)
 {
 #ifdef PBI_MIO
 	PBI_MIO_WriteConfig(fp);

@@ -63,7 +63,7 @@ int PBI_PROTO80_Initialise(int *argc, char *argv[])
 	*argc = j;
 
 	if (PBI_PROTO80_enabled) {
-		proto80rom = (UBYTE *)Util_malloc(0x800, "PBI_PROTO80_Initialise");
+		proto80rom = (UBYTE *)Util_malloc(0x800);
 		if (!Atari800_LoadImage(proto80_rom_filename, proto80rom, 0x800)) {
 			free(proto80rom);
 			PBI_PROTO80_enabled = FALSE;
@@ -95,7 +95,7 @@ int PBI_PROTO80_ReadConfig(char *string, char *ptr)
 	return TRUE; /* matched something */
 }
 
-void PBI_PROTO80_WriteConfig(FIL *fp)
+void PBI_PROTO80_WriteConfig(FILE *fp)
 {
 	fprintf(fp, "PROTO80_ROM=%s\n", proto80_rom_filename);
 }

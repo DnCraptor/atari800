@@ -1,4 +1,11 @@
+
+#ifdef HAVR_FF_WRAP_H
+#include <ff_wrap.h>
+#else
+#include <stdlib.h>
 #include <stdio.h>
+#endif
+
 #include <string.h>
 #include "inttypes.h"
 #include <pico/stdlib.h>

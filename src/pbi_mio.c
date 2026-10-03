@@ -34,8 +34,6 @@
 #include "pbi_scsi.h"
 #include "statesav.h"
 
-#include "ff.h"
-
 #ifdef PBI_DEBUG
 #define D(a) a
 #else
@@ -55,12 +53,10 @@ static char mio_rom_filename[FILENAME_MAX];
 static char mio_scsi_disk_filename[FILENAME_MAX] = Util_FILENAME_NOT_SET;
 static int mio_scsi_enabled = FALSE;
 
-static FIL scsi_disk;
-
 static void init_mio(void)
 {
 	free(mio_rom);
-	mio_rom = (UBYTE *)Util_malloc(mio_rom_size, "init_mio rom");
+	mio_rom = (UBYTE *)Util_malloc(mio_rom_size);
 	if (!Atari800_LoadImage(mio_rom_filename, mio_rom, mio_rom_size)) {
 		free(mio_rom);
 		mio_rom = NULL;
@@ -70,7 +66,7 @@ static void init_mio(void)
 	PBI_MIO_enabled = TRUE;
 	if (PBI_SCSI_disk != NULL) fclose(PBI_SCSI_disk);
 	if (!Util_filenamenotset(mio_scsi_disk_filename)) {
-		PBI_SCSI_disk = fopen(&scsi_disk, mio_scsi_disk_filename, FA_READ | FA_WRITE);
+		PBI_SCSI_disk = fopen(mio_scsi_disk_filename, "rb+");
 		if (PBI_SCSI_disk == NULL) {
 			Log_print("Error opening SCSI disk image:%s", mio_scsi_disk_filename);
 		}
@@ -83,7 +79,7 @@ static void init_mio(void)
 		PBI_SCSI_BSY = TRUE; /* makes MIO give up easier */
 	}
 	free(mio_ram);
-	mio_ram = (UBYTE *)Util_malloc(mio_ram_size, "init_mio ram");
+	mio_ram = (UBYTE *)Util_malloc(mio_ram_size);
 	memset(mio_ram, 0, mio_ram_size);
 }
 
@@ -127,7 +123,7 @@ int PBI_MIO_ReadConfig(char *string, char *ptr)
 	return TRUE; /* matched something */
 }
 
-void PBI_MIO_WriteConfig(FIL *fp)
+void PBI_MIO_WriteConfig(FILE *fp)
 {
 	fprintf(fp, "MIO_ROM=%s\n", mio_rom_filename);
 	if (!Util_filenamenotset(mio_scsi_disk_filename)) {

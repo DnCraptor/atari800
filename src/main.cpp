@@ -1,9 +1,9 @@
 #include <cstdlib>
 #include <cstring>
-#include <hardware/watchdog.h>
+#include <pico.h>
 #include <hardware/clocks.h>
 #include <hardware/flash.h>
-#include <hardware/structs/vreg_and_chip_reset.h>
+#include <hardware/vreg.h>
 #include <pico/bootrom.h>
 #include <pico/time.h>
 #include <pico/multicore.h>
@@ -29,6 +29,14 @@ extern "C" {
 #include "statesav.h"
 #include "util_Wii_Joy.h"
 }
+#ifdef USB_HID
+#include "usbhid.h"
+#endif
+
+#ifdef PICO_RP2350
+#include <hardware/regs/qmi.h>
+#include <hardware/structs/qmi.h>
+#endif
 
 static FATFS fs;
 semaphore vga_start_semaphore;
@@ -51,7 +59,7 @@ void inInit(uint gpio) {
     gpio_pull_up(gpio);
 }
 
-static input_template_t input_map;
+extern "C" input_template_t input_map;
 static unsigned int sp = 0;
 static bool qPressed = false;
 static bool wPressed = false;
@@ -74,6 +82,13 @@ static bool f2Pressed = false;
 static bool f3Pressed = false;
 static bool f4Pressed = false;
 static bool delPressed = false;
+
+inline static int StateSav_SaveAtariState1(const char *filename) {
+    return StateSav_SaveAtariState(filename, "wb", FALSE);
+}
+inline static int StateSav_ReadAtariState1(const char *filename) {
+    return StateSav_ReadAtariState(filename, "rb");
+}
 
 extern "C" {
 bool __time_critical_func(handleScancode)(const uint32_t ps2scancode) {
@@ -138,97 +153,105 @@ bool __time_critical_func(handleScancode)(const uint32_t ps2scancode) {
                 } // F4 Start
                 case 0xc8: { // Up
                     input_map.keychar = 0;
-                    input_map.joy1 &= INPUT_STICK_FORWARD;
+                    input_map.joy0 &= INPUT_STICK_FORWARD;
                     _8Pressed = false;
                     break;
                 }
                 case 0xcb: { // Left
                     input_map.keychar = 0;
-                    input_map.joy1 &= INPUT_STICK_LEFT;
+                    input_map.joy0 &= INPUT_STICK_LEFT;
                     _4Pressed = false;
                     break;
                 }
-                case 0xd0: { // Down
+                case 0xcc: { // 5 Center -> Down
                     input_map.keychar = 0;
-                    input_map.joy1 &= INPUT_STICK_BACK;
+                    input_map.joy0 &= INPUT_STICK_BACK;
+                    _2Pressed = false;
+                    break;
+                }
+                case 0xd0: { // 2 Down
+                    input_map.keychar = 0;
+                    input_map.joy0 &= INPUT_STICK_BACK;
                     _2Pressed = false;
                     break;
                 }
                 case 0xcd: { // Right
                     input_map.keychar = 0;
-                    input_map.joy1 &= INPUT_STICK_RIGHT;
+                    input_map.joy0 &= INPUT_STICK_RIGHT;
                     _6Pressed = false;
                     break;
                 }
                 case 0xc7: { // 7 UpLeft
                     input_map.keychar = 0;
-                    input_map.joy1 &= INPUT_STICK_UL;
+                    input_map.joy0 &= INPUT_STICK_UL;
                     _7Pressed = false;
                     break;
                 }
                 case 0xc9: { // 9 UpRight
                     input_map.keychar = 0;
-                    input_map.joy1 &= INPUT_STICK_UR;
+                    input_map.joy0 &= INPUT_STICK_UR;
                     _9Pressed = false;
                     break;
                 }
                 case 0xcf: { // 1 LowLeft
                     input_map.keychar = 0;
-                    input_map.joy1 &= INPUT_STICK_LL;
+                    input_map.joy0 &= INPUT_STICK_LL;
                     _1Pressed = false;
                     break;
                 }
                 case 0xd1: { // 3 LowRight
                     input_map.keychar = 0;
-                    input_map.joy1 &= INPUT_STICK_LR;
+                    input_map.joy0 &= INPUT_STICK_LR;
                     _3Pressed = false;
                     break;
                 }
+
                 case 0x90: { // Q
                     input_map.keychar = 0;
-                    input_map.joy0 &= INPUT_STICK_UL;
+                    input_map.joy1 &= INPUT_STICK_UL;
                     qPressed = false;
                     break;
                 }
                 case 0x91: { // W
                     input_map.keychar = 0;
-                    input_map.joy0 &= INPUT_STICK_FORWARD;
+                    input_map.joy1 &= INPUT_STICK_FORWARD;
                     wPressed = false;
                     break;
                 }
                 case 0x92: { // E
                     input_map.keychar = 0;
-                    input_map.joy0 &= INPUT_STICK_UR;
+                    input_map.joy1 &= INPUT_STICK_UR;
                     ePressed = false;
                     break;
                 }
                 case 0x9e: { // A
                     input_map.keychar = 0;
-                    input_map.joy0 &= INPUT_STICK_LEFT;
+                    input_map.joy1 &= INPUT_STICK_LEFT;
                     aPressed = false;
                     break;
                 }
                 case 0xa0: { // D
                     input_map.keychar = 0;
-                    input_map.joy0 &= INPUT_STICK_RIGHT;
+                    input_map.joy1 &= INPUT_STICK_RIGHT;
                     dPressed = false;
                     break;
                 }
                 case 0xac: { // Z
                     input_map.keychar = 0;
-                    input_map.joy0 &= INPUT_STICK_LL;
+                    input_map.joy1 &= INPUT_STICK_LL;
                     zPressed = false;
                     break;
                 }
+                case 0x9f: // S
                 case 0xad: { // X
                     input_map.keychar = 0;
-                    input_map.joy0 &= INPUT_STICK_BACK;
+                    input_map.joy1 &= INPUT_STICK_BACK;
                     xPressed = false;
                     break;
                 }
                 case 0xae: { // C
                     input_map.keychar = 0;
-                    input_map.joy0 &= INPUT_STICK_LR;
+                    input_map.joy1 &= INPUT_STICK_LR;
                     cPressed = false;
                     break;
                 }
@@ -241,10 +264,7 @@ bool __time_critical_func(handleScancode)(const uint32_t ps2scancode) {
                 input_map.keychar = 127;
                 delPressed = true;
                 if (input_map.alt && input_map.control) {
-                    f_unlink("/.firmware");
-                    watchdog_enable(1, true);
-                    while (true);
-///                    Atari800_Coldstart();
+                    Atari800_Coldstart();
                 }
                 break;
             }
@@ -359,13 +379,17 @@ bool __time_critical_func(handleScancode)(const uint32_t ps2scancode) {
                 }
                 input_map.keychar = sp ? 'R' : 'r';
                 break;
-            case 0x1f:
+            case 0x1f: {
 	            if (input_map.alt) {
                     input_map.keychar = 255; // -> AKEY_UI;
 			        UI_alt_function = UI_MENU_SAVESTATE;
                     return true;
                 }
-                input_map.keychar = sp ? 'S' : 's'; break;
+                input_map.joy1 |= ~INPUT_STICK_BACK;
+                xPressed = true;
+                input_map.keychar = sp ? 'S' : 's';
+                break;
+            }
             case 0x14:
 	            if (input_map.alt) {
                     input_map.keychar = 255; // -> AKEY_UI;
@@ -406,11 +430,11 @@ bool __time_critical_func(handleScancode)(const uint32_t ps2scancode) {
             case 0x0e: input_map.keychar = '\b'; break; // Backspace
             case 0x3b: {
                 if (input_map.control) {
-                    StateSav_SaveAtariState("\\atari800\\~f1.sav", FA_CREATE_ALWAYS | FA_WRITE | FA_READ, TRUE);
+                    StateSav_SaveAtariState1("\\atari800\\~f1.sav");
                     return true;
                 }
                 if (input_map.shift) {
-                    StateSav_ReadAtariState("\\atari800\\~f1.sav", FA_READ);
+                    StateSav_ReadAtariState1("\\atari800\\~f1.sav");
                     return true;
                 }
                 input_map.keychar = 255;
@@ -419,11 +443,11 @@ bool __time_critical_func(handleScancode)(const uint32_t ps2scancode) {
             } // F1 UI
             case 0x3c: {
                 if (input_map.control) {
-                    StateSav_SaveAtariState("\\atari800\\~f2.sav", FA_CREATE_ALWAYS | FA_WRITE | FA_READ, TRUE);
+                    StateSav_SaveAtariState1("\\atari800\\~f2.sav");
                     return true;
                 }
                 if (input_map.shift) {
-                    StateSav_ReadAtariState("\\atari800\\~f2.sav", FA_READ);
+                    StateSav_ReadAtariState1("\\atari800\\~f2.sav");
                     return true;
                 }
                 input_map.option = 1;
@@ -432,11 +456,11 @@ bool __time_critical_func(handleScancode)(const uint32_t ps2scancode) {
             } // F2 Option
             case 0x3d: {
                 if (input_map.control) {
-                    StateSav_SaveAtariState("\\atari800\\~f3.sav", FA_CREATE_ALWAYS | FA_WRITE | FA_READ, TRUE);
+                    StateSav_SaveAtariState1("\\atari800\\~f3.sav");
                     return true;
                 }
                 if (input_map.shift) {
-                    StateSav_ReadAtariState("\\atari800\\~f3.sav", FA_READ);
+                    StateSav_ReadAtariState1("\\atari800\\~f3.sav");
                     return true;
                 }
                 input_map.select = 1;
@@ -445,11 +469,11 @@ bool __time_critical_func(handleScancode)(const uint32_t ps2scancode) {
             } // F3 Select
             case 0x3e: {
                 if (input_map.control) {
-                    StateSav_SaveAtariState("\\atari800\\~f4.sav", FA_CREATE_ALWAYS | FA_WRITE | FA_READ, TRUE);
+                    StateSav_SaveAtariState1("\\atari800\\~f4.sav");
                     return true;
                 }
                 if (input_map.shift) {
-                    StateSav_ReadAtariState("\\atari800\\~f4.sav", FA_READ);
+                    StateSav_ReadAtariState1("\\atari800\\~f4.sav");
                     return true;
                 }
                 input_map.start = 1;
@@ -458,130 +482,138 @@ bool __time_critical_func(handleScancode)(const uint32_t ps2scancode) {
             } // F4 Start
             case 0x3f:
                 if (input_map.control) {
-                    StateSav_SaveAtariState("\\atari800\\~f5.sav", FA_CREATE_ALWAYS | FA_WRITE | FA_READ, TRUE);
+                    StateSav_SaveAtariState1("\\atari800\\~f5.sav");
                     return true;
                 }
                 if (input_map.shift) {
-                    StateSav_ReadAtariState("\\atari800\\~f5.sav", FA_READ);
+                    StateSav_ReadAtariState1("\\atari800\\~f5.sav");
                     return true;
                 }
                 input_map.keychar = 250;
                 break; // F5 Help
             case 0x40:
                 if (input_map.control) {
-                    StateSav_SaveAtariState("\\atari800\\~f6.sav", FA_CREATE_ALWAYS | FA_WRITE | FA_READ, TRUE);
+                    StateSav_SaveAtariState1("\\atari800\\~f6.sav");
                     return true;
                 }
                 if (input_map.shift) {
-                    StateSav_ReadAtariState("\\atari800\\~f6.sav", FA_READ);
+                    StateSav_ReadAtariState1("\\atari800\\~f6.sav");
                     return true;
                 }
                 break; // F6
             case 0x41:
                 if (input_map.control) {
-                    StateSav_SaveAtariState("\\atari800\\~f7.sav", FA_CREATE_ALWAYS | FA_WRITE | FA_READ, TRUE);
+                    StateSav_SaveAtariState1("\\atari800\\~f7.sav");
                     return true;
                 }
                 if (input_map.shift) {
-                    StateSav_ReadAtariState("\\atari800\\~f7.sav", FA_READ);
+                    StateSav_ReadAtariState1("\\atari800\\~f7.sav");
                     return true;
                 }
                 break; // F7
             case 0x42:
                 if (input_map.control) {
-                    StateSav_SaveAtariState("\\atari800\\~f8.sav", FA_CREATE_ALWAYS | FA_WRITE | FA_READ, TRUE);
+                    StateSav_SaveAtariState1("\\atari800\\~f8.sav");
                     return true;
                 }
                 if (input_map.shift) {
-                    StateSav_ReadAtariState("\\atari800\\~f8.sav", FA_READ);
+                    StateSav_ReadAtariState1("\\atari800\\~f8.sav");
                     return true;
                 }
                 break; // F8
             case 0x43:
                 if (input_map.control) {
-                    StateSav_SaveAtariState("\\atari800\\~f9.sav", FA_CREATE_ALWAYS | FA_WRITE | FA_READ, TRUE);
+                    StateSav_SaveAtariState1("\\atari800\\~f9.sav");
                     return true;
-                }
-                if (input_map.shift) {
-                    StateSav_ReadAtariState("\\atari800\\~f9.sav", FA_READ);
+                } else if (input_map.shift) {
+                    StateSav_ReadAtariState1("\\atari800\\~f9.sav");
                     return true;
+                } else {
+                    decrease_volume();
                 }
                 break; // F9
             case 0x44:
                 if (input_map.control) {
-                    StateSav_SaveAtariState("\\atari800\\~f10.sav", FA_CREATE_ALWAYS | FA_WRITE | FA_READ, TRUE);
+                    StateSav_SaveAtariState1("\\atari800\\~f10.sav");
                     return true;
-                }
-                if (input_map.shift) {
-                    StateSav_ReadAtariState("\\atari800\\~f10.sav", FA_READ);
+                } else if (input_map.shift) {
+                    StateSav_ReadAtariState1("\\atari800\\~f10.sav");
                     return true;
+                } else {
+                    increase_volume();
                 }
                 break; // F10
             case 0x57:
                 if (input_map.control) {
-                    StateSav_SaveAtariState("\\atari800\\~f11.sav", FA_CREATE_ALWAYS | FA_WRITE | FA_READ, TRUE);
+                    StateSav_SaveAtariState1("\\atari800\\~f11.sav");
                     return true;
                 }
                 if (input_map.shift) {
-                    StateSav_ReadAtariState("\\atari800\\~f11.sav", FA_READ);
+                    StateSav_ReadAtariState1("\\atari800\\~f11.sav");
                     return true;
                 }
                 break; // F11
             case 0x58:
                 if (input_map.control) {
-                    StateSav_SaveAtariState("\\atari800\\~f12.sav", FA_CREATE_ALWAYS | FA_WRITE | FA_READ, TRUE);
+                    StateSav_SaveAtariState1("\\atari800\\~f12.sav");
                     return true;
                 }
                 if (input_map.shift) {
-                    StateSav_ReadAtariState("\\atari800\\~f12.sav", FA_READ);
+                    StateSav_ReadAtariState1("\\atari800\\~f12.sav");
                     return true;
                 }
                 break; // F12
             case 0x48: { // Up
                 input_map.keychar = 254;
-                input_map.joy1 |= ~INPUT_STICK_FORWARD;
+                input_map.joy0 |= ~INPUT_STICK_FORWARD;
                 _8Pressed = true;
                 break;
             }
             case 0x4b: { // Left
                 input_map.keychar = 253;
-                input_map.joy1 |= ~INPUT_STICK_LEFT;
+                input_map.joy0 |= ~INPUT_STICK_LEFT;
                 _4Pressed = true;
                 break;
             }
-            case 0x50: { // Down
+            case 0x4c: { // 5 Down
+                input_map.keychar = '5'; // TODO: NumLock
+                input_map.joy0 |= ~INPUT_STICK_BACK;
+                _2Pressed = true;
+                break;
+            }
+            case 0x50: { // 2- Down
                 input_map.keychar = 252;
-                input_map.joy1 |= ~INPUT_STICK_BACK;
+                input_map.joy0 |= ~INPUT_STICK_BACK;
                 _2Pressed = true;
                 break;
             }
             case 0x4d: { // Right
                 input_map.keychar = 251;
-                input_map.joy1 |= ~INPUT_STICK_RIGHT;
+                input_map.joy0 |= ~INPUT_STICK_RIGHT;
                 _6Pressed = true;
                 break;
             }
             case 0x47: { // 7 - Up Left
                 input_map.keychar = '7'; // TODO: NumLock
-                input_map.joy1 |= ~INPUT_STICK_UL;
+                input_map.joy0 |= ~INPUT_STICK_UL;
                 _7Pressed = true;
                 break;
             }
             case 0x49: { // 9 - Up Right
                 input_map.keychar = '9'; // TODO: NumLock
-                input_map.joy1 |= ~INPUT_STICK_UR;
+                input_map.joy0 |= ~INPUT_STICK_UR;
                 _9Pressed = true;
                 break;
             }
             case 0x4f: { // 1 - Low Left
                 input_map.keychar = '1'; // TODO: NumLock
-                input_map.joy1 |= ~INPUT_STICK_LL;
+                input_map.joy0 |= ~INPUT_STICK_LL;
                 _1Pressed = true;
                 break;
             }
             case 0x51: { // 3 - Low Right
                 input_map.keychar = '3'; // TODO: NumLock
-                input_map.joy1 |= ~INPUT_STICK_LR;
+                input_map.joy0 |= ~INPUT_STICK_LR;
                 _3Pressed = true;
                 break;
             }
@@ -601,31 +633,31 @@ bool __time_critical_func(handleScancode)(const uint32_t ps2scancode) {
 
 
 void nespad_update() {
-    if (!aPressed && !qPressed && !zPressed)
+    if (!_7Pressed && !_4Pressed && !_1Pressed)
         if (nespad_state & DPAD_LEFT) {
             input_map.joy0 |= ~INPUT_STICK_LEFT;
         } else {
             input_map.joy0 &= INPUT_STICK_LEFT;
         }
-    if (!ePressed && !dPressed && !cPressed)
+    if (!_9Pressed && !_6Pressed && !_3Pressed)
         if (nespad_state & DPAD_RIGHT) {
             input_map.joy0 |= ~INPUT_STICK_RIGHT;
         } else {
             input_map.joy0 &= INPUT_STICK_RIGHT;
         }
-    if (!qPressed && !wPressed && !ePressed)
+    if (!_7Pressed && !_8Pressed && !_9Pressed)
         if (nespad_state & DPAD_UP) {
             input_map.joy0 |= ~INPUT_STICK_FORWARD;
         } else {
             input_map.joy0 &= INPUT_STICK_FORWARD;
         }
-    if (!zPressed && !xPressed && !cPressed)
+    if (!_1Pressed && !_2Pressed && !_3Pressed)
         if (nespad_state & DPAD_DOWN) {
             input_map.joy0 |= ~INPUT_STICK_BACK;
         } else {
             input_map.joy0 &= INPUT_STICK_BACK;
         }
-    if(!(input_map.control & 1))
+    if(!(input_map.control & 2))
         input_map.trig0 = nespad_state & DPAD_A;
     if(!f4Pressed)
         input_map.start = nespad_state & DPAD_START;
@@ -637,31 +669,31 @@ void nespad_update() {
         input_map.keychar = 255; // UI
     }
 
-    if (!_7Pressed && !_4Pressed && !_1Pressed)
+    if (!aPressed && !qPressed && !zPressed)
         if (nespad_state2 & DPAD_LEFT) {
             input_map.joy1 |= ~INPUT_STICK_LEFT;
         } else {
             input_map.joy1 &= INPUT_STICK_LEFT;
         }
-    if (!_9Pressed && !_6Pressed && !_3Pressed)
+    if (!ePressed && !dPressed && !cPressed)
         if (nespad_state2 & DPAD_RIGHT) {
             input_map.joy1 |= ~INPUT_STICK_RIGHT;
         } else {
             input_map.joy1 &= INPUT_STICK_RIGHT;
         }
-    if (!_7Pressed && !_8Pressed && !_9Pressed)
+    if (!qPressed && !wPressed && !ePressed)
         if (nespad_state2 & DPAD_UP) {
             input_map.joy1 |= ~INPUT_STICK_FORWARD;
         } else {
             input_map.joy1 &= INPUT_STICK_FORWARD;
         }
-    if (!_1Pressed && !_2Pressed && !_3Pressed)
+    if (!zPressed && !xPressed && !cPressed)
         if (nespad_state2 & DPAD_DOWN) {
             input_map.joy1 |= ~INPUT_STICK_BACK;
         } else {
             input_map.joy1 &= INPUT_STICK_BACK;
         }
-    if(!(input_map.control & 2))
+    if(!(input_map.control & 1))
         input_map.trig1 = nespad_state2 & DPAD_A;
 }
 
@@ -670,10 +702,8 @@ void __time_critical_func(render_core)() {
     graphics_set_buffer(buffer, Screen_WIDTH, Screen_HEIGHT);
     multicore_lockout_victim_init();
     graphics_init();
-    graphics_set_textbuffer(buffer);
     graphics_set_bgcolor(0x000000);
     graphics_set_offset(0, 0);
-    graphics_set_flashmode(false, false);
     sem_acquire_blocking(&vga_start_semaphore);
     // 60 FPS loop
 #define frame_tick (16666)
@@ -701,43 +731,169 @@ void __time_critical_func(render_core)() {
     __unreachable();
 }
 
-static UINT sound_array_idx = 0;
-static UINT sound_array_fill = 0;
-extern "C" UBYTE *LIBATARI800_Sound_array = 0;
-extern "C" void PLATFORM_SoundWrite(UBYTE const *buffer, unsigned int size)
+#define SOUND_BUF_SIZE (8 * 1024)
+static uint8_t  snd_buf[2][SOUND_BUF_SIZE];
+// индексы буферов
+static volatile uint8_t snd_wi = 0;   // куда пишем (0/1)
+static volatile uint8_t snd_ri = 1;   // откуда читаем (0/1)
+
+// сколько байт “готово” в каждом буфере (commit size)
+static volatile uint32_t snd_ready[2] = {0, 0};
+
+// позиция чтения в текущем read-буфере
+static volatile uint32_t snd_rpos = 0;
+
+// позиция записи в текущем write-буфере (локальная для writer’а, но держим volatile)
+static volatile uint32_t snd_wpos = 0;
+
+static spin_lock_t *sound_lock;
+
+static inline void snd_try_swap_buffers_locked(void)
 {
-    if (LIBATARI800_Sound_array) free(LIBATARI800_Sound_array);
-    LIBATARI800_Sound_array = (UBYTE *) Util_malloc(size, "PLATFORM_SoundWrite");
-	memcpy(LIBATARI800_Sound_array, buffer, size);
-	sound_array_idx = 0;
-	sound_array_fill = size;
+    // Если read-буфер пуст (дочитан) и второй буфер готов — меняем
+    if (snd_ready[snd_ri] == 0 && snd_ready[snd_wi] != 0) {
+        // swap индексы
+        uint8_t old_ri = snd_ri;
+        snd_ri = snd_wi;
+        snd_wi = old_ri;
+
+        // reset позиций
+        snd_rpos = 0;
+        snd_wpos = 0;   // новый write-буфер (старый read) пуст
+    }
+}
+
+extern "C" int paused;
+
+extern "C" void PLATFORM_SoundWrite(const UBYTE *buffer, unsigned int size)
+{
+    if (!buffer || size == 0) return;
+
+    // Пишем кусками, пока есть данные
+    while (size) {
+
+        // Если текущий write-буфер уже закоммичен (готов к чтению) — пробуем свапнуть
+        if (snd_ready[snd_wi] != 0) {
+            uint32_t flags = spin_lock_blocking(sound_lock);
+            snd_try_swap_buffers_locked();
+            spin_unlock(sound_lock, flags);
+
+            // Если всё равно занято — дропаем остаток (оба буфера заполнены/ожидают)
+            if (snd_ready[snd_wi] != 0) {
+                return;
+            }
+        }
+
+        // Сколько места осталось в write-буфере
+        uint32_t wpos = snd_wpos;
+        uint32_t space = SOUND_BUF_SIZE - wpos;
+        if (space == 0) {
+            // буфер заполнен — коммит и попробуем свап
+            uint32_t flags = spin_lock_blocking(sound_lock);
+            snd_ready[snd_wi] = SOUND_BUF_SIZE;
+            snd_try_swap_buffers_locked();
+            spin_unlock(sound_lock, flags);
+            continue;
+        }
+
+        uint32_t chunk = size;
+        if (chunk > space) chunk = space;
+
+        memcpy(&snd_buf[snd_wi][wpos], buffer, chunk);
+        buffer += chunk;
+        size   -= chunk;
+        wpos   += chunk;
+        snd_wpos = wpos;
+
+        // Если добили буфер до конца — коммитим (под lock, чтобы reader видел консистентно)
+        if (wpos == SOUND_BUF_SIZE) {
+            uint32_t flags = spin_lock_blocking(sound_lock);
+            snd_ready[snd_wi] = SOUND_BUF_SIZE;
+            snd_try_swap_buffers_locked();
+            spin_unlock(sound_lock, flags);
+        }
+    }
 }
 
 #ifdef SOUND
 static repeating_timer_t timer;
 static int snd_channels = 2;
-static bool __not_in_flash_func(snd_timer_callback)(repeating_timer_t *rt) {
-    static uint16_t outL = 0;  
-    static uint16_t outR = 0;
-    register size_t idx = sound_array_idx;
-    if (idx >= sound_array_fill) {
+static int8_t vol = 8;
+
+void decrease_volume(void) {
+	vol--;
+    if (vol < 0) vol = 0;
+}
+
+void increase_volume(void) {
+	vol++;
+    if (vol > 8) vol = 8;
+}
+
+static bool __not_in_flash_func(snd_timer_callback)(repeating_timer_t *rt)
+{
+    static uint16_t outL = 128;
+    static uint16_t outR = 128;
+
+    pwm_set_gpio_level(PWM_PIN0, outR);
+    pwm_set_gpio_level(PWM_PIN1, outL);
+
+    if (!Sound_enabled || paused)
         return true;
+
+    const uint32_t frame_bytes = (uint32_t)snd_channels; // 8-bit unsigned: 1 байт на канал
+    uint16_t vol_scale = (uint16_t)(vol * 32);
+
+    // Быстрый путь: есть данные в read-буфере?
+    uint8_t ri = snd_ri;
+    uint32_t ready = snd_ready[ri];
+    uint32_t rpos  = snd_rpos;
+
+    if (ready < frame_bytes || rpos + frame_bytes > ready) {
+        // Буфер пуст/кончился: отметим пустым и попробуем свапнуть (под lock)
+        uint32_t flags = spin_lock_blocking(sound_lock);
+
+        // возможно кто-то уже обновил, перечитаем консистентно
+        ri = snd_ri;
+        ready = snd_ready[ri];
+        rpos = snd_rpos;
+
+        if (ready < frame_bytes || rpos + frame_bytes > ready) {
+            // дочитали текущий — освобождаем
+            snd_ready[ri] = 0;
+            snd_rpos = 0;
+
+            // попытка переключиться на другой готовый буфер
+            snd_try_swap_buffers_locked();
+        }
+
+        spin_unlock(sound_lock, flags);
+
+        // после свапа можем попробовать ещё раз без рекурсии
+        ri = snd_ri;
+        ready = snd_ready[ri];
+        rpos  = snd_rpos;
+        if (ready < frame_bytes || rpos + frame_bytes > ready) {
+            return true; // всё ещё нет данных
+        }
     }
-    pwm_set_gpio_level(PWM_PIN0, outR); // Право
-    pwm_set_gpio_level(PWM_PIN1, outL); // Лево
-    outL = outR = 0;
-    if (!Sound_enabled || paused) {
-        return true;
-    }
-    register UBYTE* uba = LIBATARI800_Sound_array;
+
+    // Читаем фрейм без lock
+    uint8_t s0 = snd_buf[ri][rpos++];
+    uint8_t s1 = s0;
     if (snd_channels == 2) {
-        outL = uba[idx++]; idx++;
-        outR = uba[idx++]; idx++;
-    } else {
-        outL = outR = uba[idx++]; idx++;
+        s1 = snd_buf[ri][rpos++];
     }
-    sound_array_idx = idx;
-    ///pwm_set_gpio_level(BEEPER_PIN, 0);
+    snd_rpos = rpos;
+
+    if (snd_channels == 1) {
+        outL = (s0 * vol_scale) >> 8;
+        outR = outL;
+    } else {
+        outL = (s0 * vol_scale) >> 8;
+        outR = (s1 * vol_scale) >> 8;
+    }
+
     return true;
 }
 #endif
@@ -751,6 +907,7 @@ static void init_fs() {
         printf("Unable to mount SD-card: %s (%d)", FRESULT_str(result), result);
     } else {
         SD_CARD_AVAILABLE = true;
+        f_mkdir("/atari800");
     }
 }
 
@@ -761,13 +918,45 @@ inline static void init_wii() {
     }
 }
 
+#ifndef PICO_RP2040
+void __not_in_flash() flash_timings() {
+        const int max_flash_freq = 66 * MHZ;
+        const int clock_hz = CPU_MHZ * MHZ;
+        int divisor = (clock_hz + max_flash_freq - 1) / max_flash_freq;
+        if (divisor == 1 && clock_hz > 100000000) {
+            divisor = 2;
+        }
+        int rxdelay = divisor;
+        if (clock_hz / divisor > 100000000) {
+            rxdelay += 1;
+        }
+        qmi_hw->m[0].timing = 0x60007000 |
+                            rxdelay << QMI_M0_TIMING_RXDELAY_LSB |
+                            divisor << QMI_M0_TIMING_CLKDIV_LSB;
+}
+#endif
+
 int main() {
+#if !PICO_RP2040
+    volatile uint32_t *qmi_m0_timing=(uint32_t *)0x400d000c;
+    vreg_disable_voltage_limit();
+    vreg_set_voltage(VREG_VOLTAGE_1_60);
+    flash_timings();
+    sleep_ms(100);
+    set_sys_clock_khz(CPU_MHZ * KHZ, 0);
+#else
     hw_set_bits(&vreg_and_chip_reset_hw->vreg, VREG_AND_CHIP_RESET_VREG_VSEL_BITS);
     sleep_ms(10);
-    set_sys_clock_khz(378 * KHZ, true);
+    set_sys_clock_khz(CPU_MHZ * KHZ, true);
+#endif
+
     stdio_init_all();
+    sound_lock = spin_lock_instance(spin_lock_claim_unused(true));
     keyboard_init();
     keyboard_send(0xFF);
+#ifdef USB_HID
+    usbhid_init();
+#endif
     nespad_begin(clock_get_hz(clk_sys) / 1000, NES_GPIO_CLK, NES_GPIO_DATA, NES_GPIO_LAT);
 
     nespad_read();
@@ -780,11 +969,15 @@ int main() {
     }
 
     init_fs(); // TODO: psram replacement (pagefile)
+    #if !defined(MURM2) && !defined(PICO_PC)
     init_psram();
+    #endif
 
     /* force the 400/800 OS to get the Memo Pad */
     char *test_args[] = {
-        "-atari",
+//        "-atari",
+//        "-xe",
+//        "-ntsc",
         NULL,
     };
     printf("libatari800_init");
@@ -805,7 +998,9 @@ int main() {
         gpio_put(PICO_DEFAULT_LED_PIN, false);
     }
 
+#ifdef BEEPER_PIN
     PWM_init_pin(BEEPER_PIN, (1 << 8) - 1);
+#endif
 #ifdef SOUND
     PWM_init_pin(PWM_PIN0, (1 << 8) - 1);
     PWM_init_pin(PWM_PIN1, (1 << 8) - 1);
@@ -814,6 +1009,8 @@ int main() {
     //пин ввода звука
     inInit(LOAD_WAV_PIO);
 #endif
+
+    Screen_atari = (UINT*)__screen;
 
 #ifdef SOUND
     int hz = libatari800_get_sound_frequency();

@@ -26,10 +26,20 @@
 
 #include "config.h"
 #include <string.h>
-#include <stdlib.h> /* free() */
+
+#ifdef HAVR_FF_WRAP_H
+#include <ff_wrap.h>
+#else
+#include <stdlib.h>
+#include <stdio.h>
+#endif
+
 /* XXX: <sys/dir.h>, <ndir.h>, <sys/ndir.h> */
 #ifdef HAVE_DIRENT_H
 #include <dirent.h>
+#endif
+#ifdef HAVR_FF_WRAP_H
+#include <ff_wrap.h>
 #endif
 #ifdef HAVE_SYS_STAT_H
 #include <sys/stat.h>
@@ -49,21 +59,9 @@
 #include "ui.h"
 #include "util.h"
 #include "ui_basic.h"
-
-#ifdef DIRECTX
-	#include "win32/main.h"
-#endif
-
-#ifdef charset.h_regenerate
-static int initialised = FALSE;
-static UBYTE charset[1024];
-#else
 #include "charset.h"
-#endif
 
-#ifdef DIRECTX
-	POINT UI_mouse_click = {-1, -1};
-#endif
+static int initialised = FALSE;
 
 const unsigned char UI_BASIC_key_to_ascii[256] =
 {
@@ -91,20 +89,22 @@ const unsigned char UI_BASIC_key_to_ascii[256] =
 #define KB_DELAY       20
 #define KB_AUTOREPEAT  3
 
-static int GetKeyPress(void) {
+static int GetKeyPress(void)
+{
 	int keycode;
-///	printf("GetKeyPress");
-	if (UI_alt_function >= 0) {
-		printf("UI_alt_function B %d", UI_alt_function);
+
+	if (UI_alt_function >= 0)
 		return 0x1b; /* escape - go to Main Menu */
-	}
+
 	PLATFORM_DisplayScreen();
+
 	for (;;) {  
 		static int rep = KB_DELAY;
 		if (PLATFORM_Keyboard() == AKEY_NONE) {
 			rep = KB_DELAY;
 			break;
 		}
+		
 		if (rep == 0) {
 			rep = KB_AUTOREPEAT;
 			break;
@@ -112,7 +112,7 @@ static int GetKeyPress(void) {
 		rep--;
 		Atari800_Sync();
 	}
-///	printf("GetKeyPress #2");
+
 	do { 
 		Atari800_Sync();
 		keycode = PLATFORM_Keyboard();
@@ -123,8 +123,10 @@ static int GetKeyPress(void) {
 		case AKEY_COLDSTART:
 			UI_alt_function = UI_MENU_RESETC;
 			return 0x1b; /* escape */
+		case AKEY_EXIT:
+			UI_alt_function = UI_MENU_EXIT;
+			return 0x1b; /* escape */
 		case AKEY_UI:
-			printf("AKEY_UI UI_alt_function: %d", UI_alt_function);
 			if (UI_alt_function >= 0)  /* Alt+letter, not F1 */
 				return 0x1b; /* escape */				
 			break;
@@ -139,12 +141,15 @@ static int GetKeyPress(void) {
 			break;
 		}
 	} while (keycode < 0);
-	//printf("GetKeyPress returns: %02Xh", UI_BASIC_key_to_ascii[(uint8_t)keycode & 0xFF]);
-	return UI_BASIC_key_to_ascii[(uint8_t)keycode & 0xFF];
+
+	return UI_BASIC_key_to_ascii[keycode];
 }
 
 static void Plot(int fg, int bg, int ch, int x, int y)
 {
+#ifdef USE_CURSES
+	curses_putch(x, y, ch, (UBYTE) fg, (UBYTE) bg);
+#else /* USE_CURSES */
 	const UBYTE *font_ptr = charset + (ch & 0x7f) * 8;
 	UBYTE *ptr = (UBYTE *) Screen_atari + 24 * Screen_WIDTH + 32 + y * (8 * Screen_WIDTH) + x * 8;
 	int i;
@@ -162,6 +167,7 @@ static void Plot(int fg, int bg, int ch, int x, int y)
 		}
 		ptr += Screen_WIDTH - 8;
 	}
+#endif /* USE_CURSES */
 }
 
 static void Print(int fg, int bg, const char *string, int x, int y, int maxwidth)
@@ -177,8 +183,8 @@ static void Print(int fg, int bg, const char *string, int x, int y, int maxwidth
 		Plot(fg, bg, *string++, x++, y);
 }
 
-static void CenterPrint(int fg, int bg, const char *string, int y) {
-	printf("CenterPrint: '%s'", string);
+static void CenterPrint(int fg, int bg, const char *string, int y)
+{
 	int length = strlen(string);
 	Print(fg, bg, string, (length < 38) ? (40 - length) >> 1 : 1, y, 38);
 }
@@ -204,8 +210,11 @@ static void Box(int fg, int bg, int x1, int y1, int x2, int y2)
 	Plot(fg, bg, 26, x1, y2);
 }
 
-static void ClearRectangle(int bg, int x1, int y1, int x2, int y2) {
-	//printf("ClearRectangle");
+static void ClearRectangle(int bg, int x1, int y1, int x2, int y2)
+{
+#ifdef USE_CURSES
+	curses_clear_rectangle(x1, y1, x2, y2);
+#else
 	UBYTE *ptr = (UBYTE *) Screen_atari + Screen_WIDTH * 24 + 32 + x1 * 8 + y1 * (Screen_WIDTH * 8);
 	int bytesperline = (x2 - x1 + 1) << 3;
 	UBYTE *end_ptr = (UBYTE *) Screen_atari + Screen_WIDTH * 32 + 32 + y2 * (Screen_WIDTH * 8);
@@ -217,6 +226,7 @@ static void ClearRectangle(int bg, int x1, int y1, int x2, int y2) {
 #endif
 		ptr += Screen_WIDTH;
 	}
+#endif /* USE_CURSES */
 }
 
 static void ClearScreen(void)
@@ -259,17 +269,6 @@ int GetRawKey(void)
 }
 #endif /* GUI_SDL */
 
-#ifdef DIRECTX
-int GetKeyName(void)
-{
-	ClearRectangle(0x94, 13, 11, 25, 13);
-	Box(0x9a, 0x94, 13, 11, 25, 13);
-	CenterPrint(0x94, 0x9a, "Press a key", 12);
-	PLATFORM_DisplayScreen();
-	return PLATFORM_GetKeyName();
-}
-#endif
-
 static int Select(int default_item, int nitems, const char *item[],
                   const char *prefix[], const char *suffix[],
                   const char *tip[], const int nonselectable[],
@@ -277,7 +276,6 @@ static int Select(int default_item, int nitems, const char *item[],
                   int itemwidth, int drag, const char *global_tip,
                   int *seltype)
 {
-	printf("Select default_item: %d; nitems: %d", default_item, nitems);
 	int offset = 0;
 	int index = default_item;
 	int localseltype;
@@ -300,29 +298,22 @@ static int Select(int default_item, int nitems, const char *item[],
 		col = 0;
 		row = 0;
 		for (i = offset; i < nitems; i++) {
-		//	printf("Select i: %d", i);
-			char szbuf[40 + FILENAME_MAX] = { 0 }; /* allow for prefix and suffix */
+			char szbuf[40 + FILENAME_MAX]; /* allow for prefix and suffix */
 			char *p = szbuf;
-			if (prefix != NULL && prefix[i] != NULL) {
+			if (prefix != NULL && prefix[i] != NULL)
 				p = Util_stpcpy(szbuf, prefix[i]);
-		//		printf("Select 1 p: %d", p);
-			}
 			p = Util_stpcpy(p, item[i]);
-		//	printf("Select 2 p: %d", p);
 			if (suffix != NULL && suffix[i] != NULL) {
 				char *q = szbuf + itemwidth - strlen(suffix[i]);
 				while (p < q)
 					*p++ = ' ';
 				strcpy(p, suffix[i]);
-		//		printf("Select 3 p: %d", p);
 			}
 			else {
 				while (p < szbuf + itemwidth)
 					*p++ = ' ';
 				*p = '\0';
-		//		printf("Select 4 p: %d", p);
 			}
-		//	printf("Select szbuf: '%s'", szbuf);
 			if (i == index)
 				Print(0x94, 0x9a, szbuf, xoffset + col * (itemwidth + 1), yoffset + row, itemwidth);
 			else
@@ -338,15 +329,13 @@ static int Select(int default_item, int nitems, const char *item[],
 		else if (itemwidth < 38 && (int) strlen(item[index]) > itemwidth)
 			/* the selected item was shortened */
 			message = item[index];
-		if (message != NULL) {
+		if (message != NULL)
 			CenterPrint(0x94, 0x9a, message, 22);
-		}
-	//	printf("Select [index: %d]", index);
+
 		for (;;) {
 			int ascii;
 			int tmp_index;
 			ascii = GetKeyPress();
-		//	printf("Select GetKeyPress ascii: %02Xh", ascii);
 			switch (ascii) {
 			case 0x1c:				/* Up */
 				if (drag) {
@@ -416,25 +405,19 @@ static int Select(int default_item, int nitems, const char *item[],
 	}
 }
 
-static const char *prefix[100] = { 0 };
-static const char *item[100] = { 0 };
-static const char *suffix[100] = { 0 };
-static const char *tip[100] = { 0 };
-static int nonselectable[100] = { 0 };
-
 static int BasicUISelect(const char *title, int flags, int default_item, const UI_tMenuItem *menu, int *seltype)
 {
 	int nitems;
 	int index;
 	const UI_tMenuItem *pmenu;
+	static const char *prefix[100];
+	static const char *item[100];
+	static const char *suffix[100];
+	static const char *tip[100];
+	static int nonselectable[100];
 	int w;
 	int x1, y1, x2, y2;
-	printf("BasicUISelect flags: %d", flags);
-	memset(prefix, 0, sizeof(prefix));
-	memset(item, 0, sizeof(item));
-	memset(suffix, 0, sizeof(suffix));
-	memset(tip, 0, sizeof(tip));
-	memset(nonselectable, 0, sizeof(nonselectable));
+
 	nitems = 0;
 	index = 0;
 	for (pmenu = menu; pmenu->flags != UI_ITEM_END; pmenu++) {
@@ -462,12 +445,10 @@ static int BasicUISelect(const char *title, int flags, int default_item, const U
 			nitems++;
 		}
 	}
-	printf("BasicUISelect nitems: %d", nitems);
 	if (nitems == 0)
 		return -1; /* cancel immediately */
 
 	if (flags & UI_SELECT_POPUP) {
-		printf("BasicUISelect UI_SELECT_POPUP");
 		int i;
 		w = 0;
 		for (i = 0; i < nitems; i++) {
@@ -488,7 +469,6 @@ static int BasicUISelect(const char *title, int flags, int default_item, const U
 		y2 = y1 + nitems + 1;
 	}
 	else {
-		printf("BasicUISelect ClearScreen");
 		ClearScreen();
 		TitleScreen(title);
 		w = 38;
@@ -497,12 +477,12 @@ static int BasicUISelect(const char *title, int flags, int default_item, const U
 		x2 = 39;
 		y2 = 23;
 	}
+
 	if (y1 < 0)
 		y1 = 0;
 	if (y2 > 23)
 		y2 = 23;
-	
-	printf("BasicUISelect Box");
+
 	Box(0x9a, 0x94, x1, y1, x2, y2);
 	index = Select(index, nitems, item, prefix, suffix, tip, nonselectable,
 	                y2 - y1 - 1, 1, x1 + 1, y1 + 1, w,
@@ -721,19 +701,20 @@ static int BasicUIOpenDir(const char *dirname)
 
 static int BasicUIReadDir(char *filename, int *isdir, int *ishidden)
 {
-	if (dp == NULL) return FALSE;
-	FILINFO fileInfo;
+	struct dirent *entry;
 	char fullfilename[FILENAME_MAX];
-	int r = f_readdir(dp, &fileInfo) == FR_OK && fileInfo.fname[0] != '\0';
-	if (!r) {
+///	struct stat st;
+	entry = readdir(dp);
+	if (entry == NULL) {
 		closedir(dp);
 		dp = NULL;
 		return FALSE;
 	}
-	strcpy(filename, fileInfo.fname);
-	Util_catpath(fullfilename, dir_path, fileInfo.fname);
-	*isdir = fileInfo.fattrib & AM_DIR;
-	*ishidden = strlen(fileInfo.fname) > 1 && fileInfo.fname == '.' && fileInfo.fname[1] != '.';
+	strcpy(filename, entry->d_name);
+	Util_catpath(fullfilename, dir_path, entry->d_name);
+///	stat(fullfilename, &st);
+	*isdir = S_ISDIR_E(entry); /// S_ISDIR(st.st_mode);
+	*ishidden = strlen(entry->d_name) > 1 && entry->d_name[0] == '.' && entry->d_name[1] != '.';
 	return TRUE;
 }
 
@@ -771,7 +752,7 @@ static void FilenamesAdd(const char *filename)
 {
 	if (n_filenames >= FILENAMES_INITIAL_SIZE && (n_filenames & (n_filenames - 1)) == 0) {
 		/* n_filenames is a power of two: allocate twice as much */
-		filenames = (const char **) Util_realloc((void *) filenames, 2 * n_filenames * sizeof(const char *), "FilenamesAdd");
+		filenames = (const char **) Util_realloc((void *) filenames, 2 * n_filenames * sizeof(const char *));
 	}
 	filenames[n_filenames++] = filename;
 }
@@ -837,15 +818,14 @@ static void GetDirectory(const char *directory)
 		_STAT_ROOT_TIME | _STAT_WRITEBIT;
 	/* we do not need any of those 'hard-to-get' informations */
 #endif	/* DJGPP */
-	filenames = (const char **) Util_malloc(FILENAMES_INITIAL_SIZE * sizeof(const char *), "GetDirectory 1");
+
+	filenames = (const char **) Util_malloc(FILENAMES_INITIAL_SIZE * sizeof(const char *));
 	n_filenames = 0;
 
 	if (BasicUIOpenDir(directory)) {
 		char filename[FILENAME_MAX];
 		int isdir, ishidden;
-    ///	if (strlen(directory) > 1) { // TODO
-	///		FilenamesAdd("[..]");
-	///	}
+
 		while (BasicUIReadDir(filename, &isdir, &ishidden)) {
 			char *filename2;
 
@@ -857,14 +837,14 @@ static void GetDirectory(const char *directory)
 			if (isdir) {
 				/* add directories as [dir] */
 				size_t len = strlen(filename);
-				filename2 = (char *) Util_malloc(len + 3, "GetDirectory 2");
+				filename2 = (char *) Util_malloc(len + 3);
 				memcpy(filename2 + 1, filename, len);
 				filename2[0] = '[';
 				filename2[len + 1] = ']';
 				filename2[len + 2] = '\0';
 			}
 			else
-				filename2 = Util_strdup(filename, "GetDirectory 3");
+				filename2 = Util_strdup(filename);
 
 			FilenamesAdd(filename2);
 		}
@@ -1298,12 +1278,10 @@ static void BasicUIInfoScreen(const char *title, const char *message)
 
 static void BasicUIInit(void)
 {
-#ifdef charset.h_regenerate
 	if (!initialised) {
 		MEMORY_GetCharset(charset);
 		initialised = TRUE;
 	}
-#endif
 }
 
 UI_tDriver UI_BASIC_driver = {

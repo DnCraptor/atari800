@@ -36,8 +36,6 @@
 #include "util.h"
 #include <stdlib.h>
 
-#include "ff.h"
-
 #ifdef PBI_DEBUG
 #define D(a) a
 #else
@@ -62,13 +60,10 @@ static UBYTE bb_PCR = 0; /* VIA Peripheral control register*/
 static int bb_scsi_enabled = FALSE;
 static char bb_scsi_disk_filename[FILENAME_MAX] = Util_FILENAME_NOT_SET;
 
-static FIL bb_disk;
-static FIL bb_scsi_disk;
-
 static void init_bb(void)
 {
-	FIL *bbfp;
-	bbfp = fopen(&bb_disk, bb_rom_filename, FA_READ);
+	FILE *bbfp;
+	bbfp = fopen(bb_rom_filename,"rb");
 	bb_rom_size = Util_flen(bbfp);
 	fclose(bbfp);
 	if (bb_rom_size != 0x10000 && bb_rom_size != 0x4000) {
@@ -76,7 +71,7 @@ static void init_bb(void)
 		return;
 	}
 	free(bb_rom);
-	bb_rom = (UBYTE *)Util_malloc(bb_rom_size, "init_bb rom");
+	bb_rom = (UBYTE *)Util_malloc(bb_rom_size);
 	if (!Atari800_LoadImage(bb_rom_filename, bb_rom, bb_rom_size)) {
 		free(bb_rom);
 		bb_rom = NULL;
@@ -86,7 +81,7 @@ static void init_bb(void)
 	PBI_BB_enabled = TRUE;
 	if (PBI_SCSI_disk != NULL) fclose(PBI_SCSI_disk);
 	if (!Util_filenamenotset(bb_scsi_disk_filename)) {
-		PBI_SCSI_disk = fopen(&bb_scsi_disk, bb_scsi_disk_filename, FA_READ | FA_WRITE);
+		PBI_SCSI_disk = fopen(bb_scsi_disk_filename, "rb+");
 		if (PBI_SCSI_disk == NULL) {
 			Log_print("Error opening BB SCSI disk image:%s", bb_scsi_disk_filename);
 		}
@@ -99,7 +94,7 @@ static void init_bb(void)
 		PBI_SCSI_BSY = TRUE; /* makes BB give up easier? */
 	}
 	free(bb_ram);
-	bb_ram = (UBYTE *)Util_malloc(BB_RAM_SIZE, "init_bb ram");
+	bb_ram = (UBYTE *)Util_malloc(BB_RAM_SIZE);
 	memset(bb_ram,0,BB_RAM_SIZE);
 }
 
@@ -143,7 +138,7 @@ int PBI_BB_ReadConfig(char *string, char *ptr)
 	return TRUE; /* matched something */
 }
 
-void PBI_BB_WriteConfig(FIL *fp)
+void PBI_BB_WriteConfig(FILE *fp)
 {
 	fprintf(fp, "BLACK_BOX_ROM=%s\n", bb_rom_filename);
 	if (!Util_filenamenotset(bb_scsi_disk_filename)) {
