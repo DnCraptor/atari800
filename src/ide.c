@@ -75,6 +75,9 @@
 #ifdef HAVE_INTTYPES_H
 #  include <inttypes.h>
 #endif
+#ifndef PRId64
+#  define PRId64 "lld"
+#endif
 #include <stdlib.h>
 #include <errno.h>
 #ifdef HAVE_UNISTD_H

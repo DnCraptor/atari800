@@ -34,6 +34,9 @@
 #include "platform.h"
 #include "pokey.h"
 #include "libatari800/statesav.h"
+#ifdef USB_HID
+#include "usbhid.h"
+#endif
 
 static int lastkey = -1, key_control = 0;
 
@@ -44,6 +47,10 @@ int PLATFORM_Keyboard(void)
 {
 	int shiftctrl = 0;
 	int keycode = 0;
+
+#ifdef USB_HID
+	usbhid_task(); /* deliver USB keyboard events (emulation and UI loops) */
+#endif
 
 	input_template_t *input = LIBATARI800_Input_array;
 

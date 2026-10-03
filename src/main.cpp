@@ -29,6 +29,9 @@ extern "C" {
 #include "statesav.h"
 #include "util_Wii_Joy.h"
 }
+#ifdef USB_HID
+#include "usbhid.h"
+#endif
 
 #ifdef PICO_RP2350
 #include <hardware/regs/qmi.h>
@@ -951,6 +954,9 @@ int main() {
     sound_lock = spin_lock_instance(spin_lock_claim_unused(true));
     keyboard_init();
     keyboard_send(0xFF);
+#ifdef USB_HID
+    usbhid_init();
+#endif
     nespad_begin(clock_get_hz(clk_sys) / 1000, NES_GPIO_CLK, NES_GPIO_DATA, NES_GPIO_LAT);
 
     nespad_read();
@@ -963,7 +969,7 @@ int main() {
     }
 
     init_fs(); // TODO: psram replacement (pagefile)
-    #ifndef MURM2
+    #if !defined(MURM2) && !defined(PICO_PC)
     init_psram();
     #endif
 
@@ -992,7 +998,9 @@ int main() {
         gpio_put(PICO_DEFAULT_LED_PIN, false);
     }
 
+#ifdef BEEPER_PIN
     PWM_init_pin(BEEPER_PIN, (1 << 8) - 1);
+#endif
 #ifdef SOUND
     PWM_init_pin(PWM_PIN0, (1 << 8) - 1);
     PWM_init_pin(PWM_PIN1, (1 << 8) - 1);

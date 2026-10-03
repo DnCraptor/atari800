@@ -23,10 +23,19 @@ set(CPU_MHZ 378)
 
 #set(m1p2_launcher ON)
 #set(M2 ON)
+# Olimex RP2040-PICO-PC + Pico 2 (PCp2)
+set(PICO_PC ON)
 set(HDMI ON)
 
+if (PICO_PC)
+    # USB HID keyboard on the Pico 2 native USB port (TinyUSB host)
+    set(USB_HID ON)
+endif()
+
 SET(PROJECT_NAME p2-atari800)
-if (M2)
+if (PICO_PC)
+    SET(PROJECT_NAME "PC${PROJECT_NAME}")
+elseif (M2)
     SET(PROJECT_NAME "m2${PROJECT_NAME}")
 else()
     SET(PROJECT_NAME "m1${PROJECT_NAME}")
@@ -54,6 +63,9 @@ add_subdirectory(drivers/fatfs)
 add_subdirectory(drivers/psram)
 add_subdirectory(drivers/sdcard)
 add_subdirectory(drivers/graphics)
+if (USB_HID)
+    add_subdirectory(drivers/usbhid)
+endif ()
 if (HDMI)
     add_subdirectory(drivers/hdmi)
 else ()
@@ -106,10 +118,19 @@ else ()
     target_link_libraries(${PROJECT_NAME} PRIVATE vga-nextgen)
 endif ()
 
+if (USB_HID)
+    target_link_libraries(${PROJECT_NAME} PRIVATE usbhid)
+    target_compile_definitions(${PROJECT_NAME} PRIVATE USB_HID=1)
+    # drivers/usb holds a device-mode tusb_config.h; keep it off the include path
+    target_include_directories(${PROJECT_NAME} PRIVATE
+            ${CMAKE_CURRENT_SOURCE_DIR}/src
+    )
+else ()
 target_include_directories(${PROJECT_NAME} PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/src
         ${CMAKE_CURRENT_SOURCE_DIR}/drivers/usb
 )
+endif ()
 
 if (PICO_CYW43_SUPPORTED)
     target_link_libraries(${PROJECT_NAME} pico_cyw43_arch_none)
@@ -170,7 +191,58 @@ target_compile_definitions(${PROJECT_NAME} PRIVATE
         HAVE_OPENDIR=1
 )
 
-if (M2)
+if (PICO_PC)
+    # Pinout as in the other PCp2 builds (pico-nes, pico-z26, murmapple)
+    target_compile_definitions(${PROJECT_NAME} PRIVATE
+        PICO_PC=1
+        # HDMI: CLK 12/13, D0 14/15, D1 16/17, D2 18/19 (R/G lanes swapped in hdmi.c)
+        HDMI_BASE_PIN=12
+        VGA_BASE_PIN=12
+
+        # TFT (not present on the board, defines are needed for the build only)
+        TFT_CS_PIN=12
+        TFT_RST_PIN=14
+        TFT_LED_PIN=15
+        TFT_DC_PIN=16
+        TFT_DATA_PIN=18
+        TFT_CLK_PIN=19
+
+        # on-board microSD (SPI0)
+        SDCARD_PIN_SPI0_SCK=6
+        SDCARD_PIN_SPI0_MOSI=7
+        SDCARD_PIN_SPI0_MISO=4
+        SDCARD_PIN_SPI0_CS=22
+
+        # PS2 keyboard
+        KBD_CLOCK_PIN=0
+        KBD_DATA_PIN=1
+
+        # NES Gamepad on UEXT
+        NES_GPIO_CLK=8
+        NES_GPIO_LAT=9
+        NES_GPIO_DATA=20
+
+        # Wii joystick is not used on PCp2 (USE_WII is not set); pins are
+        # defined for the build only
+        WII_SDA_PIN=8
+        WII_SCL_PIN=9
+
+        # PSRAM driver is built but init_psram() is not called on PCp2:
+        # GPIO18..21 are taken by HDMI (same approach as MURM2)
+        PSRAM_SPINLOCK=1
+        PSRAM_ASYNC=1
+        PSRAM_PIN_CS=18
+        PSRAM_PIN_SCK=19
+        PSRAM_PIN_MOSI=20
+        PSRAM_PIN_MISO=21
+
+        # no tape input (GPIO22 is the SD card CS) and no separate beeper
+
+        # analog stereo output: right GPIO27, left GPIO28 (different PWM slices)
+        PWM_PIN0=27
+        PWM_PIN1=28
+    )
+elseif (M2)
     target_compile_definitions(${PROJECT_NAME} PRIVATE
         MURM2=1
         # VGA 8 pins starts from pin:
