@@ -60,7 +60,7 @@ int	vsprintf (char *__restrict, const char *__restrict, __VALIST)
 void Log_print(const char *format, ...)
 {
 	va_list args;
-	char buffer[8192];
+	static char buffer[8192]; /* static: too big for the core0 stack */
 
 	va_start(args, format);
 #ifdef HAVE_VSNPRINTF

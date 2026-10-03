@@ -374,7 +374,8 @@ static void YUV2RGB(double const yuv_table[256*5])
 
 void COLOURS_PAL_Update()
 {
-	double yuv_table[256*5];
+	/* static: 10 KB does not fit the 2 KB core0 stack (overflows into core1 stack) */
+	static double yuv_table[256*5];
 	COLOURS_PAL_GetYUV(yuv_table);
 	YUV2RGB(yuv_table);
 }

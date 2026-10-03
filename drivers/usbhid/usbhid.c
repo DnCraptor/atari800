@@ -74,6 +74,11 @@ static void send_xt(uint8_t code, bool release) {
         handleScancode(release ? (uint32_t)(code | 0x80) : (uint32_t)code);
 }
 
+/* Pause/Break: dedicated codes understood by handleScancode() (Atari BREAK) */
+static void send_pause(bool release) {
+    handleScancode(release ? 0xE19D : 0xE11D);
+}
+
 static void process_kbd_report(hid_keyboard_report_t const *r) {
     uint8_t changed = r->modifier ^ prev_report.modifier;
     for (int b = 0; b < 8; b++) {
@@ -83,13 +88,17 @@ static void process_kbd_report(hid_keyboard_report_t const *r) {
     /* releases first, then presses */
     for (int i = 0; i < 6; i++) {
         uint8_t k = prev_report.keycode[i];
-        if (k && !report_has_key(r, k))
-            send_xt(hid_to_xt[k], true);
+        if (k && !report_has_key(r, k)) {
+            if (k == HID_KEY_PAUSE) send_pause(true);
+            else send_xt(hid_to_xt[k], true);
+        }
     }
     for (int i = 0; i < 6; i++) {
         uint8_t k = r->keycode[i];
-        if (k > 3 /* 1..3: rollover/POST/undefined errors */ && !report_has_key(&prev_report, k))
-            send_xt(hid_to_xt[k], false);
+        if (k > 3 /* 1..3: rollover/POST/undefined errors */ && !report_has_key(&prev_report, k)) {
+            if (k == HID_KEY_PAUSE) send_pause(false);
+            else send_xt(hid_to_xt[k], false);
+        }
     }
     prev_report = *r;
 }

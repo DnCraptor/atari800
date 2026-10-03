@@ -1656,7 +1656,7 @@ int SIO_GetByte(void)
 #if !defined(BASIC) && !defined(__PLUS)
 int SIO_RotateDisks(void)
 {
-	char tmp_filenames[SIO_MAX_DRIVES][FILENAME_MAX];
+	static char tmp_filenames[SIO_MAX_DRIVES][FILENAME_MAX]; /* static: 2 KB, too big for the core0 stack */
 	int i;
 	int bSuccess = TRUE;
 

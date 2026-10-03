@@ -98,6 +98,15 @@ bool __time_critical_func(handleScancode)(const uint32_t ps2scancode) {
         input_map.option = 0;
         input_map.start = 0;
     } else {
+        /* Pause/Break -> Atari BREAK (0xE11D down, 0xE19D up; from ps2.c and usbhid.c) */
+        if (ps2scancode == 0xE11D) {
+            input_map.special = (UBYTE)(-AKEY_BREAK);
+            return true;
+        }
+        if (ps2scancode == 0xE19D) {
+            input_map.special = 0;
+            return true;
+        }
         if ((ps2scancode & 0xFF00) == 0xE000) {
             switch ((uint8_t)ps2scancode & 0xFF) {
                 case 0x1d: // rCnt down
@@ -980,6 +989,8 @@ int main() {
 //        "-ntsc",
         NULL,
     };
+    /* platform framebuffer: Screen_Initialise() skips its own 92 KB malloc */
+    Screen_atari = (UINT*)__screen;
     printf("libatari800_init");
     libatari800_init(-1, test_args);
     printf("libatari800_clear_input_array");
@@ -1009,8 +1020,6 @@ int main() {
     //пин ввода звука
     inInit(LOAD_WAV_PIO);
 #endif
-
-    Screen_atari = (UINT*)__screen;
 
 #ifdef SOUND
     int hz = libatari800_get_sound_frequency();
