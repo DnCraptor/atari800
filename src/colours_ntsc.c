@@ -203,7 +203,8 @@ static void YIQ2RGB(const double yiq_table[768])
 
 void COLOURS_NTSC_Update()
 {
-	double yiq_table[768];
+	/* static: 6 KB does not fit the 2 KB core0 stack (overflows into core1 stack) */
+	static double yiq_table[768];
 	UpdateYIQTable(yiq_table, colorburst_angle + COLOURS_NTSC_setup.hue * M_PI, COLOURS_NTSC_setup.saturation);
 	YIQ2RGB(yiq_table);
 }

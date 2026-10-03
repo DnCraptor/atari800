@@ -211,9 +211,27 @@ uint8_t ps2_to_xt_2(uint32_t val) {
     return 0;
 }
 
+extern bool handleScancode(uint32_t ps2scancode);
+
+/* Pause/Break sends only a make sequence (E1 14 77 E1 F0 14 F0 77);
+   the release is generated 100 ms later. */
+static int64_t pause_release_cb(alarm_id_t id, void *user_data) {
+    handleScancode(0xE19D);
+    return 0;
+}
+
 uint32_t ps2getcode() {
     uint32_t retval, i, len;
     if (!ps2bufsize) return 0;
+    if (ps2buffer[0] == 0xE1) {
+        if (ps2bufsize < 8) return 0;
+        for (i = 8; i < KBD_BUFFER_SIZE; i++) {
+            ps2buffer[i - 8] = ps2buffer[i];
+        }
+        ps2bufsize -= 8;
+        add_alarm_in_ms(100, pause_release_cb, NULL, true);
+        return 0xE11D;
+    }
     switch (ps2buffer[0]) {
         case 0xF0:
         case 0xE0:
