@@ -1615,7 +1615,7 @@ static void Devices_H_FileLength(void)
 		if (h_lastop[h_iocb] == 'r' && h_lastbyte[h_iocb] != EOF)
 			fseek(h_fp[h_iocb], -1, SEEK_CUR);
 
-		binf = h_fp[h_iocb];
+		binf = &h_fp[h_iocb];
 		Devices_H_LoadProceed(TRUE);
 		binf = &binfile;
 		h_lastop[h_iocb] = 'b';
