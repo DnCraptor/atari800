@@ -28,6 +28,9 @@ extern "C" {
 #include "input.h"
 #include "statesav.h"
 #include "util_Wii_Joy.h"
+#ifdef AUDIO_I2S
+#include "audio.h"
+#endif
 }
 #ifdef USB_HID
 #include "usbhid.h"
@@ -839,19 +842,12 @@ void increase_volume(void) {
     if (vol > 8) vol = 8;
 }
 
-static bool __not_in_flash_func(snd_timer_callback)(repeating_timer_t *rt)
+/* Reads one frame (one or two unsigned 8-bit samples) from the sound buffers.
+ * Returns false when no data is ready. Shared by the PWM timer callback and
+ * the I2S pump; the buffers are filled by PLATFORM_SoundWrite. */
+static bool __not_in_flash_func(snd_read_frame)(uint8_t *s0, uint8_t *s1)
 {
-    static uint16_t outL = 128;
-    static uint16_t outR = 128;
-
-    pwm_set_gpio_level(PWM_PIN0, outR);
-    pwm_set_gpio_level(PWM_PIN1, outL);
-
-    if (!Sound_enabled || paused)
-        return true;
-
     const uint32_t frame_bytes = (uint32_t)snd_channels; // 8-bit unsigned: 1 байт на канал
-    uint16_t vol_scale = (uint16_t)(vol * 32);
 
     // Быстрый путь: есть данные в read-буфере?
     uint8_t ri = snd_ri;
@@ -883,29 +879,80 @@ static bool __not_in_flash_func(snd_timer_callback)(repeating_timer_t *rt)
         ready = snd_ready[ri];
         rpos  = snd_rpos;
         if (ready < frame_bytes || rpos + frame_bytes > ready) {
-            return true; // всё ещё нет данных
+            return false; // всё ещё нет данных
         }
     }
 
     // Читаем фрейм без lock
-    uint8_t s0 = snd_buf[ri][rpos++];
-    uint8_t s1 = s0;
+    *s0 = snd_buf[ri][rpos++];
+    *s1 = *s0;
     if (snd_channels == 2) {
-        s1 = snd_buf[ri][rpos++];
+        *s1 = snd_buf[ri][rpos++];
     }
     snd_rpos = rpos;
 
-    if (snd_channels == 1) {
-        outL = (s0 * vol_scale) >> 8;
-        outR = outL;
-    } else {
+    return true;
+}
+
+#ifndef AUDIO_I2S
+static bool __not_in_flash_func(snd_timer_callback)(repeating_timer_t *rt)
+{
+    static uint16_t outL = 128;
+    static uint16_t outR = 128;
+
+    pwm_set_gpio_level(PWM_PIN0, outR);
+    pwm_set_gpio_level(PWM_PIN1, outL);
+
+    if (!Sound_enabled || paused)
+        return true;
+
+    uint8_t s0, s1;
+    if (snd_read_frame(&s0, &s1)) {
+        uint16_t vol_scale = (uint16_t)(vol * 32);
         outL = (s0 * vol_scale) >> 8;
         outR = (s1 * vol_scale) >> 8;
     }
-
     return true;
 }
 #endif
+
+#ifdef AUDIO_I2S
+/* z0p2: I2S DAC (PCM5102A) on PIO1. No timer: the main loop pumps the frames
+ * produced by libatari800_next_frame() into the DMA ping-pong in chunks, and
+ * i2s_dma_write() blocks until the previous chunk has played, so emulation
+ * is paced by the audio clock. Samples are signed 16-bit, centred on 0. */
+#define I2S_CHUNK_FRAMES 512
+static i2s_config_t i2s_cfg;
+static int16_t i2s_chunk[I2S_CHUNK_FRAMES * 2];
+static uint32_t i2s_fill = 0;
+
+static void i2s_set_rate(int hz)
+{
+    uint32_t divider = clock_get_hz(clk_sys) * 4 / hz;
+    pio_sm_set_clkdiv_int_frac(i2s_cfg.pio, i2s_cfg.sm, divider >> 8u, divider & 0xffu);
+}
+
+static void i2s_pump(void)
+{
+    if (!Sound_enabled || paused)
+        return;
+
+    uint8_t a, b;
+    while (snd_read_frame(&a, &b)) {
+        int32_t vs = vol * 32;                      // 0..256, as in the PWM path
+        int32_t l = (((int32_t)a - 128) * vs) >> 8; // -128..127
+        int32_t r = (((int32_t)b - 128) * vs) >> 8;
+        /* word = (L << 16) | R, as audio_i2s.pio expects (left in the high half) */
+        i2s_chunk[2 * i2s_fill]     = (int16_t)(r << 8);
+        i2s_chunk[2 * i2s_fill + 1] = (int16_t)(l << 8);
+        if (++i2s_fill == I2S_CHUNK_FRAMES) {
+            i2s_dma_write(&i2s_cfg, i2s_chunk);
+            i2s_fill = 0;
+        }
+    }
+}
+#endif
+#endif /* SOUND */
 
 #include "f_util.h"
 static FATFS fatfs;
@@ -978,7 +1025,7 @@ int main() {
     }
 
     init_fs(); // TODO: psram replacement (pagefile)
-    #if !defined(MURM2) && !defined(PICO_PC)
+    #if !defined(MURM2) && !defined(PICO_PC) && !defined(BOARD_Z0)
     init_psram();
     #endif
 
@@ -1012,7 +1059,7 @@ int main() {
 #ifdef BEEPER_PIN
     PWM_init_pin(BEEPER_PIN, (1 << 8) - 1);
 #endif
-#ifdef SOUND
+#if defined(SOUND) && !defined(AUDIO_I2S)
     PWM_init_pin(PWM_PIN0, (1 << 8) - 1);
     PWM_init_pin(PWM_PIN1, (1 << 8) - 1);
 #endif
@@ -1024,25 +1071,44 @@ int main() {
 #ifdef SOUND
     int hz = libatari800_get_sound_frequency();
     snd_channels = libatari800_get_num_sound_channels();
+#ifdef AUDIO_I2S
+    i2s_cfg = i2s_get_default_config();
+    i2s_cfg.sample_freq     = hz;
+    i2s_cfg.data_pin        = I2S_DATA_PIN;
+    i2s_cfg.clock_pin_base  = I2S_CLOCK_PIN_BASE;
+    i2s_cfg.pio             = pio1;
+    i2s_cfg.dma_trans_count = I2S_CHUNK_FRAMES;
+    i2s_cfg.volume          = 0;
+    i2s_init(&i2s_cfg);
+#else
     // negative timeout means exact delay (rather than delay between callbacks)
     if (!add_repeating_timer_us(-1000000 / hz, snd_timer_callback, NULL, &timer)) {
         printf("Failed to add timer");
     }
+#endif
 #endif
 
     while(true) {
 #ifdef SOUND
         int hz_new = libatari800_get_sound_frequency();
         if (hz_new != hz) {
+#ifdef AUDIO_I2S
+            hz = hz_new;
+            i2s_set_rate(hz);
+#else
             cancel_repeating_timer(&timer);
             hz = hz_new;
             if (!add_repeating_timer_us(-1000000 / hz, snd_timer_callback, NULL, &timer)) {
 		        printf("Failed to update timer");
 	        }
+#endif
         }
         snd_channels = libatari800_get_num_sound_channels();
 #endif
         libatari800_next_frame(&input_map);
+#ifdef AUDIO_I2S
+        i2s_pump();
+#endif
         tight_loop_contents();
     }
 

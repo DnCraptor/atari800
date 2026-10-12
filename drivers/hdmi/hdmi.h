@@ -17,10 +17,20 @@ extern "C" {
 #define HDMI_BASE_PIN (6)
 #endif
 
+/* Waveshare RP2350-PiZero (BOARD_Z0) wires the mini-HDMI connector with the
+ * data lanes first (GPIO32..37), clock pair on GPIO38/39, non-inverted diff
+ * pairs and BGR order. Same layout as frank-micro / frank-msx on z0p2. */
+#ifdef BOARD_Z0
+#define HDMI_PIN_invert_diffpairs (0)
+#define HDMI_PIN_RGB_notBGR (0)
+#define beginHDMI_PIN_data (HDMI_BASE_PIN)
+#define beginHDMI_PIN_clk (HDMI_BASE_PIN+6)
+#else
 #define HDMI_PIN_invert_diffpairs (1)
 #define HDMI_PIN_RGB_notBGR (1)
 #define beginHDMI_PIN_data (HDMI_BASE_PIN+2)
 #define beginHDMI_PIN_clk (HDMI_BASE_PIN)
+#endif
 
 #define RGB888(r, g, b) ((r<<16) | (g << 8 ) | b )
 

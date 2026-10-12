@@ -23,13 +23,34 @@ set(CPU_MHZ 378)
 
 #set(m1p2_launcher ON)
 #set(M2 ON)
+
 # Olimex RP2040-PICO-PC + Pico 2 (PCp2)
 #set(PICO_PC ON)
+
+# Waveshare RP2350-PiZero (z0p2): HDMI on GPIO32..39 (mini-HDMI), sound on the
+# I2S DAC module (PCM5102A) on GP10..GP12, USB HID on the native USB port.
+# Build with -DZ0=ON (or set it here); the PCp2 settings below are then off.
+set(Z0 ON)
+
 set(HDMI ON)
 set(USB_HID ON)
 
+if (Z0)
+    set(PICO_PC OFF)
+    # 252 MHz: HDMI PIO divider 1.0 is clean on z0p2; 378 MHz gives snow
+    set(CPU_MHZ 252)
+    # The SDK's pico2 header declares RP2350A (GPIO 0..29 only); the Z0 header
+    # declares RP2350B so GPIO 30..43 (HDMI, microSD) can be used.
+    set(PICO_BOARD_HEADER_DIRS ${CMAKE_CURRENT_LIST_DIR}/boards CACHE PATH "" FORCE)
+    set(PICO_BOARD waveshare_rp2350_pizero CACHE STRING "Board type" FORCE)
+    # z0p2 has a 16 MB flash, as on PCp2
+    set(PICO_FLASH_SIZE_BYTES 16777216 CACHE STRING "" FORCE)
+endif()
+
 SET(PROJECT_NAME p2-atari800)
-if (PICO_PC)
+if (Z0)
+    SET(PROJECT_NAME "z0p2-atari800")
+elseif (PICO_PC)
     SET(PROJECT_NAME "PC${PROJECT_NAME}")
 elseif (M2)
     SET(PROJECT_NAME "m2${PROJECT_NAME}")
@@ -37,7 +58,9 @@ else()
     SET(PROJECT_NAME "m1${PROJECT_NAME}")
 endif()
 set(FLASH_SIZE 4096)
-if (HDMI)
+if (Z0)
+    SET(BUILD_NAME "${PROJECT_NAME}-HDMI-I2S-${CPU_MHZ}MHz-${PACKAGE_VERSION}")
+elseif (HDMI)
     SET(BUILD_NAME "${PROJECT_NAME}-HDMI-PWM-${CPU_MHZ}-${PACKAGE_VERSION}")
 else ()
     SET(BUILD_NAME "${PROJECT_NAME}-VGA-PWM-${CPU_MHZ}-${PACKAGE_VERSION}")
@@ -54,6 +77,9 @@ project(${PROJECT_NAME} C CXX ASM)
 pico_sdk_init()
 
 add_subdirectory(drivers/nespad)
+if (Z0)
+    add_subdirectory(drivers/audio)
+endif ()
 add_subdirectory(drivers/ps2)
 add_subdirectory(drivers/fatfs)
 add_subdirectory(drivers/psram)
@@ -107,6 +133,10 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
 
     stdc++
 )
+
+if (Z0)
+    target_link_libraries(${PROJECT_NAME} PRIVATE audio)
+endif ()
 
 if (HDMI)
     target_link_libraries(${PROJECT_NAME} PRIVATE hdmi)
@@ -187,7 +217,58 @@ target_compile_definitions(${PROJECT_NAME} PRIVATE
         HAVE_OPENDIR=1
 )
 
-if (PICO_PC)
+if (Z0)
+    target_compile_definitions(${PROJECT_NAME} PRIVATE
+        BOARD_Z0=1
+        AUDIO_I2S=1
+        # HDMI: data lanes D0..D2 on GPIO32..37, clock pair on GPIO38/39
+        # (BGR, non-inverted; see BOARD_Z0 in drivers/hdmi/hdmi.h)
+        HDMI_BASE_PIN=32
+        VGA_BASE_PIN=32
+
+        # TFT (not present on the board, defines are needed for the build only)
+        TFT_CS_PIN=12
+        TFT_RST_PIN=14
+        TFT_LED_PIN=15
+        TFT_DC_PIN=16
+        TFT_DATA_PIN=18
+        TFT_CLK_PIN=19
+
+        # microSD on SPI1 (RP2350B pins GP30/31/40, CS GP43)
+        SDCARD_SPI_BUS=spi1
+        SDCARD_PIN_SPI0_SCK=30
+        SDCARD_PIN_SPI0_MOSI=31
+        SDCARD_PIN_SPI0_MISO=40
+        SDCARD_PIN_SPI0_CS=43
+
+        # PS2 keyboard (optional, GP2 CLK / GP3 DATA)
+        KBD_CLOCK_PIN=2
+        KBD_DATA_PIN=3
+
+        # NES/SNES pad on GP4 CLK, GP5 LATCH, GP7 DATA
+        NES_GPIO_CLK=4
+        NES_GPIO_LAT=5
+        NES_GPIO_DATA=7
+
+        # PSRAM is not initialised on z0p2 (see main.cpp); the pins are defined
+        # for the build only and are not connected to anything in this build
+        PSRAM_SPINLOCK=1
+        PSRAM_ASYNC=1
+        PSRAM_PIN_CS=47
+        PSRAM_PIN_SCK=44
+        PSRAM_PIN_MOSI=45
+        PSRAM_PIN_MISO=46
+
+        # Wii joystick is not used on z0p2 (USE_WII is not set); pins are
+        # defined for the build only
+        WII_SDA_PIN=8
+        WII_SCL_PIN=9
+
+        # I2S DAC (PCM5102A): DIN GP10, BCK GP11, LRCK GP12
+        I2S_DATA_PIN=10
+        I2S_CLOCK_PIN_BASE=11
+    )
+elseif (PICO_PC)
     # Pinout as in the other PCp2 builds (pico-nes, pico-z26, murmapple)
     target_compile_definitions(${PROJECT_NAME} PRIVATE
         PICO_PC=1
