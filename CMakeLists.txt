@@ -37,8 +37,8 @@ set(USB_HID ON)
 
 if (Z0)
     set(PICO_PC OFF)
-    # 252 MHz: HDMI PIO divider 1.0 is clean on z0p2; 378 MHz gives snow
-    set(CPU_MHZ 252)
+    # 504 MHz: HDMI PIO divider 2.0 is clean on z0p2; 378 MHz gives broken sync
+    set(CPU_MHZ 504)
     # The SDK's pico2 header declares RP2350A (GPIO 0..29 only); the Z0 header
     # declares RP2350B so GPIO 30..43 (HDMI, microSD) can be used.
     set(PICO_BOARD_HEADER_DIRS ${CMAKE_CURRENT_LIST_DIR}/boards CACHE PATH "" FORCE)
