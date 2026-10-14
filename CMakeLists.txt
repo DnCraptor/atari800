@@ -19,7 +19,7 @@ cmake_minimum_required(VERSION 3.28)
 include(pico_sdk_import.cmake)
 
 set(PACKAGE_VERSION "3.3.1")
-set(CPU_MHZ 378)
+set(CPU_MHZ 504)
 
 #set(m1p2_launcher ON)
 set(M2 ON)
@@ -32,7 +32,7 @@ set(M2 ON)
 # Build with -DZ0=ON (or set it here); the PCp2 settings below are then off.
 #set(Z0 ON)
 
-#set(HDMI ON)
+set(HDMI ON)
 set(USB_HID ON)
 set(I2S ON)
 set(FLASH_SIZE 4096)
