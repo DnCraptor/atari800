@@ -30,6 +30,8 @@ extern "C" {
 #include "util_Wii_Joy.h"
 #ifdef AUDIO_I2S
 #include "audio.h"
+#include <hardware/irq.h>
+#include <hardware/pio.h>
 #endif
 }
 #ifdef USB_HID
@@ -743,6 +745,7 @@ void __time_critical_func(render_core)() {
     __unreachable();
 }
 
+#ifndef AUDIO_I2S
 #define SOUND_BUF_SIZE (8 * 1024)
 static uint8_t  snd_buf[2][SOUND_BUF_SIZE];
 // индексы буферов
@@ -757,9 +760,11 @@ static volatile uint32_t snd_rpos = 0;
 
 // позиция записи в текущем write-буфере (локальная для writer’а, но держим volatile)
 static volatile uint32_t snd_wpos = 0;
+#endif /* !AUDIO_I2S */
 
 static spin_lock_t *sound_lock;
 
+#ifndef AUDIO_I2S
 static inline void snd_try_swap_buffers_locked(void)
 {
     // Если read-буфер пуст (дочитан) и второй буфер готов — меняем
@@ -775,8 +780,11 @@ static inline void snd_try_swap_buffers_locked(void)
     }
 }
 
+#endif /* !AUDIO_I2S */
+
 extern "C" int paused;
 
+#ifndef AUDIO_I2S
 extern "C" void PLATFORM_SoundWrite(const UBYTE *buffer, unsigned int size)
 {
     if (!buffer || size == 0) return;
@@ -826,6 +834,7 @@ extern "C" void PLATFORM_SoundWrite(const UBYTE *buffer, unsigned int size)
         }
     }
 }
+#endif /* !AUDIO_I2S */
 
 #ifdef SOUND
 static repeating_timer_t timer;
@@ -842,9 +851,10 @@ void increase_volume(void) {
     if (vol > 8) vol = 8;
 }
 
+#ifndef AUDIO_I2S
 /* Reads one frame (one or two unsigned 8-bit samples) from the sound buffers.
- * Returns false when no data is ready. Shared by the PWM timer callback and
- * the I2S pump; the buffers are filled by PLATFORM_SoundWrite. */
+ * Returns false when no data is ready. Used by the PWM timer callback; the
+ * buffers are filled by PLATFORM_SoundWrite. */
 static bool __not_in_flash_func(snd_read_frame)(uint8_t *s0, uint8_t *s1)
 {
     const uint32_t frame_bytes = (uint32_t)snd_channels; // 8-bit unsigned: 1 байт на канал
@@ -894,7 +904,6 @@ static bool __not_in_flash_func(snd_read_frame)(uint8_t *s0, uint8_t *s1)
     return true;
 }
 
-#ifndef AUDIO_I2S
 static bool __not_in_flash_func(snd_timer_callback)(repeating_timer_t *rt)
 {
     static uint16_t outL = 128;
@@ -917,14 +926,24 @@ static bool __not_in_flash_func(snd_timer_callback)(repeating_timer_t *rt)
 #endif
 
 #ifdef AUDIO_I2S
-/* z0p2: I2S DAC (PCM5102A) on PIO1. No timer: the main loop pumps the frames
- * produced by libatari800_next_frame() into the DMA ping-pong in chunks, and
- * i2s_dma_write() blocks until the previous chunk has played, so emulation
- * is paced by the audio clock. Samples are signed 16-bit, centred on 0. */
-#define I2S_CHUNK_FRAMES 512
+/* I2S DAC on PIO1 (PCM5102A module on z0p2, TDA1387 on m2p2).
+ *
+ * The PIO state machine is fed from its TX-FIFO-not-full interrupt, i.e. at the
+ * DAC sample clock, so the bit clock never stops. If no samples are ready the
+ * last frame is repeated, as the PWM timer callback does. (The previous
+ * scheme - 512-frame DMA chunks written from the main loop, fed from the 8 KB
+ * double buffer that is only handed over when full - left the DMA idle while
+ * the emulator ran the next frames; the PIO then stalled with the clocks
+ * stopped, which a TDA1387 plays as clicks and dropouts.)
+ *
+ * Samples go through a small ring buffer. PLATFORM_SoundWrite waits for room
+ * in it, so emulation is paced by the audio clock without dropping samples. */
+#define I2S_RING_SIZE 4096u /* bytes, power of two; > 2 video frames of stereo 44.1 kHz */
+static uint8_t i2s_ring[I2S_RING_SIZE];
+static volatile uint32_t i2s_rd = 0; /* free-running, advanced by the IRQ */
+static volatile uint32_t i2s_wr = 0; /* free-running, advanced by PLATFORM_SoundWrite */
 static i2s_config_t i2s_cfg;
-static int16_t i2s_chunk[I2S_CHUNK_FRAMES * 2];
-static uint32_t i2s_fill = 0;
+static uint32_t i2s_last = 0; /* last word sent: (L << 16) | R, signed 16-bit */
 
 static void i2s_set_rate(int hz)
 {
@@ -932,23 +951,60 @@ static void i2s_set_rate(int hz)
     pio_sm_set_clkdiv_int_frac(i2s_cfg.pio, i2s_cfg.sm, divider >> 8u, divider & 0xffu);
 }
 
-static void i2s_pump(void)
+static void __not_in_flash_func(i2s_fifo_irq)(void)
 {
-    if (!Sound_enabled || paused)
-        return;
-
-    uint8_t a, b;
-    while (snd_read_frame(&a, &b)) {
-        int32_t vs = vol * 32;                      // 0..256, as in the PWM path
-        int32_t l = (((int32_t)a - 128) * vs) >> 8; // -128..127
-        int32_t r = (((int32_t)b - 128) * vs) >> 8;
-        /* word = (L << 16) | R, as audio_i2s.pio expects (left in the high half) */
-        i2s_chunk[2 * i2s_fill]     = (int16_t)(r << 8);
-        i2s_chunk[2 * i2s_fill + 1] = (int16_t)(l << 8);
-        if (++i2s_fill == I2S_CHUNK_FRAMES) {
-            i2s_dma_write(&i2s_cfg, i2s_chunk);
-            i2s_fill = 0;
+    const uint32_t ch = (uint32_t)snd_channels;
+    while (!pio_sm_is_tx_fifo_full(i2s_cfg.pio, i2s_cfg.sm)) {
+        uint32_t rd = i2s_rd;
+        if (Sound_enabled && !paused && (uint32_t)(i2s_wr - rd) >= ch) {
+            uint8_t a = i2s_ring[rd & (I2S_RING_SIZE - 1)];
+            uint8_t b = (ch == 2) ? i2s_ring[(rd + 1) & (I2S_RING_SIZE - 1)] : a;
+            i2s_rd = rd + ch;
+            int32_t vs = vol * 32;                      // 0..256, as in the PWM path
+            int32_t l = (((int32_t)a - 128) * vs) >> 8; // -128..127
+            int32_t r = (((int32_t)b - 128) * vs) >> 8;
+            /* left in the high half, as audio_i2s.pio expects */
+            i2s_last = ((uint32_t)(uint16_t)(int16_t)(l << 8) << 16) | (uint16_t)(int16_t)(r << 8);
         }
+        pio_sm_put(i2s_cfg.pio, i2s_cfg.sm, i2s_last);
+    }
+}
+
+static void i2s_start_irq(void)
+{
+    PIO pio = i2s_cfg.pio;
+    uint sm = i2s_cfg.sm;
+    /* 8-word TX FIFO: more slack for the interrupt latency */
+    pio_sm_set_enabled(pio, sm, false);
+    hw_set_bits(&pio->sm[sm].shiftctrl, PIO_SM0_SHIFTCTRL_FJOIN_TX_BITS);
+    pio_sm_clear_fifos(pio, sm);
+    const uint irq = (pio == pio0) ? PIO0_IRQ_0 : PIO1_IRQ_0;
+    irq_set_exclusive_handler(irq, i2s_fifo_irq);
+    irq_set_priority(irq, PICO_HIGHEST_IRQ_PRIORITY);
+    pio_set_irq0_source_enabled(pio, (pio_interrupt_source_t)(pis_sm0_tx_fifo_not_full + sm), true);
+    irq_set_enabled(irq, true);
+    pio_sm_set_enabled(pio, sm, true);
+}
+
+extern "C" void PLATFORM_SoundWrite(const UBYTE *buffer, unsigned int size)
+{
+    if (!buffer || size == 0) return;
+    while (size) {
+        uint32_t wr = i2s_wr;
+        uint32_t space = I2S_RING_SIZE - (uint32_t)(wr - i2s_rd);
+        if (space == 0) {
+            if (!Sound_enabled || paused)
+                return;              // nobody reads the ring now: drop
+            tight_loop_contents();   // wait for the DAC: paces emulation
+            continue;
+        }
+        uint32_t n = size < space ? size : space;
+        for (uint32_t i = 0; i < n; i++)
+            i2s_ring[(wr + i) & (I2S_RING_SIZE - 1)] = buffer[i];
+        __dmb();
+        i2s_wr = wr + n;
+        buffer += n;
+        size -= n;
     }
 }
 #endif
@@ -1077,9 +1133,10 @@ int main() {
     i2s_cfg.data_pin        = I2S_DATA_PIN;
     i2s_cfg.clock_pin_base  = I2S_CLOCK_PIN_BASE;
     i2s_cfg.pio             = pio1;
-    i2s_cfg.dma_trans_count = I2S_CHUNK_FRAMES;
+    i2s_cfg.dma_trans_count = 1;   // DMA is not started: i2s_fifo_irq() feeds the FIFO
     i2s_cfg.volume          = 0;
     i2s_init(&i2s_cfg);
+    i2s_start_irq();
 #else
     // negative timeout means exact delay (rather than delay between callbacks)
     if (!add_repeating_timer_us(-1000000 / hz, snd_timer_callback, NULL, &timer)) {
@@ -1106,9 +1163,6 @@ int main() {
         snd_channels = libatari800_get_num_sound_channels();
 #endif
         libatari800_next_frame(&input_map);
-#ifdef AUDIO_I2S
-        i2s_pump();
-#endif
         tight_loop_contents();
     }
 

@@ -32,7 +32,7 @@ set(M2 ON)
 # Build with -DZ0=ON (or set it here); the PCp2 settings below are then off.
 #set(Z0 ON)
 
-set(HDMI ON)
+#set(HDMI ON)
 set(USB_HID ON)
 set(I2S ON)
 set(FLASH_SIZE 4096)
