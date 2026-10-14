@@ -22,7 +22,7 @@ set(PACKAGE_VERSION "3.3.1")
 set(CPU_MHZ 378)
 
 #set(m1p2_launcher ON)
-#set(M2 ON)
+set(M2 ON)
 
 # Olimex RP2040-PICO-PC + Pico 2 (PCp2)
 #set(PICO_PC ON)
@@ -30,10 +30,12 @@ set(CPU_MHZ 378)
 # Waveshare RP2350-PiZero (z0p2): HDMI on GPIO32..39 (mini-HDMI), sound on the
 # I2S DAC module (PCM5102A) on GP10..GP12, USB HID on the native USB port.
 # Build with -DZ0=ON (or set it here); the PCp2 settings below are then off.
-set(Z0 ON)
+#set(Z0 ON)
 
-set(HDMI ON)
+#set(HDMI ON)
 set(USB_HID ON)
+set(I2S ON)
+set(FLASH_SIZE 4096)
 
 if (Z0)
     set(PICO_PC OFF)
@@ -45,11 +47,12 @@ if (Z0)
     set(PICO_BOARD waveshare_rp2350_pizero CACHE STRING "Board type" FORCE)
     # z0p2 has a 16 MB flash, as on PCp2
     set(PICO_FLASH_SIZE_BYTES 16777216 CACHE STRING "" FORCE)
+    set(FLASH_SIZES 16384)
 endif()
 
 SET(PROJECT_NAME p2-atari800)
 if (Z0)
-    SET(PROJECT_NAME "z0p2-atari800")
+    SET(PROJECT_NAME "z0${PROJECT_NAME}")
 elseif (PICO_PC)
     SET(PROJECT_NAME "PC${PROJECT_NAME}")
 elseif (M2)
@@ -57,14 +60,16 @@ elseif (M2)
 else()
     SET(PROJECT_NAME "m1${PROJECT_NAME}")
 endif()
-set(FLASH_SIZE 4096)
-if (Z0)
-    SET(BUILD_NAME "${PROJECT_NAME}-HDMI-I2S-${CPU_MHZ}MHz-${PACKAGE_VERSION}")
-elseif (HDMI)
-    SET(BUILD_NAME "${PROJECT_NAME}-HDMI-PWM-${CPU_MHZ}-${PACKAGE_VERSION}")
+if (HDMI)
+    SET(BUILD_NAME "${PROJECT_NAME}-HDMI")
 else ()
-    SET(BUILD_NAME "${PROJECT_NAME}-VGA-PWM-${CPU_MHZ}-${PACKAGE_VERSION}")
+    SET(BUILD_NAME "${PROJECT_NAME}-VGA")
 endif ()
+if (I2S)
+    SET(BUILD_NAME "${BUILD_NAME}-I2S-${CPU_MHZ}-${PACKAGE_VERSION}")
+else ()
+    SET(BUILD_NAME "${BUILD_NAME}-PWM-${CPU_MHZ}-${PACKAGE_VERSION}")
+endif()
 
 set(OUTPUT_DIR "${CMAKE_SOURCE_DIR}/bin/${CMAKE_BUILD_TYPE}")
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${OUTPUT_DIR}")
@@ -77,7 +82,7 @@ project(${PROJECT_NAME} C CXX ASM)
 pico_sdk_init()
 
 add_subdirectory(drivers/nespad)
-if (Z0)
+if (I2S)
     add_subdirectory(drivers/audio)
 endif ()
 add_subdirectory(drivers/ps2)
@@ -134,7 +139,7 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
     stdc++
 )
 
-if (Z0)
+if (I2S)
     target_link_libraries(${PROJECT_NAME} PRIVATE audio)
 endif ()
 
@@ -217,10 +222,13 @@ target_compile_definitions(${PROJECT_NAME} PRIVATE
         HAVE_OPENDIR=1
 )
 
+if (I2S)
+    target_compile_definitions(${PROJECT_NAME} PRIVATE AUDIO_I2S=1)
+endif ()
+
 if (Z0)
     target_compile_definitions(${PROJECT_NAME} PRIVATE
         BOARD_Z0=1
-        AUDIO_I2S=1
         # HDMI: data lanes D0..D2 on GPIO32..37, clock pair on GPIO38/39
         # (BGR, non-inverted; see BOARD_Z0 in drivers/hdmi/hdmi.h)
         HDMI_BASE_PIN=32
@@ -368,6 +376,9 @@ elseif (M2)
         BEEPER_PIN=9 #
         PWM_PIN0=10 #
         PWM_PIN1=11
+
+        I2S_DATA_PIN=9
+        I2S_CLOCK_PIN_BASE=10
     )
 else ()
     target_compile_definitions(${PROJECT_NAME} PRIVATE
@@ -418,6 +429,9 @@ else ()
         PWM_PIN0=26
         PWM_PIN1=27
         BEEPER_PIN=28
+
+        I2S_DATA_PIN=26
+        I2S_CLOCK_PIN_BASE=27
     )
 endif()
 
